@@ -2,29 +2,39 @@
 name: jetty-setup
 description: Set up Jetty for the first time. Guides the user through account creation, API key configuration, provider selection (OpenAI or Gemini), and runs a demo "Cute Feline Detector" workflow. Use when the user says "set up jetty", "configure jetty", "jetty setup", "get started with jetty", or "install jetty".
 argument-hint:
-allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch, AskUserQuestion
+allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---
 
 # Jetty Setup Wizard
 
 You are guiding a user through first-time Jetty setup. The goal is to get them from zero to running their first AI workflow in under 5 minutes. Follow these steps IN ORDER. Be friendly and concise.
 
+## Security Guidelines
+
+- **Never echo, print, or log API tokens or keys** in output. Use redacted forms (e.g., `mlc_...xxxx`) when referring to tokens in messages to the user.
+- **Never store tokens in project files** like `CLAUDE.md` that may be committed to version control. Use the user-scoped config directory `~/.config/jetty/`.
+- **Pipe sensitive data via stdin** to avoid exposing tokens in process argument lists. Use `cat <<'BODY' | curl --data-binary @- ...` patterns instead of `-d '{...key...}'`.
+- **Confirm with the user before each API call** that sends credentials to an external service.
+- **Never store provider API keys locally** — they are sent directly to the Jetty API for server-side storage and are not written to any local file.
+
 ---
 
 ## Step 1: Check for Existing Token
 
-First, check if a Jetty API token already exists:
+Check if a Jetty API token already exists:
 
-1. Read the project's `CLAUDE.md` file (if it exists) and look for a token starting with `mlc_`
-2. If found, validate it:
+1. Check `~/.config/jetty/token` for a stored token
+2. Also check the project's `CLAUDE.md` file (for backward compatibility) for a token starting with `mlc_`
+3. If found in `CLAUDE.md` but not in `~/.config/jetty/token`, migrate it (see "Save the Token" below) and remove it from `CLAUDE.md`
+4. If found, validate it:
 
 ```bash
-TOKEN="mlc_THE_TOKEN_YOU_FOUND"
+TOKEN="$(cat ~/.config/jetty/token 2>/dev/null)"
 curl -s -H "Authorization: Bearer $TOKEN" "https://dock.jetty.io/api/v1/collections/" | head -c 200
 ```
 
-If the response contains collection data (not an error), the token is valid. Tell the user:
-> "Found a valid Jetty token in your project. You're already connected!"
+If the response contains collection data (not an error), the token is valid. Tell the user (with token redacted):
+> "Found a valid Jetty token (`mlc_...{last 4 chars}`). You're already connected!"
 
 Then use AskUserQuestion:
 - Header: "Setup"
@@ -89,7 +99,7 @@ If they're stuck, provide guidance:
 
 ### Validate the Key
 
-Once you have the key, validate it:
+Once you have the key, tell the user you're about to validate it against the Jetty API, then validate:
 
 ```bash
 TOKEN="mlc_THE_PASTED_TOKEN"
@@ -105,16 +115,17 @@ Tell the user the key didn't work and let them try again (up to 3 attempts). Aft
 
 ### Save the Token
 
-Write or update the project's `CLAUDE.md` to include the token:
+Save the token to the user-scoped config directory (outside the project, safe from git):
 
+```bash
+mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
+printf '%s' 'mlc_THE_TOKEN' > ~/.config/jetty/token && chmod 600 ~/.config/jetty/token
 ```
-I have a production jetty api token mlc_THE_TOKEN
-```
 
-If `CLAUDE.md` already exists, append the token line. If it doesn't exist, create it with just that line.
+If `CLAUDE.md` contains an old token line (`I have a production jetty api token mlc_...`), remove that line from `CLAUDE.md` to avoid leaving credentials in project files.
 
-**Important:** Warn the user:
-> "I've saved your API token to CLAUDE.md. If this project is in a git repo, make sure CLAUDE.md is in your .gitignore to avoid committing your token."
+Tell the user:
+> "Your API token is saved to `~/.config/jetty/token` (user-scoped, outside your project directory). It won't be accidentally committed to git."
 
 ---
 
@@ -148,36 +159,50 @@ If they need help getting a key:
 
 First, identify which collection to use. If the user has multiple collections, ask them to choose. If they have one, use it automatically.
 
-Then store the key:
+Before storing, confirm with the user using AskUserQuestion:
+- Header: "Confirm"
+- Question: "I'll now send your {provider} API key to Jetty's server so your workflows can use it. The key is stored server-side in your collection's environment variables and is NOT saved locally. Proceed?"
+- Options:
+  - "Yes, store it" / "Send my API key to Jetty"
+  - "Cancel" / "Don't store the key"
+
+If the user cancels, skip this step and warn them the demo won't work without a provider key.
+
+Then store the key using stdin to avoid exposing it in process arguments:
 
 **For OpenAI:**
 ```bash
-TOKEN="mlc_THE_JETTY_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
-curl -s -X PATCH -H "Authorization: Bearer $TOKEN" \
+cat <<'BODY' | curl -s -X PATCH -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   "https://dock.jetty.io/api/v1/collections/$COLLECTION/environment" \
-  -d '{"environment_variables": {"OPENAI_API_KEY": "sk-THE_OPENAI_KEY"}}'
+  --data-binary @-
+{"environment_variables": {"OPENAI_API_KEY": "sk-THE_OPENAI_KEY"}}
+BODY
 ```
 
 **For Gemini:**
 ```bash
-TOKEN="mlc_THE_JETTY_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
-curl -s -X PATCH -H "Authorization: Bearer $TOKEN" \
+cat <<'BODY' | curl -s -X PATCH -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   "https://dock.jetty.io/api/v1/collections/$COLLECTION/environment" \
-  -d '{"environment_variables": {"GEMINI_API_KEY": "THE_GEMINI_KEY"}}'
+  --data-binary @-
+{"environment_variables": {"GEMINI_API_KEY": "THE_GEMINI_KEY"}}
+BODY
 ```
 
-Verify the key was stored:
+Verify the key was stored (only print key names, never values):
 ```bash
+TOKEN="$(cat ~/.config/jetty/token)"
 curl -s -H "Authorization: Bearer $TOKEN" \
   "https://dock.jetty.io/api/v1/collections/$COLLECTION" | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Stored keys:', list(evars.keys()) if evars else 'none')"
 ```
 
 Tell the user:
-> "Your {provider} API key has been securely stored in your Jetty collection. Workflows will use it automatically."
+> "Your {provider} API key has been stored in your Jetty collection's server-side environment. Workflows will use it automatically. The key was not saved to any local file."
 
 ---
 
@@ -189,7 +214,7 @@ Based on the provider chosen (or detected from collection env vars), deploy the 
 
 If you don't know the provider yet (e.g., user said "Run the demo workflow" with an existing token), check collection env vars:
 ```bash
-TOKEN="mlc_THE_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
 curl -s -H "Authorization: Bearer $TOKEN" "https://dock.jetty.io/api/v1/collections/$COLLECTION"
 ```
@@ -208,21 +233,31 @@ Find the plugin directory by searching from the current directory or ~/.claude/:
 find . ~/.claude -name "cute-feline-detector-openai.json" -o -name "cute-feline-detector-gemini.json" 2>/dev/null | head -5
 ```
 
-Read the template JSON, then create the task. Use the workflow JSON from the template (the entire JSON object IS the workflow):
+Read the template JSON using the Read tool (not bash), then create the task. Use the workflow JSON from the template (the entire JSON object IS the workflow).
+
+Before deploying, confirm with the user using AskUserQuestion:
+- Header: "Deploy"
+- Question: "I'll now deploy the 'cute-feline-detector' workflow to your Jetty collection. This creates a new task definition on the server. Proceed?"
+- Options:
+  - "Yes, deploy it" / "Create the workflow"
+  - "Cancel" / "Don't deploy"
+
+If the user confirms, pipe the request body via stdin:
 
 ```bash
-TOKEN="mlc_THE_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
-WORKFLOW_JSON='<the full JSON from the template file>'
 
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+cat <<'BODY' | curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
   "https://dock.jetty.io/api/v1/tasks/$COLLECTION" \
-  -d "{
-    \"name\": \"cute-feline-detector\",
-    \"description\": \"Cute Feline Detector: generates a cat image and judges its cuteness (1-5 scale)\",
-    \"workflow\": $WORKFLOW_JSON
-  }"
+  --data-binary @-
+{
+  "name": "cute-feline-detector",
+  "description": "Cute Feline Detector: generates a cat image and judges its cuteness (1-5 scale)",
+  "workflow": <the full JSON from the template file>
+}
+BODY
 ```
 
 **If the task already exists (409 or similar error):**
@@ -235,10 +270,17 @@ Tell the user:
 
 ## Step 5: Run the Demo
 
+Before running, confirm with the user using AskUserQuestion:
+- Header: "Run"
+- Question: "Ready to run the Cute Feline Detector! This will generate a cat image and judge its cuteness. It costs roughly $0.05 (OpenAI) or equivalent (Gemini). Run it?"
+- Options:
+  - "Yes, run it!" / "Generate a cute cat"
+  - "Cancel" / "Don't run the demo"
+
 Run the workflow with a fun prompt:
 
 ```bash
-TOKEN="mlc_THE_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
 
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
@@ -252,10 +294,10 @@ Capture the `workflow_id` from the response. Tell the user:
 
 ### Poll for completion
 
-Wait 10 seconds, then poll:
+Wait 15 seconds, then poll:
 
 ```bash
-TOKEN="mlc_THE_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
 sleep 15
 curl -s -H "Authorization: Bearer $TOKEN" \
@@ -268,7 +310,7 @@ If status is not "completed", wait another 15 seconds and poll again (max 4 atte
 If status is "completed", get the full trajectory:
 
 ```bash
-TOKEN="mlc_THE_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
 TRAJECTORY_ID="the-trajectory-id"
 
@@ -290,7 +332,7 @@ From the trajectory, extract and display:
 ### Download the generated image
 
 ```bash
-TOKEN="mlc_THE_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 IMAGE_PATH="the-image-path-from-trajectory"
 
 curl -s -H "Authorization: Bearer $TOKEN" \
@@ -349,7 +391,9 @@ Tell the user:
 
 ## Important Notes
 
-- **Always inline the token**: Set `TOKEN="mlc_..."` at the start of each bash command block, then use `$TOKEN`. Environment variables do not persist between bash invocations.
+- **Read the token from file**: Use `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash command block. Environment variables do not persist between bash invocations.
+- **Never log credentials**: Do not echo, print, or include tokens/keys in output shown to the user. Use redacted forms like `mlc_...xxxx`.
+- **Pipe sensitive payloads via stdin**: Use `cat <<'BODY' | curl ... --data-binary @-` instead of inline `-d '{...secret...}'` to avoid exposing secrets in process argument lists.
 - **URL disambiguation**: Use `flows-api.jetty.io` for running workflows/trajectories. Use `dock.jetty.io` for collections/tasks. NEVER use `flows.jetty.io` for API calls (it's the web frontend).
 - **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}` — always access via `.trajectories[]`.
 - **Steps are objects, not arrays**: Trajectory steps are keyed by step name (e.g., `.steps.expand_prompt`), not by index.

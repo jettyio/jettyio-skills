@@ -2,7 +2,7 @@
 name: jetty
 description: Manage Jetty workflows and assets. Use when the user wants to create/edit/run workflows, manage collections, tasks, datasets, or models on Jetty. Triggers include "run workflow", "create task", "list collections", "check trajectory", "label trajectory", "add label", "deploy workflow", or any Jetty/mise/dock operations.
 argument-hint: [command] [args]
-allowed-tools: Bash, Read, Write, Edit, Grep, Glob, WebFetch, AskUserQuestion
+allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---
 
 # Jetty Workflow Management Skill
@@ -25,19 +25,24 @@ This skill enables you to interact with the Jetty platform to manage and run AI/
 
 ## CRITICAL: Authentication
 
-**Read the API token from the project's CLAUDE.md file and inline it directly in every curl command.**
+**Read the API token from `~/.config/jetty/token` and set it as a shell variable at the start of every bash command block.**
 
-Do NOT use `$TOKEN` — it is not set as an environment variable. Instead:
-1. Read the token from CLAUDE.md (look for `mlc_` prefix)
-2. Pass it directly in the Authorization header as a literal string
+The token file is created during setup (`/jetty-setup`). If it doesn't exist, check the project's `CLAUDE.md` for a token starting with `mlc_` (legacy location) and migrate it:
 
 ```bash
-# CORRECT — inline the token directly
-curl -s -H "Authorization: Bearer mlc_ACTUAL_TOKEN_HERE" "https://dock.jetty.io/api/v1/collections/" | jq
+# Read token from secure config location
+TOKEN="$(cat ~/.config/jetty/token 2>/dev/null)"
 
-# WRONG — env var is not set, will fail with 401
-curl -s -H "Authorization: Bearer $TOKEN" ...
+# If empty, check CLAUDE.md as fallback — then migrate it
+# TOKEN="mlc_FOUND_TOKEN"
+# mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
+# printf '%s' "$TOKEN" > ~/.config/jetty/token && chmod 600 ~/.config/jetty/token
 ```
+
+**Security rules:**
+- Never echo, print, or log the full token. Use redacted forms (`mlc_...xxxx`) in user-facing output.
+- Never hardcode the token directly in curl commands. Always read from file into a shell variable.
+- Pipe sensitive request bodies via stdin (`cat <<'BODY' | curl --data-binary @-`) to avoid exposing secrets in process argument lists.
 
 API keys are scoped to specific collections. Your token only works with collections it has access to.
 
@@ -57,7 +62,7 @@ curl -s "https://dock.jetty.io/api/v1/health" | jq
 
 ## Core Operations Reference
 
-**In all examples below, `$TOKEN` means the literal token string read from CLAUDE.md. Always set it at the start of your bash command: `TOKEN="mlc_..."` then use `$TOKEN` in curl.**
+**In all examples below, `$TOKEN` must be set at the start of your bash command block: `TOKEN="$(cat ~/.config/jetty/token)"` then use `$TOKEN` in curl.**
 
 ### Collections
 
@@ -670,7 +675,7 @@ curl -s "https://flows-api.jetty.io/api/v1/step-templates" | jq '.templates[] | 
 
 1. **Always use jq** - Format responses for readability
 2. **Quote JSON properly** - Escape special characters in curl
-3. **Inline the token** - Read from CLAUDE.md, set as `TOKEN="mlc_..."` at start of bash command, then use `$TOKEN`
+3. **Read token from file** - Set `TOKEN="$(cat ~/.config/jetty/token)"` at start of each bash command block
 4. **Handle errors** - Check response status codes
 
 ---
@@ -682,7 +687,7 @@ When running multiple workflows (e.g., test suites), write a bash script to `/tm
 ```bash
 # Write script to /tmp, then run with: bash /tmp/batch_run.sh
 #!/bin/bash
-TOKEN="mlc_ACTUAL_TOKEN"
+TOKEN="$(cat ~/.config/jetty/token)"
 
 run_wf() {
   local prompt="$1"
@@ -713,6 +718,6 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 - Use `jq 'keys'` to see available fields in a response
 - Pipe to `jq -C` for colored output
 - Use `curl -v` for debugging request/response issues
-- Always set `TOKEN="mlc_..."` inline in bash commands — do not rely on env vars being set across shell invocations
+- Always set `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash command block — env vars do not persist across shell invocations
 - When a workflow fails, check error logs first: `jq '.events[] | select(.level == "error")'`
 - The `init_params` for a trajectory are at `.init_params.prompt`, NOT `.steps.{step}.inputs.prompt`

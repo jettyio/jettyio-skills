@@ -19,10 +19,7 @@ A comprehensive Claude Code skill for managing Jetty AI/ML workflows from the co
    cp -r .claude/skills/jetty ~/.claude/skills/
    ```
 
-2. Set your API token:
-   ```bash
-   export JETTY_API_TOKEN="mlc_your_token_here"
-   ```
+2. Run `/jetty-setup` to configure your API token (stored securely in `~/.config/jetty/token`).
 
 3. Use the `/jetty` command in Claude Code to interact with the Jetty platform.
 
@@ -36,8 +33,13 @@ A comprehensive Claude Code skill for managing Jetty AI/ML workflows from the co
 2. Or add to your shell profile (`~/.bashrc` or `~/.zshrc`):
    ```bash
    # Jetty CLI
-   export JETTY_API_TOKEN="mlc_your_token_here"
    source ~/.claude/skills/jetty/jetty-cli.sh
+   ```
+
+   The CLI reads your token from `~/.config/jetty/token`. Run `/jetty-setup` first, or manually create it:
+   ```bash
+   mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
+   printf '%s' 'mlc_your_token_here' > ~/.config/jetty/token && chmod 600 ~/.config/jetty/token
    ```
 
 3. Run `jetty_help` for available commands.
