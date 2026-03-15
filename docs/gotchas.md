@@ -27,9 +27,8 @@ The `score_range` parameter doesn't produce a numeric score in categorical mode.
 
 ## URL disambiguation
 
-- **`flows-api.jetty.io`** — The API for running workflows, logs, trajectories, file downloads. Use this for all API calls.
+- **`flows-api.jetty.io`** — The API for all operations: running workflows, managing collections/tasks/datasets/models, trajectories, file downloads. Use this for all API calls.
 - **`flows.jetty.io`** — The web frontend. Do NOT use this for API calls — it returns HTML, not JSON.
-- **`dock.jetty.io`** — The API for managing collections, tasks, datasets, models.
 
 ## API token usage
 
@@ -90,7 +89,6 @@ When running workflows with file uploads, use multipart form data (`-F`) not JSO
 ```bash
 # Correct
 curl -X POST -H "Authorization: Bearer $TOKEN" \
-  -F "bakery_host=https://dock.jetty.io" \
   -F 'init_params={"question": "What is this?"}' \
   -F "files=@document.pdf" \
   "https://flows-api.jetty.io/api/v1/run/collection/task"

@@ -30,7 +30,7 @@ Check if a Jetty API token already exists:
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token 2>/dev/null)"
-curl -s -H "Authorization: Bearer $TOKEN" "https://dock.jetty.io/api/v1/collections/" | head -c 200
+curl -s -H "Authorization: Bearer $TOKEN" "https://flows-api.jetty.io/api/v1/collections/" | head -c 200
 ```
 
 If the response contains collection data (not an error), the token is valid. Tell the user (with token redacted):
@@ -109,7 +109,7 @@ mlc_THE_PASTED_TOKEN
 TOKEN_EOF
 chmod 600 ~/.config/jetty/token
 # Now validate using the stored file
-curl -s -H "Authorization: Bearer $(cat ~/.config/jetty/token)" "https://dock.jetty.io/api/v1/collections/"
+curl -s -H "Authorization: Bearer $(cat ~/.config/jetty/token)" "https://flows-api.jetty.io/api/v1/collections/"
 ```
 
 **If validation fails (401 or error):**
@@ -181,7 +181,7 @@ PAYLOAD
 chmod 600 /tmp/.jetty_env_payload
 curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/collections/$COLLECTION/environment" \
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
   --data-binary @/tmp/.jetty_env_payload
 rm -f /tmp/.jetty_env_payload
 ```
@@ -195,7 +195,7 @@ PAYLOAD
 chmod 600 /tmp/.jetty_env_payload
 curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/collections/$COLLECTION/environment" \
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
   --data-binary @/tmp/.jetty_env_payload
 rm -f /tmp/.jetty_env_payload
 ```
@@ -204,7 +204,7 @@ Verify the key was stored (only print key names, never values):
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/collections/$COLLECTION" | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Stored keys:', list(evars.keys()) if evars else 'none')"
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Stored keys:', list(evars.keys()) if evars else 'none')"
 ```
 
 Tell the user:
@@ -222,7 +222,7 @@ If you don't know the provider yet (e.g., user said "Run the demo workflow" with
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
-curl -s -H "Authorization: Bearer $TOKEN" "https://dock.jetty.io/api/v1/collections/$COLLECTION"
+curl -s -H "Authorization: Bearer $TOKEN" "https://flows-api.jetty.io/api/v1/collections/$COLLECTION"
 ```
 
 Look for `OPENAI_API_KEY` or `GEMINI_API_KEY` in the environment variables. If both exist, ask the user to choose. If neither exists, go back to Step 3.
@@ -256,7 +256,7 @@ COLLECTION="the-collection-name"
 
 cat <<'BODY' | curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/tasks/$COLLECTION" \
+  "https://flows-api.jetty.io/api/v1/tasks/$COLLECTION" \
   --data-binary @-
 {
   "name": "cute-feline-detector",
@@ -290,7 +290,6 @@ TOKEN="$(cat ~/.config/jetty/token)"
 COLLECTION="the-collection-name"
 
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -F "bakery_host=https://dock.jetty.io" \
   -F 'init_params={"prompt": "a fluffy orange tabby cat sitting in a sunbeam"}' \
   "https://flows-api.jetty.io/api/v1/run/$COLLECTION/cute-feline-detector"
 ```
@@ -405,7 +404,7 @@ Tell the user:
 - **Read the token from file**: Use `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash command block. Environment variables do not persist between bash invocations.
 - **Never log credentials**: Do not echo, print, or include tokens/keys in output shown to the user. Use redacted forms like `mlc_...xxxx`.
 - **Pipe sensitive payloads via stdin**: Use `cat <<'BODY' | curl ... --data-binary @-` instead of inline `-d '{...secret...}'` to avoid exposing secrets in process argument lists.
-- **URL disambiguation**: Use `flows-api.jetty.io` for running workflows/trajectories. Use `dock.jetty.io` for collections/tasks. NEVER use `flows.jetty.io` for API calls (it's the web frontend).
+- **URL disambiguation**: Use `flows-api.jetty.io` for all API calls (workflows, collections, tasks, trajectories, files). NEVER use `flows.jetty.io` for API calls (it's the web frontend).
 - **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}` — always access via `.trajectories[]`.
 - **Steps are objects, not arrays**: Trajectory steps are keyed by step name (e.g., `.steps.expand_prompt`), not by index.
 - **simple_judge outputs**: Results are at `.outputs.results[0].judgment` and `.outputs.results[0].explanation`.

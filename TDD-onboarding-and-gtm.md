@@ -21,9 +21,9 @@ Transform the Jetty agent skill into a polished Claude Code **plugin** with a 3-
 | 8 workflow templates | Working | `agent-skill/skill/templates/` |
 | Clerk auth (web signup) | Working | `spot/` frontend |
 | Onboarding flow (web) | Working | `spot/src/app/onboarding/` |
-| Collection creation API | Working | `mlcbakery POST /api/v1/collections/` |
-| API key generation API | Working | `mlcbakery POST /api/v1/api-keys/` |
-| Collection env vars API | Working | `mlcbakery PATCH /api/v1/collections/{name}/environment` |
+| Collection creation API | Working | `flows-api POST /api/v1/collections/` |
+| API key generation API | Working | `flows-api POST /api/v1/api-keys/` |
+| Collection env vars API | Working | `flows-api PATCH /api/v1/collections/{name}/environment` |
 | Plugin packaging | **Missing** | No `.claude-plugin/plugin.json` |
 | CLI onboarding skill | **Missing** | No setup wizard |
 | BYOK flow | **Missing** | No guided key storage |
@@ -43,8 +43,7 @@ Browser (flows.jetty.io)
   └── Clerk signup → Onboarding form → Collection created
 
 Backend
-  ├── dock.jetty.io (mlcbakery) — collections, tasks, API keys
-  └── flows-api.jetty.io — run workflows, trajectories, files
+  └── flows-api.jetty.io — all API operations (collections, tasks, workflows, trajectories, files)
 ```
 
 ---
@@ -210,7 +209,7 @@ agent-skill/
 
 **Note:** Need to verify that `litellm_image_generation` exists as a step template. If not, we may need to use `replicate_text2image` for the OpenAI variant or add a new step template. The Gemini variant uses the known `gemini_image_generator`.
 
-### 4.4 MLCBakery API Changes (`mlcbakery/`)
+### 4.4 MLCBakery API Changes (`flows-api/`)
 
 **Gap assessment:** Most capabilities exist, but we need:
 
@@ -510,7 +509,7 @@ Submit PRs / listings to:
 | System | Changes | Effort |
 |--------|---------|--------|
 | `agent-skill/` | Plugin packaging, dir restructure, new setup skill, new templates | Medium |
-| `mlcbakery/` | None for v1 (all needed endpoints exist) | None |
+| `flows-api/` | None for v1 (all needed endpoints exist) | None |
 | `spot/` (frontend) | Verify API key visibility post-onboarding; optional "Claude Code" card | Low |
 | `flows-api/` | None (step templates already available) | None |
 

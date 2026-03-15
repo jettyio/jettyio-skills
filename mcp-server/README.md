@@ -21,8 +21,7 @@ Get a token at [flows.jetty.io](https://flows.jetty.io) → Settings → API Tok
 | Variable | Required | Default | Description |
 |----------|----------|---------|-------------|
 | `JETTY_API_TOKEN` | Yes | — | Your Jetty API token (`mlc_...`) |
-| `JETTY_DOCK_URL` | No | `https://dock.jetty.io` | Dock API base URL |
-| `JETTY_FLOWS_URL` | No | `https://flows-api.jetty.io` | Flows API base URL |
+| `JETTY_API_URL` | No | `https://flows-api.jetty.io` | API base URL |
 
 ## Configuration
 

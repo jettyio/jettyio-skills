@@ -1,6 +1,6 @@
 # Jetty API Reference
 
-Jetty exposes two REST APIs. All endpoints require a Bearer token in the `Authorization` header unless otherwise noted.
+Jetty exposes a single REST API at `https://flows-api.jetty.io`. All endpoints require a Bearer token in the `Authorization` header unless otherwise noted.
 
 ```bash
 curl -H "Authorization: Bearer $JETTY_API_TOKEN" <URL>
@@ -25,7 +25,6 @@ POST /api/v1/run/{collection}/{task}
 Content-Type: multipart/form-data
 
 Fields:
-  bakery_host  = https://dock.jetty.io
   init_params  = {"key": "value"}       (JSON string)
   files         = @/path/to/file         (optional, repeatable)
 ```
@@ -39,7 +38,6 @@ POST /api/v1/run-sync/{collection}/{task}
 Content-Type: multipart/form-data
 
 Fields:
-  bakery_host  = https://dock.jetty.io
   init_params  = {"key": "value"}
 ```
 
@@ -114,16 +112,6 @@ GET /api/v1/step-templates/{name}   # Get details
 
 No authentication required.
 
----
-
-## Dock API (`https://dock.jetty.io`)
-
-### Health
-
-```
-GET /api/v1/health
-```
-
 ### Collections
 
 ```
@@ -168,7 +156,7 @@ GET    /api/v1/models/{collection}/{model}             # Get details
 
 | Status | Meaning | Resolution |
 |--------|---------|------------|
-| 401 | Invalid or expired token | Regenerate at dock.jetty.io -> Settings -> API Tokens |
+| 401 | Invalid or expired token | Regenerate at flows.jetty.io -> Settings -> API Tokens |
 | 403 | Access denied | Token doesn't have access to this collection |
 | 404 | Not found | Check collection/task name spelling |
 | 422 | Validation error | Check request body format and required fields |

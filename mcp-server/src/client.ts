@@ -1,10 +1,8 @@
-const DOCK_URL = process.env.JETTY_DOCK_URL || "https://dock.jetty.io";
-const FLOWS_URL = process.env.JETTY_FLOWS_URL || "https://flows-api.jetty.io";
+const API_URL = process.env.JETTY_API_URL || "https://flows-api.jetty.io";
 
 export class JettyClient {
   private token: string;
-  private dockUrl: string;
-  private flowsUrl: string;
+  private apiUrl: string;
 
   constructor() {
     const token = process.env.JETTY_API_TOKEN;
@@ -15,16 +13,14 @@ export class JettyClient {
       );
     }
     this.token = token;
-    this.dockUrl = DOCK_URL;
-    this.flowsUrl = FLOWS_URL;
+    this.apiUrl = API_URL;
   }
 
   private async request(
-    baseUrl: string,
     path: string,
     options: RequestInit = {}
   ): Promise<unknown> {
-    const url = `${baseUrl}${path}`;
+    const url = `${this.apiUrl}${path}`;
     const headers: Record<string, string> = {
       Authorization: `Bearer ${this.token}`,
       ...((options.headers as Record<string, string>) || {}),
@@ -44,30 +40,26 @@ export class JettyClient {
     return res.text();
   }
 
-  private dock(path: string, options?: RequestInit) {
-    return this.request(this.dockUrl, path, options);
-  }
-
-  private flows(path: string, options?: RequestInit) {
-    return this.request(this.flowsUrl, path, options);
+  private api(path: string, options?: RequestInit) {
+    return this.request(path, options);
   }
 
   // Collections
   async listCollections() {
-    return this.dock("/api/v1/collections/");
+    return this.api("/api/v1/collections/");
   }
 
   async getCollection(collection: string) {
-    return this.dock(`/api/v1/collections/${collection}`);
+    return this.api(`/api/v1/collections/${collection}`);
   }
 
   // Tasks
   async listTasks(collection: string) {
-    return this.dock(`/api/v1/tasks/${collection}/`);
+    return this.api(`/api/v1/tasks/${collection}/`);
   }
 
   async getTask(collection: string, task: string) {
-    return this.dock(`/api/v1/tasks/${collection}/${task}`);
+    return this.api(`/api/v1/tasks/${collection}/${task}`);
   }
 
   async createTask(
@@ -76,7 +68,7 @@ export class JettyClient {
     workflow: unknown,
     description?: string
   ) {
-    return this.dock(`/api/v1/tasks/${collection}`, {
+    return this.api(`/api/v1/tasks/${collection}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, description: description || "", workflow }),
@@ -88,7 +80,7 @@ export class JettyClient {
     task: string,
     updates: { workflow?: unknown; description?: string }
   ) {
-    return this.dock(`/api/v1/tasks/${collection}/${task}`, {
+    return this.api(`/api/v1/tasks/${collection}/${task}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
@@ -96,7 +88,7 @@ export class JettyClient {
   }
 
   async deleteTask(collection: string, task: string) {
-    return this.dock(`/api/v1/tasks/${collection}/${task}`, {
+    return this.api(`/api/v1/tasks/${collection}/${task}`, {
       method: "DELETE",
     });
   }
@@ -108,10 +100,9 @@ export class JettyClient {
     initParams?: Record<string, unknown>
   ) {
     const formData = new FormData();
-    formData.append("bakery_host", this.dockUrl);
     formData.append("init_params", JSON.stringify(initParams || {}));
 
-    return this.flows(`/api/v1/run/${collection}/${task}`, {
+    return this.api(`/api/v1/run/${collection}/${task}`, {
       method: "POST",
       body: formData,
     });
@@ -123,10 +114,9 @@ export class JettyClient {
     initParams?: Record<string, unknown>
   ) {
     const formData = new FormData();
-    formData.append("bakery_host", this.dockUrl);
     formData.append("init_params", JSON.stringify(initParams || {}));
 
-    return this.flows(`/api/v1/run-sync/${collection}/${task}`, {
+    return this.api(`/api/v1/run-sync/${collection}/${task}`, {
       method: "POST",
       body: formData,
     });
@@ -139,7 +129,7 @@ export class JettyClient {
     limit = 10,
     page = 1
   ) {
-    return this.flows(
+    return this.api(
       `/api/v1/db/trajectories/${collection}/${task}?limit=${limit}&page=${page}`
     );
   }
@@ -149,14 +139,14 @@ export class JettyClient {
     task: string,
     trajectoryId: string
   ) {
-    return this.flows(
+    return this.api(
       `/api/v1/db/trajectory/${collection}/${task}/${trajectoryId}`
     );
   }
 
   // Stats
   async getStats(collection: string, task: string) {
-    return this.flows(`/api/v1/db/stats/${collection}/${task}`);
+    return this.api(`/api/v1/db/stats/${collection}/${task}`);
   }
 
   // Labels
@@ -168,7 +158,7 @@ export class JettyClient {
     value: string,
     author: string
   ) {
-    return this.flows(
+    return this.api(
       `/api/v1/trajectory/${collection}/${task}/${trajectoryId}/labels`,
       {
         method: "POST",
@@ -180,16 +170,16 @@ export class JettyClient {
 
   // Workflow logs
   async getWorkflowLogs(workflowId: string) {
-    return this.flows(`/api/v1/workflows-logs/${workflowId}`);
+    return this.api(`/api/v1/workflows-logs/${workflowId}`);
   }
 
   // Step templates
   async listStepTemplates() {
-    return this.request(this.flowsUrl, "/api/v1/step-templates");
+    return this.request("/api/v1/step-templates");
   }
 
   async getStepTemplate(name: string) {
-    return this.request(this.flowsUrl, `/api/v1/step-templates/${name}`);
+    return this.request(`/api/v1/step-templates/${name}`);
   }
 
   // Environment variables
@@ -197,7 +187,7 @@ export class JettyClient {
     collection: string,
     vars: Record<string, string>
   ) {
-    return this.dock(`/api/v1/collections/${collection}/environment`, {
+    return this.api(`/api/v1/collections/${collection}/environment`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ environment_variables: vars }),

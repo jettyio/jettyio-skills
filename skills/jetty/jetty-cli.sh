@@ -12,8 +12,7 @@
 # Configuration
 # =============================================================================
 
-JETTY_FLOWS_API="${JETTY_FLOWS_API:-https://flows-api.jetty.io}"
-JETTY_DOCK_API="${JETTY_DOCK_API:-https://dock.jetty.io}"
+JETTY_API_URL="${JETTY_API_URL:-https://flows-api.jetty.io}"
 
 # Colors for output
 _JETTY_RED='\033[0;31m'
@@ -56,16 +55,9 @@ _jetty_auth_header() {
 jetty_health() {
   echo -e "${_JETTY_BLUE}Checking Jetty API health...${_JETTY_NC}"
 
-  echo -n "Flows API: "
-  if curl -sf "$JETTY_FLOWS_API/api/v1/health" > /dev/null 2>&1; then
-    echo -e "${_JETTY_GREEN}OK${_JETTY_NC}"
-  else
-    echo -e "${_JETTY_RED}UNAVAILABLE${_JETTY_NC}"
-  fi
-
-  echo -n "Dock API:  "
-  if curl -sf "$JETTY_DOCK_API/api/v1/health" > /dev/null 2>&1; then
-    echo -e "${_JETTY_GREEN}OK${_JETTY_NC}"
+  echo -n "API: "
+  if curl -sf "$JETTY_API_URL/api/v1/health" > /dev/null 2>&1; then
+    echo -e "${_JETTY_GREEN}OK${_JETTY_NC} ($JETTY_API_URL)"
   else
     echo -e "${_JETTY_RED}UNAVAILABLE${_JETTY_NC}"
   fi
@@ -89,7 +81,7 @@ jetty_collections() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_DOCK_API/api/v1/collections/" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
+    "$JETTY_API_URL/api/v1/collections/" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
 }
 
 # Get collection details
@@ -105,7 +97,7 @@ jetty_collection() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_DOCK_API/api/v1/collections/$collection" | jq
+    "$JETTY_API_URL/api/v1/collections/$collection" | jq
 }
 
 # =============================================================================
@@ -125,7 +117,7 @@ jetty_tasks() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_DOCK_API/api/v1/tasks/$collection/" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
+    "$JETTY_API_URL/api/v1/tasks/$collection/" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
 }
 
 # Get task details (workflow definition)
@@ -142,7 +134,7 @@ jetty_task() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_DOCK_API/api/v1/tasks/$collection/$task" | jq
+    "$JETTY_API_URL/api/v1/tasks/$collection/$task" | jq
 }
 
 # Get just the workflow JSON from a task
@@ -159,7 +151,7 @@ jetty_workflow() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_DOCK_API/api/v1/tasks/$collection/$task" | jq '.workflow'
+    "$JETTY_API_URL/api/v1/tasks/$collection/$task" | jq '.workflow'
 }
 
 # Create a new task
@@ -195,7 +187,7 @@ jetty_create_task() {
 
   curl -sf -X POST -H "$(_jetty_auth_header)" \
     -H "Content-Type: application/json" \
-    "$JETTY_DOCK_API/api/v1/tasks/$collection" \
+    "$JETTY_API_URL/api/v1/tasks/$collection" \
     -d "$payload" | jq
 }
 
@@ -227,7 +219,7 @@ jetty_update_task() {
 
   curl -sf -X PUT -H "$(_jetty_auth_header)" \
     -H "Content-Type: application/json" \
-    "$JETTY_DOCK_API/api/v1/tasks/$collection/$task_name" \
+    "$JETTY_API_URL/api/v1/tasks/$collection/$task_name" \
     -d "$payload" | jq
 }
 
@@ -248,7 +240,7 @@ jetty_delete_task() {
   echo
   if [[ $REPLY =~ ^[Yy]$ ]]; then
     curl -sf -X DELETE -H "$(_jetty_auth_header)" \
-      "$JETTY_DOCK_API/api/v1/tasks/$collection/$task" | jq
+      "$JETTY_API_URL/api/v1/tasks/$collection/$task" | jq
     echo -e "${_JETTY_GREEN}Task deleted${_JETTY_NC}"
   else
     echo "Cancelled"
@@ -275,9 +267,8 @@ jetty_run() {
   _jetty_check_jq || return 1
 
   curl -sf -X POST -H "$(_jetty_auth_header)" \
-    -F "bakery_host=$JETTY_DOCK_API" \
     -F "init_params=$params" \
-    "$JETTY_FLOWS_API/api/v1/run/$collection/$task" | jq
+    "$JETTY_API_URL/api/v1/run/$collection/$task" | jq
 }
 
 # Run a workflow synchronously (waits for completion)
@@ -297,9 +288,8 @@ jetty_run_sync() {
 
   echo -e "${_JETTY_BLUE}Running $collection/$task (sync)...${_JETTY_NC}"
   curl -sf -X POST -H "$(_jetty_auth_header)" \
-    -F "bakery_host=$JETTY_DOCK_API" \
     -F "init_params=$params" \
-    "$JETTY_FLOWS_API/api/v1/run-sync/$collection/$task" | jq
+    "$JETTY_API_URL/api/v1/run-sync/$collection/$task" | jq
 }
 
 # Run a workflow with a file upload
@@ -325,10 +315,9 @@ jetty_run_with_file() {
 
   echo -e "${_JETTY_BLUE}Running $collection/$task with file upload...${_JETTY_NC}"
   curl -sf -X POST -H "$(_jetty_auth_header)" \
-    -F "bakery_host=$JETTY_DOCK_API" \
     -F "init_params=$params" \
     -F "files=@$file_path" \
-    "$JETTY_FLOWS_API/api/v1/run/$collection/$task" | jq
+    "$JETTY_API_URL/api/v1/run/$collection/$task" | jq
 }
 
 # =============================================================================
@@ -348,7 +337,7 @@ jetty_logs() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_FLOWS_API/api/v1/workflows-logs/$workflow_id" | jq
+    "$JETTY_API_URL/api/v1/workflows-logs/$workflow_id" | jq
 }
 
 # List recent trajectories for a task
@@ -367,7 +356,7 @@ jetty_trajectories() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_FLOWS_API/api/v1/db/trajectories/$collection/$task?limit=$limit" | jq -r '.trajectories[] | "\(.trajectory_id)\t\(.status)\t\(.created // "N/A")"' | column -t -s $'\t'
+    "$JETTY_API_URL/api/v1/db/trajectories/$collection/$task?limit=$limit" | jq -r '.trajectories[] | "\(.trajectory_id)\t\(.status)\t\(.created // "N/A")"' | column -t -s $'\t'
 }
 
 # Get trajectory details
@@ -386,7 +375,7 @@ jetty_trajectory() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_FLOWS_API/api/v1/db/trajectory/$collection/$task/$trajectory_id" | jq
+    "$JETTY_API_URL/api/v1/db/trajectory/$collection/$task/$trajectory_id" | jq
 }
 
 # Get the output from the last step of the most recent trajectory
@@ -405,7 +394,7 @@ jetty_last_output() {
 
   local traj_id
   traj_id=$(curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_FLOWS_API/api/v1/db/trajectories/$collection/$task?limit=1" | jq -r '.trajectories[0].trajectory_id')
+    "$JETTY_API_URL/api/v1/db/trajectories/$collection/$task?limit=1" | jq -r '.trajectories[0].trajectory_id')
 
   if [ -z "$traj_id" ] || [ "$traj_id" == "null" ]; then
     echo -e "${_JETTY_RED}No trajectories found${_JETTY_NC}" >&2
@@ -413,7 +402,7 @@ jetty_last_output() {
   fi
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_FLOWS_API/api/v1/db/trajectory/$collection/$task/$traj_id" | jq '.steps | to_entries | last | .value.outputs'
+    "$JETTY_API_URL/api/v1/db/trajectory/$collection/$task/$traj_id" | jq '.steps | to_entries | last | .value.outputs'
 }
 
 # Get workflow statistics
@@ -431,7 +420,7 @@ jetty_stats() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_FLOWS_API/api/v1/db/stats/$collection/$task" | jq
+    "$JETTY_API_URL/api/v1/db/stats/$collection/$task" | jq
 }
 
 # =============================================================================
@@ -443,7 +432,7 @@ jetty_stats() {
 jetty_templates() {
   _jetty_check_jq || return 1
 
-  curl -sf "$JETTY_FLOWS_API/api/v1/step-templates" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
+  curl -sf "$JETTY_API_URL/api/v1/step-templates" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
 }
 
 # Get details for a step template
@@ -457,7 +446,7 @@ jetty_template() {
 
   _jetty_check_jq || return 1
 
-  curl -sf "$JETTY_FLOWS_API/api/v1/step-templates/$activity" | jq
+  curl -sf "$JETTY_API_URL/api/v1/step-templates/$activity" | jq
 }
 
 # Search step templates by keyword
@@ -471,7 +460,7 @@ jetty_search_templates() {
 
   _jetty_check_jq || return 1
 
-  curl -sf "$JETTY_FLOWS_API/api/v1/step-templates" | jq -r ".[] | select(.name | contains(\"$keyword\") or (.description // \"\" | contains(\"$keyword\"))) | \"\(.name)\t\(.description // \"No description\")\""  | column -t -s $'\t'
+  curl -sf "$JETTY_API_URL/api/v1/step-templates" | jq -r ".[] | select(.name | contains(\"$keyword\") or (.description // \"\" | contains(\"$keyword\"))) | \"\(.name)\t\(.description // \"No description\")\""  | column -t -s $'\t'
 }
 
 # =============================================================================
@@ -491,7 +480,7 @@ jetty_datasets() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_DOCK_API/api/v1/datasets/$collection" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
+    "$JETTY_API_URL/api/v1/datasets/$collection" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
 }
 
 # List models
@@ -507,7 +496,7 @@ jetty_models() {
   _jetty_check_jq || return 1
 
   curl -sf -H "$(_jetty_auth_header)" \
-    "$JETTY_DOCK_API/api/v1/models/$collection/" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
+    "$JETTY_API_URL/api/v1/models/$collection/" | jq -r '.[] | "\(.name)\t\(.description // "No description")"' | column -t -s $'\t'
 }
 
 # =============================================================================
@@ -538,9 +527,8 @@ jetty_chat() {
   echo -e "${_JETTY_BLUE}Sending to $model...${_JETTY_NC}"
   local result
   result=$(curl -sf -X POST -H "$(_jetty_auth_header)" \
-    -F "bakery_host=$JETTY_DOCK_API" \
     -F "init_params=$params" \
-    "$JETTY_FLOWS_API/api/v1/run-sync/$collection/$chat_task" 2>/dev/null)
+    "$JETTY_API_URL/api/v1/run-sync/$collection/$chat_task" 2>/dev/null)
 
   if [ $? -ne 0 ]; then
     echo -e "${_JETTY_YELLOW}Note: Create a 'quick-chat' task or set JETTY_CHAT_TASK${_JETTY_NC}" >&2
@@ -600,8 +588,7 @@ QUICK ACTIONS
 
 Environment Variables:
   JETTY_API_TOKEN    - Required. Your API token (mlc_...)
-  JETTY_FLOWS_API    - Override Flows API URL (default: https://flows-api.jetty.io)
-  JETTY_DOCK_API     - Override Dock API URL (default: https://dock.jetty.io)
+  JETTY_API_URL      - Override API URL (default: https://flows-api.jetty.io)
   JETTY_CHAT_TASK    - Task name for jetty_chat (default: quick-chat)
 
 Examples:

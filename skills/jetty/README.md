@@ -75,7 +75,7 @@ jetty_last_output myproject my-task
 
 ## Getting Your API Token
 
-1. Log in to [dock.jetty.io](https://dock.jetty.io)
+1. Log in to [flows.jetty.io](https://flows.jetty.io)
 2. Go to **Settings** → **API Tokens**
 3. Click **Create Token**
 4. Copy the token (format: `mlc_xxxxxxxxxxxxx`)
@@ -146,8 +146,7 @@ jetty_run_sync myproject my-chat '{"prompt": "Hello!"}'
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `JETTY_API_TOKEN` | **Required**. Your API token | - |
-| `JETTY_FLOWS_API` | Flows API URL | `https://flows-api.jetty.io` |
-| `JETTY_DOCK_API` | Dock API URL | `https://dock.jetty.io` |
+| `JETTY_API_URL` | API URL | `https://flows-api.jetty.io` |
 | `JETTY_CHAT_TASK` | Task for `jetty_chat` | `quick-chat` |
 
 ## Troubleshooting

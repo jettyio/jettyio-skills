@@ -268,8 +268,7 @@ Results are stored as **trajectories** with full step-by-step outputs, downloada
 
 | Service | URL | Purpose |
 |---------|-----|---------|
-| Flows API | `flows-api.jetty.io` | Run workflows, trajectories, files |
-| Dock API | `dock.jetty.io` | Collections, tasks, datasets |
+| Jetty API | `flows-api.jetty.io` | All operations: workflows, collections, tasks, datasets, trajectories, files |
 | Web UI | `flows.jetty.io` | Dashboard and management |
 
 ## Prerequisites

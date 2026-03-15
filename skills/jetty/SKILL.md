@@ -1,6 +1,6 @@
 ---
 name: jetty
-description: Manage Jetty workflows and assets. Use when the user wants to create/edit/run workflows, manage collections, tasks, datasets, or models on Jetty. Triggers include "run workflow", "create task", "list collections", "check trajectory", "label trajectory", "add label", "deploy workflow", or any Jetty/mise/dock operations.
+description: Manage Jetty workflows and assets. Use when the user wants to create/edit/run workflows, manage collections, tasks, datasets, or models on Jetty. Triggers include "run workflow", "create task", "list collections", "check trajectory", "label trajectory", "add label", "deploy workflow", or any Jetty operations.
 argument-hint: [command] [args]
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---
@@ -13,12 +13,11 @@ Before doing any work, you MUST ask the user which collection to use. Use AskUse
 
 ---
 
-This skill enables you to interact with the Jetty platform to manage and run AI/ML workflows. Jetty provides two main APIs:
+This skill enables you to interact with the Jetty platform to manage and run AI/ML workflows. Jetty provides a single API:
 
 | Service | Base URL | Purpose |
 |---------|----------|---------|
-| **Flows API** | `https://flows-api.jetty.io` | Run workflows, view logs, trajectories, download files |
-| **Dock API** | `https://dock.jetty.io` | Manage collections, tasks, datasets, models |
+| **Jetty API** | `https://flows-api.jetty.io` | All operations: workflows, collections, tasks, datasets, models, trajectories, files |
 | **Frontend** | `https://flows.jetty.io` | Web UI only — do NOT use for API calls |
 
 ---
@@ -49,14 +48,12 @@ API keys are scoped to specific collections. Your token only works with collecti
 
 ## CRITICAL: URL Disambiguation
 
-- **`flows-api.jetty.io`** — The API for running workflows, logs, trajectories, files. Use this.
+- **`flows-api.jetty.io`** — The API for all operations: workflows, collections, tasks, datasets, models, trajectories, files. Use this for all API calls.
 - **`flows.jetty.io`** — The web frontend. Do NOT use this for API calls (returns HTML 404).
-- **`dock.jetty.io`** — The API for managing collections, tasks, datasets, models.
 
 ```bash
-# Health check both APIs
+# Health check
 curl -s "https://flows-api.jetty.io/api/v1/health" | jq
-curl -s "https://dock.jetty.io/api/v1/health" | jq
 ```
 
 ---
@@ -70,16 +67,16 @@ curl -s "https://dock.jetty.io/api/v1/health" | jq
 ```bash
 # List all collections
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/collections/" | jq
+  "https://flows-api.jetty.io/api/v1/collections/" | jq
 
 # Get collection details
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/collections/{COLLECTION}" | jq
+  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}" | jq
 
 # Create a collection
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/collections/" \
+  "https://flows-api.jetty.io/api/v1/collections/" \
   -d '{"name": "my-collection", "description": "My workflows"}' | jq
 ```
 
@@ -88,20 +85,20 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 ```bash
 # List tasks in a collection
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/tasks/{COLLECTION}/" | jq
+  "https://flows-api.jetty.io/api/v1/tasks/{COLLECTION}/" | jq
 
 # Get task details (includes workflow definition)
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/tasks/{COLLECTION}/{TASK}" | jq
+  "https://flows-api.jetty.io/api/v1/tasks/{COLLECTION}/{TASK}" | jq
 
 # Search tasks
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/tasks/{COLLECTION}/search?q={QUERY}" | jq
+  "https://flows-api.jetty.io/api/v1/tasks/{COLLECTION}/search?q={QUERY}" | jq
 
 # Create task
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/tasks/{COLLECTION}" \
+  "https://flows-api.jetty.io/api/v1/tasks/{COLLECTION}" \
   -d '{
     "name": "my-task",
     "description": "Task description",
@@ -115,12 +112,12 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 # Update task
 curl -s -X PUT -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/tasks/{COLLECTION}/{TASK}" \
+  "https://flows-api.jetty.io/api/v1/tasks/{COLLECTION}/{TASK}" \
   -d '{"workflow": {...}, "description": "Updated"}' | jq
 
 # Delete task
 curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/tasks/{COLLECTION}/{TASK}" | jq
+  "https://flows-api.jetty.io/api/v1/tasks/{COLLECTION}/{TASK}" | jq
 ```
 
 ### Run Workflows
@@ -128,19 +125,16 @@ curl -s -X DELETE -H "Authorization: Bearer $TOKEN" \
 ```bash
 # Run async (returns immediately with workflow_id)
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -F "bakery_host=https://dock.jetty.io" \
   -F 'init_params={"key": "value"}' \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
 
 # Run sync (waits for completion)
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -F "bakery_host=https://dock.jetty.io" \
   -F 'init_params={"key": "value"}' \
   "https://flows-api.jetty.io/api/v1/run-sync/{COLLECTION}/{TASK}" | jq
 
 # Run with file upload
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -F "bakery_host=https://dock.jetty.io" \
   -F 'init_params={"prompt": "Analyze this document"}' \
   -F "files=@/path/to/file.pdf" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
@@ -271,16 +265,16 @@ curl -s "https://flows-api.jetty.io/api/v1/step-templates/{ACTIVITY}" | jq
 ```bash
 # List datasets
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/datasets/{COLLECTION}" | jq
+  "https://flows-api.jetty.io/api/v1/datasets/{COLLECTION}" | jq
 
 # Get dataset details
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/datasets/{COLLECTION}/{DATASET}" | jq
+  "https://flows-api.jetty.io/api/v1/datasets/{COLLECTION}/{DATASET}" | jq
 
 # Create dataset
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/datasets/{COLLECTION}" \
+  "https://flows-api.jetty.io/api/v1/datasets/{COLLECTION}" \
   -d '{"name": "my-dataset", "description": "Dataset description"}' | jq
 ```
 
@@ -289,11 +283,11 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 ```bash
 # List models
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/models/{COLLECTION}/" | jq
+  "https://flows-api.jetty.io/api/v1/models/{COLLECTION}/" | jq
 
 # Get model details
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://dock.jetty.io/api/v1/models/{COLLECTION}/{MODEL}" | jq
+  "https://flows-api.jetty.io/api/v1/models/{COLLECTION}/{MODEL}" | jq
 ```
 
 ---
@@ -585,7 +579,7 @@ This is a verified, working pipeline that generates an image and evaluates it wi
 # 1. Create the task
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" \
-  "https://dock.jetty.io/api/v1/tasks/{COLLECTION}" \
+  "https://flows-api.jetty.io/api/v1/tasks/{COLLECTION}" \
   -d '{
     "name": "test-echo",
     "description": "Simple echo test",
@@ -600,7 +594,6 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 
 # 2. Run it synchronously
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -F "bakery_host=https://dock.jetty.io" \
   -F 'init_params={"text": "Test message"}' \
   "https://flows-api.jetty.io/api/v1/run-sync/{COLLECTION}/test-echo" | jq
 
@@ -647,7 +640,7 @@ curl -s "https://flows-api.jetty.io/api/v1/step-templates" | jq '.templates[] | 
 
 | Status | Meaning | Resolution |
 |--------|---------|------------|
-| 401 | Invalid/expired token | Regenerate token at dock.jetty.io → Settings → API Tokens |
+| 401 | Invalid/expired token | Regenerate token at flows.jetty.io → Settings → API Tokens |
 | 403 | Access denied | Verify token has access to the collection |
 | 404 | Not found | Check collection/task names for typos |
 | 422 | Validation error | Check request body format and required fields |
@@ -694,8 +687,7 @@ run_wf() {
   local prompt="$1"
   echo "--- $prompt"
   curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-    -F "bakery_host=https://dock.jetty.io" \
-    -F "init_params={\"prompt\": \"$prompt\"}" \
+      -F "init_params={\"prompt\": \"$prompt\"}" \
     "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq -r '.workflow_id'
 }
 
