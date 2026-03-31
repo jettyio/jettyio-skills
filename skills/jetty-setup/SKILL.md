@@ -369,7 +369,7 @@ Explanation: <the judge's explanation>
 
 Image saved to: ./cute-cat.png
 
-View this run on Jetty: https://flows.jetty.io/dock/task/{COLLECTION}/cute-feline-detector
+View this run on Jetty: https://flows.jetty.io/{COLLECTION}/cute-feline-detector
 ```
 
 ---

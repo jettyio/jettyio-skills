@@ -403,7 +403,7 @@ Clerk already supports Google and GitHub OAuth. No additional work needed.
 | # | Question | Impact | Default |
 |---|----------|--------|---------|
 | 1 | Does `litellm_image_generation` exist as a step template? | Determines OpenAI workflow design | Verify via `GET /api/v1/step-templates` |
-See https://flows.jetty.io/dock/task/jetty-onboarding-templates/onboarding-creative-image-openai
+See https://flows.jetty.io/jetty-onboarding-templates/onboarding-creative-image-openai
 | 2 | Should we support trial runs in v1? | Scope — adds metering requirement | No, BYOK-only for v1 |
 Agreed, BYOK only 
 | 3 | GitHub org name for the plugin repo? | GTM — `claude plugin add github:???/jetty-plugin` | `jetty-ai` or `jettyai` |

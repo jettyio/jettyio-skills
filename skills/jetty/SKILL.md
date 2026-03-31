@@ -20,6 +20,16 @@ Before doing any work, ask the user which collection to use via AskUserQuestion 
 | **Jetty API** | `https://flows-api.jetty.io` | All operations: workflows, collections, tasks, datasets, models, trajectories, files |
 | **Frontend** | `https://flows.jetty.io` | Web UI only — do NOT use for API calls |
 
+### Frontend URLs for Users
+
+When sharing links with the user (e.g., after launching a run), use these exact URL patterns. **Do NOT guess or invent URL paths** — only use the formats listed here:
+
+| What | URL Pattern | Example |
+|------|-------------|---------|
+| Task (all trajectories) | `https://flows.jetty.io/{COLLECTION}/{TASK}` | `https://flows.jetty.io/jettyio/figma-draw` |
+| Single trajectory | `https://flows.jetty.io/{COLLECTION}/{TASK}/{TRAJECTORY_ID}` | `https://flows.jetty.io/jettyio/figma-draw/aa7e4430` |
+| Collection overview | `https://flows.jetty.io/{COLLECTION}` | `https://flows.jetty.io/jettyio` |
+
 ---
 
 ## Authentication
