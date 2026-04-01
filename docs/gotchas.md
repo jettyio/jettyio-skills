@@ -103,3 +103,16 @@ curl -X POST -H "Authorization: Bearer $TOKEN" \
 ## Step order matters
 
 Steps in the `steps` array execute sequentially. A step cannot reference outputs from a step that runs after it. If step B needs data from step A, step A must appear first in the array.
+
+## Snapshot Selection
+
+Two pre-built snapshots are available for runbook sandboxes:
+
+| Snapshot | Use When |
+|----------|----------|
+| `python312-uv` | Default for most tasks — data processing, API calls, code generation |
+| `prism-playwright` | Browser needed — screenshots, web scraping, OAuth, HTML rendering |
+
+If your runbook uses Playwright, set `snapshot: prism-playwright` in the frontmatter. The default `python312-uv` does NOT include Playwright or Chromium.
+
+You can also use a custom container image — see [docs.jetty.io/guides/custom-sandbox-images](https://docs.jetty.io/guides/custom-sandbox-images).

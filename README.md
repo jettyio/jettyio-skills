@@ -368,7 +368,22 @@ Results are stored as **trajectories** with full step-by-step outputs, downloada
 
 - Node.js 18+ (for the MCP server via `npx`)
 - A Jetty API token ([get one here](https://flows.jetty.io/sign-up))
-- An OpenAI or Google Gemini API key (for image generation workflows)
+- An AI provider API key for workflow steps (OpenAI for DALL-E/GPT, or Google Gemini)
+- For runbooks: an agent runtime API key (Anthropic, OpenAI, or Google — see [agent reference](skills/jetty/references/agents-and-models.md))
+
+## Agent Compatibility
+
+| Agent CLI | MCP Tools | Skills (`/jetty`, `/jetty-setup`) | Runbook Execution | Notes |
+|-----------|-----------|-----------------------------------|-------------------|-------|
+| Claude Code | Full | Full | Full | Recommended — best experience |
+| Cursor | Full | N/A | Via API | MCP tools only |
+| VS Code Copilot | Full | N/A | Via API | MCP tools only |
+| Codex CLI | Full | N/A | Full | `codex` agent runtime |
+| Gemini CLI | Full | Partial | Full | `gemini-cli` agent runtime |
+| Windsurf | Full | N/A | Via API | MCP tools only |
+| Zed | Full | N/A | Via API | MCP tools only |
+
+For agents without skill support, see [QUICKSTART.md](QUICKSTART.md).
 
 ## Documentation
 

@@ -210,6 +210,47 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 Tell the user:
 > "Your {provider} API key has been stored in your Jetty collection's server-side environment. Workflows will use it automatically. The key was not saved to any local file."
 
+### Step 3b: Agent Runtime Key (for Runbooks)
+
+Runbooks execute inside a coding agent on Jetty. The agent needs its own API key (separate from the image generation provider key above).
+
+Use AskUserQuestion:
+- Header: "Agent Runtime"
+- Question: "Jetty runbooks run inside a coding agent. Which will you use?"
+- Options:
+  - "Claude Code" / "Anthropic's claude-sonnet-4-6. Needs an Anthropic API key (~$3/MTok input)"
+  - "Codex" / "OpenAI's gpt-5.4. Needs an OpenAI API key"
+  - "Gemini CLI" / "Google's gemini-3.1-pro-preview. Needs a Google AI API key"
+  - "Skip for now" / "I'll configure this later when I need runbooks"
+
+If the user chooses "Skip", move on to Step 4.
+
+Otherwise, check if the required key already exists in the collection env vars:
+- Claude Code → `ANTHROPIC_API_KEY`
+- Codex → `OPENAI_API_KEY` (may already exist from provider step above)
+- Gemini CLI → `GOOGLE_API_KEY` (may already exist from provider step above)
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+COLLECTION="the-collection-name"
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Stored keys:', list(evars.keys()) if evars else 'none')"
+```
+
+If the key exists, tell the user:
+> "Your {agent} API key is already configured. You're ready to run runbooks!"
+
+If the key is missing, ask the user to paste it and store it using the same secure pattern as the provider key (temp file → curl PATCH → cleanup).
+
+Help links if they need a key:
+- **Anthropic**: "Get your key at https://console.anthropic.com/settings/keys"
+  ```bash
+  open "https://console.anthropic.com/settings/keys" 2>/dev/null || xdg-open "https://console.anthropic.com/settings/keys" 2>/dev/null
+  ```
+- **OpenAI**: "Get your key at https://platform.openai.com/api-keys"
+- **Google**: "Get your key at https://aistudio.google.com/apikey"
+
 ---
 
 ## Step 4: Deploy the Demo Workflow

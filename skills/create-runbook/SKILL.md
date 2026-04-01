@@ -118,6 +118,32 @@ Use AskUserQuestion:
 
 Save the target file path.
 
+### 2d: Agent Runtime & Snapshot
+
+Use AskUserQuestion:
+- Header: "Agent Runtime"
+- Question: "Which agent will run this runbook on Jetty?"
+- Options:
+  - "Claude Code (Anthropic)" / "Uses claude-sonnet-4-6 — strong at reasoning and tool use. Requires an Anthropic API key."
+  - "Codex (OpenAI)" / "Uses gpt-5.4 — strong at code generation. Requires an OpenAI API key."
+  - "Gemini CLI (Google)" / "Uses gemini-3.1-pro-preview — free tier available. Requires a Google AI API key."
+
+Save the agent and model choice. The mapping is:
+- Claude Code → agent: `claude-code`, model: `claude-sonnet-4-6`
+- Codex → agent: `codex`, model: `gpt-5.4`
+- Gemini CLI → agent: `gemini-cli`, model: `gemini-3.1-pro-preview`
+
+Then ask about the sandbox:
+
+Use AskUserQuestion:
+- Header: "Sandbox"
+- Question: "Will your runbook need a web browser (Playwright)?\nExamples: taking screenshots, web scraping, OAuth flows, testing web UIs"
+- Options:
+  - "Yes, I need a browser" / "Use prism-playwright snapshot (Python 3.12, uv, Playwright + Chromium pre-installed)"
+  - "No browser needed" / "Use python312-uv snapshot (lighter, faster startup)"
+
+Save the snapshot choice. These values will be written into the runbook frontmatter in Step 3.
+
 ---
 
 ## Step 3: Scaffold the Runbook
@@ -147,6 +173,7 @@ Now customize the template using the task description from Step 2a:
 2. **Objective**: Write a 2-5 sentence objective based on what the user described — input, processing, output
 3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.)
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
+5. **Agent/model/snapshot**: Write the choices from Step 2d into the frontmatter fields
 5. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
 
 Leave `{TODO: ...}` markers, `{How to fix it}`, and similar placeholders in sections that require detailed domain input from the user (evaluation criteria, common fixes, tips, dependencies).

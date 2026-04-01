@@ -1,6 +1,9 @@
 ---
 version: "1.0.0"
 evaluation: programmatic
+agent: claude-code                    # Agent runtime: claude-code | codex | gemini-cli
+model: claude-sonnet-4-6             # Model for the agent (see agents-and-models reference)
+snapshot: python312-uv                # Sandbox: python312-uv | prism-playwright | custom image
 secrets:                              # Optional — declare sensitive params here
   # EXAMPLE_API_KEY:
   #   env: EXAMPLE_API_KEY            # Collection env var name on Jetty / OS env var locally
