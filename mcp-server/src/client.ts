@@ -1,19 +1,22 @@
 const API_URL = process.env.JETTY_API_URL || "https://flows-api.jetty.io";
 
 export class JettyClient {
-  private token: string;
+  private token: string | undefined;
   private apiUrl: string;
 
   constructor() {
-    const token = process.env.JETTY_API_TOKEN;
-    if (!token) {
+    this.token = process.env.JETTY_API_TOKEN || undefined;
+    this.apiUrl = API_URL;
+  }
+
+  private requireToken(): string {
+    if (!this.token) {
       throw new Error(
         "JETTY_API_TOKEN environment variable is required. " +
           "Get your token at https://flows.jetty.io → Settings → API Tokens"
       );
     }
-    this.token = token;
-    this.apiUrl = API_URL;
+    return this.token;
   }
 
   private async request(
@@ -22,7 +25,7 @@ export class JettyClient {
   ): Promise<unknown> {
     const url = `${this.apiUrl}${path}`;
     const headers: Record<string, string> = {
-      Authorization: `Bearer ${this.token}`,
+      Authorization: `Bearer ${this.requireToken()}`,
       ...((options.headers as Record<string, string>) || {}),
     };
 
