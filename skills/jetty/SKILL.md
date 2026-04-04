@@ -138,6 +138,70 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
 ```
 
+#### Trial Key Support
+
+Before triggering a run, check if the collection is on an active trial with no provider keys configured:
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+# Check trial status
+TRIAL=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/trial/{COLLECTION}")
+TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active', False))")
+
+# Check if provider keys exist
+COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}")
+HAS_KEYS=$(echo "$COLL" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+evars = d.get('environment_variables', {})
+keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'REPLICATE_API_TOKEN']
+print(any(k in evars for k in keys))
+")
+```
+
+If the trial is active and no provider keys are configured (`HAS_KEYS` is `False`), include `use_trial_keys: true` in the run request body:
+
+```bash
+# Run with trial keys
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -F 'init_params={"key": "value"}' \
+  -F 'use_trial_keys=true' \
+  "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
+```
+
+#### Displaying Trial Metadata After a Run
+
+After triggering a run, if the response includes trial metadata (e.g., `trial` object with `runs_used`, `runs_limit`, `minutes_remaining`), display it to the user:
+
+> Trial run {runs_used}/{runs_limit} -- {minutes_remaining} minutes remaining
+
+If `runs_remaining` is 2 or fewer, show a warning:
+
+> **Warning:** {runs_remaining} trial runs left. Run `/jetty-setup` to add your own API keys.
+
+```bash
+# Example: parse trial metadata from run response
+RESPONSE=$(curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -F 'init_params={"key": "value"}' \
+  "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}")
+
+echo "$RESPONSE" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+trial = d.get('trial')
+if trial:
+    used = trial.get('runs_used', '?')
+    limit = trial.get('runs_limit', '?')
+    remaining = trial.get('runs_remaining', '?')
+    mins = trial.get('minutes_remaining', '?')
+    print(f'Trial run {used}/{limit} -- {mins} minutes remaining')
+    if isinstance(remaining, int) and remaining <= 2:
+        print(f'Warning: {remaining} trial runs left. Run /jetty-setup to add your own API keys.')
+"
+```
+
 ### Monitor & Inspect
 
 ```bash

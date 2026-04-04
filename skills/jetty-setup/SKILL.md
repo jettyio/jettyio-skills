@@ -132,6 +132,55 @@ Tell the user:
 
 ## Step 3: Choose Provider & Store API Key
 
+### Step 3a: Check for Existing Keys & Offer Trial
+
+First, check whether the collection already has AI provider keys configured:
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+RESPONSE=$(curl -s "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" \
+  -H "Authorization: Bearer $TOKEN")
+echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Configured keys:', list(evars.keys()) if evars else 'none')"
+```
+
+Parse `environment_variables` from the response. If **all four** of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, and `REPLICATE_API_TOKEN` are missing (i.e., none of them are present), offer the trial option below. If any of those keys are already configured, **skip this check entirely** and proceed to the provider selection prompt below.
+
+Use AskUserQuestion:
+- Header: "Getting Started"
+- Question: "Your collection doesn't have any AI provider keys configured yet.\n\nWould you like to:"
+- Options:
+  - "Try Jetty free" / "Get 10 free runs (up to 60 minutes) using Jetty-provided AI keys. No third-party signup needed."
+  - "Add your own keys" / "Configure your OpenAI, Anthropic, Gemini, or Replicate API keys now."
+
+**If the user chooses "Try Jetty free":**
+
+Activate the trial:
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+curl -s -X POST "https://flows-api.jetty.io/api/v1/trial/$COLLECTION/activate" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+if d.get('active') or d.get('status') == 'active':
+    print(f'Trial activated! Runs remaining: {d.get(\"runs_remaining\", \"?\")}, Minutes remaining: {d.get(\"minutes_remaining\", \"?\")}')
+else:
+    print('Error:', json.dumps(d))
+"
+```
+
+- On success: Tell the user their trial is activated, show remaining runs and minutes, then **skip directly to Step 4** (Deploy the Demo Workflow). The trial provides all necessary AI keys server-side.
+- On error: Inform the user the trial could not be activated, then fall through to the "Add your own keys" flow below.
+
+**If the user chooses "Add your own keys":**
+
+Continue with the provider selection prompt below.
+
+---
+
+### Step 3b: Choose Provider
+
 Use AskUserQuestion:
 - Header: "Provider"
 - Question: "Which image generation provider would you like to use for the demo?"
@@ -156,7 +205,7 @@ If they need help getting a key:
   open "https://aistudio.google.com/apikey" 2>/dev/null || xdg-open "https://aistudio.google.com/apikey" 2>/dev/null
   ```
 
-### Store the Provider Key in Collection Environment Variables
+### Step 3c: Store the Provider Key in Collection Environment Variables
 
 First, identify which collection to use. If the user has multiple collections, ask them to choose. If they have one, use it automatically.
 
@@ -210,7 +259,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 Tell the user:
 > "Your {provider} API key has been stored in your Jetty collection's server-side environment. Workflows will use it automatically. The key was not saved to any local file."
 
-### Step 3b: Agent Runtime Key (for Runbooks)
+### Step 3d: Agent Runtime Key (for Runbooks)
 
 Runbooks execute inside a coding agent on Jetty. The agent needs its own API key (separate from the image generation provider key above).
 
@@ -266,7 +315,19 @@ COLLECTION="the-collection-name"
 curl -s -H "Authorization: Bearer $TOKEN" "https://flows-api.jetty.io/api/v1/collections/$COLLECTION"
 ```
 
-Look for `OPENAI_API_KEY` or `GEMINI_API_KEY` in the environment variables. If both exist, ask the user to choose. If neither exists, go back to Step 3.
+First, check if the collection has an active trial:
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/trial/$COLLECTION" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+print('trial_active:', d.get('active', False))
+print('runs_remaining:', d.get('runs_remaining', 0))
+"
+```
+
+If the trial is active, default to the OpenAI variant (trial keys cover it). Otherwise, look for `OPENAI_API_KEY` or `GEMINI_API_KEY` in the environment variables. If both exist, ask the user to choose. If neither exists, go back to Step 3.
 
 ### Read and deploy the template
 

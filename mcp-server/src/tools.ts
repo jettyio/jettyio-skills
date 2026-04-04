@@ -8,6 +8,60 @@ function jsonResult(data: unknown) {
   };
 }
 
+const PROVIDER_KEYS = [
+  "OPENAI_API_KEY",
+  "ANTHROPIC_API_KEY",
+  "GEMINI_API_KEY",
+  "REPLICATE_API_TOKEN",
+];
+
+async function detectTrialEligibility(
+  client: JettyClient,
+  collection: string
+): Promise<{ useTrialKeys: boolean; trialInfo: Record<string, unknown> }> {
+  try {
+    const trialStatus = (await client.getTrialStatus(collection)) as Record<
+      string,
+      unknown
+    >;
+
+    if (!trialStatus.active) {
+      return {
+        useTrialKeys: false,
+        trialInfo: { trial_active: false },
+      };
+    }
+
+    const env = (await client.getCollectionEnvironment(collection)) as Record<
+      string,
+      unknown
+    >;
+    const envKeys = Object.keys(env);
+    const hasProviderKeys = PROVIDER_KEYS.some((k) => envKeys.includes(k));
+
+    if (hasProviderKeys) {
+      return {
+        useTrialKeys: false,
+        trialInfo: {
+          trial_active: true,
+          using_trial_keys: false,
+          reason: "Collection has its own provider keys",
+        },
+      };
+    }
+
+    return {
+      useTrialKeys: true,
+      trialInfo: {
+        trial_active: true,
+        using_trial_keys: true,
+      },
+    };
+  } catch {
+    return { useTrialKeys: false, trialInfo: {} };
+  }
+}
+
 export function registerTools(server: McpServer, client: JettyClient) {
   // ── Collections ──────────────────────────────────────────────
 
@@ -87,11 +141,31 @@ export function registerTools(server: McpServer, client: JettyClient) {
     }
   );
 
+  // ── Trial Keys ────────────────────────────────────────────────
+
+  server.tool(
+    "get-trial-status",
+    "Get trial key status for a collection",
+    { collection: z.string().describe("Collection name") },
+    async ({ collection }) => {
+      return jsonResult(await client.getTrialStatus(collection));
+    }
+  );
+
+  server.tool(
+    "activate-trial",
+    "Activate trial keys for a collection",
+    { collection: z.string().describe("Collection name") },
+    async ({ collection }) => {
+      return jsonResult(await client.activateTrial(collection));
+    }
+  );
+
   // ── Run Workflows ────────────────────────────────────────────
 
   server.tool(
     "run-workflow",
-    "Run a workflow asynchronously (returns immediately with workflow_id)",
+    "Run a workflow asynchronously (returns immediately with workflow_id). Auto-detects trial key eligibility.",
     {
       collection: z.string().describe("Collection name"),
       task: z.string().describe("Task name"),
@@ -101,19 +175,23 @@ export function registerTools(server: McpServer, client: JettyClient) {
         .describe("Input parameters for the workflow"),
     },
     async ({ collection, task, init_params }) => {
-      return jsonResult(
-        await client.runWorkflow(
-          collection,
-          task,
-          init_params as Record<string, unknown>
-        )
+      const { useTrialKeys, trialInfo } = await detectTrialEligibility(
+        client,
+        collection
       );
+      const result = await client.runWorkflow(
+        collection,
+        task,
+        init_params as Record<string, unknown>,
+        useTrialKeys
+      );
+      return jsonResult({ ...trialInfo, result });
     }
   );
 
   server.tool(
     "run-workflow-sync",
-    "Run a workflow synchronously (blocks until completion, may take 30-60s)",
+    "Run a workflow synchronously (blocks until completion, may take 30-60s). Auto-detects trial key eligibility.",
     {
       collection: z.string().describe("Collection name"),
       task: z.string().describe("Task name"),
@@ -123,13 +201,17 @@ export function registerTools(server: McpServer, client: JettyClient) {
         .describe("Input parameters for the workflow"),
     },
     async ({ collection, task, init_params }) => {
-      return jsonResult(
-        await client.runWorkflowSync(
-          collection,
-          task,
-          init_params as Record<string, unknown>
-        )
+      const { useTrialKeys, trialInfo } = await detectTrialEligibility(
+        client,
+        collection
       );
+      const result = await client.runWorkflowSync(
+        collection,
+        task,
+        init_params as Record<string, unknown>,
+        useTrialKeys
+      );
+      return jsonResult({ ...trialInfo, result });
     }
   );
 
