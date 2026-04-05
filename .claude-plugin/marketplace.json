@@ -9,7 +9,7 @@
       "name": "jetty",
       "source": "./",
       "description": "Build, run, and monitor AI/ML workflows on Jetty — from prompt to production in 5 minutes.",
-      "version": "1.5.2",
+      "version": "1.5.3",
       "author": {
         "name": "Jetty AI"
       },

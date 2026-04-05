@@ -1,6 +1,6 @@
 ---
 name: optimize-runbook
-description: Analyze previous Jetty workflow runs and propose targeted improvements to your runbook. Use when the user wants to optimize, improve, or debug a runbook based on past execution results — including "optimize runbook", "improve runbook", "why is my runbook failing", "analyze my runs", "runbook not working well", "make my runbook better", "debug runbook performance", or "learn from past runs". Also trigger when the user mentions trajectory analysis, run patterns, or evaluation score improvements.
+description: "Analyze previous Jetty workflow runs and propose targeted improvements to your runbook. Use when the user wants to optimize, improve, or debug a runbook based on past execution results — including 'optimize runbook', 'improve runbook', 'why is my runbook failing', 'analyze my runs', 'runbook not working well', 'make my runbook better', 'debug runbook performance', or 'learn from past runs'. Also trigger when the user mentions trajectory analysis, run patterns, or evaluation score improvements."
 argument-hint: [collection/task_name] [--trajectories t1,t2,t3] [--last N]
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---

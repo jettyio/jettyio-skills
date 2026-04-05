@@ -1,6 +1,6 @@
 ---
 name: jetty-setup
-description: Set up Jetty for the first time. Guides the user through account creation, API key configuration, provider selection (OpenAI or Gemini), and runs a demo "Cute Feline Detector" workflow. Use this skill whenever the user wants to set up, configure, or get started with Jetty — including "set up jetty", "configure jetty", "jetty setup", "get started with jetty", "install jetty", "connect to jetty", "jetty onboarding", "I'm new to jetty", "how do I start with jetty", or even just "jetty" if they don't appear to have a token yet. Also trigger if the user mentions needing an API key for Jetty, storing their OpenAI/Gemini key in Jetty, or running the demo workflow.
+description: "Set up Jetty for the first time. Guides the user through account creation, API key configuration, provider selection (OpenAI or Gemini), and runs a demo 'Cute Feline Detector' workflow. Use this skill whenever the user wants to set up, configure, or get started with Jetty — including 'set up jetty', 'configure jetty', 'jetty setup', 'get started with jetty', 'install jetty', 'connect to jetty', 'jetty onboarding', 'I am new to jetty', 'how do I start with jetty', or even just 'jetty' if they do not appear to have a token yet. Also trigger if the user mentions needing an API key for Jetty, storing their OpenAI/Gemini key in Jetty, or running the demo workflow."
 argument-hint:
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---

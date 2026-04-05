@@ -1,6 +1,6 @@
 ---
 name: jetty
-description: Manage Jetty workflows and assets. Use when the user wants to create, edit, run, deploy, debug, or monitor AI/ML workflows on Jetty. Also use when they mention collections, tasks, trajectories, datasets, models, labels, step templates, or workflow runs. Triggers include "run workflow", "create task", "list collections", "check trajectory", "label trajectory", "add label", "deploy workflow", "show results", "download output", "debug run", "workflow failed", or any Jetty/mise/dock operations. Even if the user doesn't say "Jetty" explicitly, use this skill whenever they're working with Jetty API endpoints, workflow JSON, or init_params.
+description: "Manage Jetty workflows and assets. Use when the user wants to create, edit, run, deploy, debug, or monitor AI/ML workflows on Jetty. Also use when they mention collections, tasks, trajectories, datasets, models, labels, step templates, or workflow runs. Triggers include 'run workflow', 'create task', 'list collections', 'check trajectory', 'label trajectory', 'add label', 'deploy workflow', 'show results', 'download output', 'debug run', 'workflow failed', or any Jetty/mise/dock operations. Even if the user doesn't say 'Jetty' explicitly, use this skill whenever they're working with Jetty API endpoints, workflow JSON, or init_params."
 argument-hint: [command] [args]
 allowed-tools: Bash, Read, Write, Edit, Grep, Glob, AskUserQuestion
 ---
