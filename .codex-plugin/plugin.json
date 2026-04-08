@@ -1,14 +1,15 @@
 {
   "name": "jetty",
-  "description": "Build, run, and monitor AI/ML workflows on Jetty — from prompt to production in 5 minutes.",
   "version": "1.5.4",
-  "license": "MIT",
+  "description": "Build, run, and monitor AI/ML workflows on Jetty — from prompt to production in 5 minutes.",
   "author": {
     "name": "Jetty AI",
+    "email": "team@jetty.io",
     "url": "https://jetty.io"
   },
-  "repository": "https://github.com/jettyio/jettyio-skills",
   "homepage": "https://jetty.io",
+  "repository": "https://github.com/jettyio/jettyio-skills",
+  "license": "MIT",
   "keywords": ["ai", "ml", "workflows", "jetty", "mcp"],
   "skills": "./skills/",
   "mcpServers": "./.mcp.json"
