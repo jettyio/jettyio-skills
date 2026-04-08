@@ -68,7 +68,7 @@ snapshot: python312-uv
 ---
 ```
 
-These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. If omitted, defaults are: agent=claude-code, model=claude-sonnet-4-6, snapshot=python312-uv.
+These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The launcher should pass the selected snapshot explicitly in the request as `jetty.snapshot`; otherwise Jetty may fall back to `python312-uv`. If omitted, defaults are: agent=claude-code, model=claude-sonnet-4-6, snapshot=python312-uv.
 
 ## API Key Storage
 

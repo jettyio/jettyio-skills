@@ -402,6 +402,7 @@ After the runbook is created (or if the user wants to come back later), tell the
 >
 > **Run your runbook on Jetty:**
 > `/jetty run-runbook <path-to-your-runbook>`
+> Use a fresh task name when prompted. If the runbook needs browser automation or screenshots, choose the `prism-playwright` snapshot.
 >
 > **Create another runbook:**
 > `/create-runbook` — the wizard will guide you through it

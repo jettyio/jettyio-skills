@@ -361,7 +361,10 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
      "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment" | jq 'keys'
    ```
    If any required secrets are missing, prompt the user to set them (or pass via `secret_params`).
-3. Ask the user for the collection, task name, and agent (default: `claude-code`). Also ask for any file uploads.
+3. Ask the user for the collection, task name, agent (default: `claude-code`), and snapshot.
+   - Default the snapshot from the runbook frontmatter if present.
+   - For browser automation, screenshots, scraping, or anything that needs Chromium/Playwright, use `prism-playwright`.
+   - Prefer a **fresh task name** for each new runbook deployment. Do **not** reuse an existing placeholder or unrelated workflow task unless the user explicitly wants to group runs there. Reusing an existing task can cause the stored workflow to run instead of the runbook.
 4. Build and send the request — the runbook content goes in the `system` message:
 
 ```bash
@@ -385,7 +388,8 @@ cat <<PAYLOAD | curl -s -X POST \
     "runbook": true,
     "collection": "{COLLECTION}",
     "task": "{TASK}",
-    "agent": "claude-code"
+    "agent": "claude-code",
+    "snapshot": "prism-playwright"
   }
 }
 PAYLOAD
@@ -415,7 +419,12 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.collection` | string | Yes | Namespace for the task |
 | `jetty.task` | string | Yes | Task identifier |
 | `jetty.agent` | string | Yes | `claude-code`, `codex`, or `gemini-cli` |
+| `jetty.snapshot` | string | Yes | Sandbox image preset such as `python312-uv` or `prism-playwright` |
 | `jetty.file_paths` | string[] | No | Files to upload into the sandbox |
+
+**Task naming guidance:**
+- For a brand-new runbook, prefer a new task slug such as `news-brief-runbook` instead of reusing an existing demo or placeholder task.
+- If the requested task already exists and was created for a normal workflow, warn the user and suggest a fresh task name before launching.
 
 **File upload** (if the runbook needs input files):
 ```bash
@@ -455,6 +464,7 @@ response = client.chat.completions.create(
             "collection": "my-org",
             "task": "my-task",
             "agent": "claude-code",
+            "snapshot": "prism-playwright",
         }
     }
 )

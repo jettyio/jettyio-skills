@@ -547,6 +547,7 @@ Tell the user:
 >       "collection": "{your-collection}",
 >       "task": "{task-name}",
 >       "agent": "{agent from frontmatter}",
+>       "snapshot": "{snapshot from frontmatter}",
 >       "file_paths": []
 >     }
 >   }'
@@ -557,10 +558,14 @@ Tell the user:
 > |---|---|---|
 > | `agent` | `jetty.agent` | Which agent CLI runs the runbook (`claude-code`, `codex`, `gemini-cli`) |
 > | `model` | `model` (top-level) | Which LLM the agent uses |
-> | `snapshot` | *(auto-selected)* | Sandbox environment — set via collection config |
+> | `snapshot` | `jetty.snapshot` | Sandbox environment — pass it explicitly in the chat-completions request |
 > | — | `jetty.collection` | Namespace that holds your env vars and secrets |
 > | — | `jetty.task` | Task name for grouping trajectories |
 > | — | `jetty.file_paths` | Files to upload into the sandbox workspace |
+>
+> Use a fresh `jetty.task` name the first time you launch a runbook. Reusing an existing demo or placeholder workflow task can route execution to the stored workflow instead of the runbook.
+>
+> If the runbook needs a browser, screenshots, or web automation, set `jetty.snapshot` to `prism-playwright`.
 >
 > Or use `/jetty run runbook` to have the agent build this request for you interactively.
 >
