@@ -15,7 +15,7 @@ You are guiding a user through first-time Jetty setup. The goal is to get them f
 
 - **Never echo, print, or log API tokens or keys** in output. Use redacted forms (e.g., `mlc_...xxxx`) when referring to tokens in messages to the user.
 - **Never store tokens in project files** like `CLAUDE.md` that may be committed to version control. Use the user-scoped config directory `~/.config/jetty/`.
-- **Pipe sensitive data via stdin** to avoid exposing tokens in process argument lists. Use `cat <<'BODY' | curl --data-binary @- ...` patterns instead of `-d '{...key...}'`.
+- **Read secrets interactively with `read -rs`** so the raw value never appears in generated commands, tool-call logs, or shell history. Pipe the value directly from the variable into `curl` and `unset` it immediately after.
 - **Confirm with the user before each API call** that sends credentials to an external service.
 - **Never store provider API keys locally** — they are sent directly to the Jetty API for server-side storage and are not written to any local file.
 
@@ -101,18 +101,18 @@ If they're stuck, provide guidance:
 
 ### Validate the Key
 
-Once you have the key, save it to the secure config location first, then validate using the stored file — never assign the raw token to a shell variable:
+Once you have the key, save it to the secure config location first, then validate using the stored file. **Never embed the raw token in a generated command, heredoc, or variable assignment.** Instead, prompt the user to paste it interactively via `read -rs`:
 
 ```bash
 mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
-# Write the pasted token directly to the config file (do NOT embed it in a variable or command)
-cat > ~/.config/jetty/token <<'TOKEN_EOF'
-mlc_THE_PASTED_TOKEN
-TOKEN_EOF
+echo "Paste your Jetty API token and press Enter:"
+read -rs JETTY_TOKEN && printf '%s' "$JETTY_TOKEN" > ~/.config/jetty/token && unset JETTY_TOKEN
 chmod 600 ~/.config/jetty/token
 # Now validate using the stored file
 curl -s -H "Authorization: Bearer $(cat ~/.config/jetty/token)" "https://flows-api.jetty.io/api/v1/collections/"
 ```
+
+**Important:** The `read -rs` command reads input silently (no echo) directly from the terminal. The token value never appears in the generated command, shell history, or tool-call logs.
 
 **If validation fails (401 or error):**
 Tell the user the key didn't work and let them try again (up to 3 attempts). After 3 failures, suggest visiting https://flows.jetty.io/settings to verify.
@@ -123,7 +123,7 @@ Tell the user the key didn't work and let them try again (up to 3 attempts). Aft
 
 ### Save the Token
 
-The token was already saved during validation above. If validation failed and the user provided a corrected key, overwrite the file the same way (write directly to the file, never embed the raw token in a shell variable or command argument).
+The token was already saved during validation above. If validation failed and the user provided a corrected key, overwrite the file the same way (use `read -rs` so the raw token never appears in generated commands).
 
 If `CLAUDE.md` contains an old token line (`I have a production jetty api token mlc_...`), remove that line from `CLAUDE.md` to avoid leaving credentials in project files.
 
@@ -220,36 +220,35 @@ Before storing, confirm with the user using AskUserQuestion:
 
 If the user cancels, skip this step and warn them the demo won't work without a provider key.
 
-Then store the key using a temporary file to avoid exposing it in shell history or process arguments. **Never assign the provider key to a shell variable or embed it in a heredoc.**
+Then store the key by reading it interactively via `read -rs` and piping it directly to the API. **Never embed the provider key in a generated command, heredoc, temp file, or variable assignment visible in tool-call output.**
 
 **For OpenAI:**
 ```bash
 COLLECTION="the-collection-name"
-# Write the JSON payload to a temp file (agent: substitute the real key into this file write)
-cat > /tmp/.jetty_env_payload <<'PAYLOAD'
-{"environment_variables": {"OPENAI_API_KEY": "sk-THE_OPENAI_KEY"}}
-PAYLOAD
-chmod 600 /tmp/.jetty_env_payload
-curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
-  -H "Content-Type: application/json" \
-  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
-  --data-binary @/tmp/.jetty_env_payload
-rm -f /tmp/.jetty_env_payload
+echo "Paste your OpenAI API key and press Enter:"
+read -rs PROVIDER_KEY && \
+  printf '{"environment_variables": {"OPENAI_API_KEY": "%s"}}' "$PROVIDER_KEY" | \
+  curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
+    -H "Content-Type: application/json" \
+    "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
+    --data-binary @- && \
+  unset PROVIDER_KEY
 ```
 
 **For Gemini:**
 ```bash
 COLLECTION="the-collection-name"
-cat > /tmp/.jetty_env_payload <<'PAYLOAD'
-{"environment_variables": {"GEMINI_API_KEY": "THE_GEMINI_KEY"}}
-PAYLOAD
-chmod 600 /tmp/.jetty_env_payload
-curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
-  -H "Content-Type: application/json" \
-  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
-  --data-binary @/tmp/.jetty_env_payload
-rm -f /tmp/.jetty_env_payload
+echo "Paste your Gemini API key and press Enter:"
+read -rs PROVIDER_KEY && \
+  printf '{"environment_variables": {"GEMINI_API_KEY": "%s"}}' "$PROVIDER_KEY" | \
+  curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
+    -H "Content-Type: application/json" \
+    "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
+    --data-binary @- && \
+  unset PROVIDER_KEY
 ```
+
+**Important:** The `read -rs` command reads input silently (no echo). The key flows from stdin directly into `printf` and then into `curl` via pipe — it never appears in any generated command text, temp file, or shell history.
 
 Verify the key was stored (only print key names, never values):
 ```bash
@@ -292,7 +291,7 @@ curl -s -H "Authorization: Bearer $TOKEN" \
 If the key exists, tell the user:
 > "Your {agent} API key is already configured. You're ready to run runbooks!"
 
-If the key is missing, ask the user to paste it and store it using the same secure pattern as the provider key (temp file → curl PATCH → cleanup).
+If the key is missing, ask the user to paste it and store it using the same secure pattern as the provider key (`read -rs` → pipe to `curl PATCH` → `unset`).
 
 Help links if they need a key:
 - **Anthropic**: "Get your key at https://console.anthropic.com/settings/keys"
@@ -423,7 +422,7 @@ After the runbook is created (or if the user wants to come back later), tell the
 
 - **Read the token from file**: Use `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash command block. Environment variables do not persist between bash invocations.
 - **Never log credentials**: Do not echo, print, or include tokens/keys in output shown to the user. Use redacted forms like `mlc_...xxxx`.
-- **Pipe sensitive payloads via stdin**: Use `cat <<'BODY' | curl ... --data-binary @-` instead of inline `-d '{...secret...}'` to avoid exposing secrets in process argument lists.
+- **Read secrets interactively via `read -rs`**: Never embed secrets in generated commands, heredocs, or temp files. Use `read -rs VAR && printf ... "$VAR" | curl --data-binary @-` so the secret flows from the user's terminal directly into the API call without appearing in tool-call output or shell history. Always `unset` the variable immediately after use.
 - **URL disambiguation**: Use `flows-api.jetty.io` for all API calls (workflows, collections, tasks, trajectories, files). NEVER use `flows.jetty.io` for API calls (it's the web frontend).
 - **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}` — always access via `.trajectories[]`.
 - **Steps are objects, not arrays**: Trajectory steps are keyed by step name (e.g., `.steps.expand_prompt`), not by index.
