@@ -355,18 +355,41 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
 **Endpoint:** `POST https://flows-api.jetty.io/v1/chat/completions`
 
 1. Read the runbook file with the Read tool
-2. Parse frontmatter for `secrets` — check that each required secret is configured as a collection env var:
+2. Parse the YAML frontmatter for `agent`, `model`, `snapshot`, and `secrets`:
+   - `agent` → use as `jetty.agent` (default: `claude-code`)
+   - `model` → use as `model` in the request (default: `claude-sonnet-4-6`)
+   - `snapshot` → use as `jetty.snapshot` (default: `python312-uv`; use `prism-playwright` if the runbook needs a browser)
+   - `secrets` → check that each required secret is configured as a collection env var:
    ```bash
    curl -s -H "Authorization: Bearer $TOKEN" \
      "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment" | jq 'keys'
    ```
    If any required secrets are missing, prompt the user to set them (or pass via `secret_params`).
-3. Ask the user for the collection, task name, and agent (default: `claude-code`). Also ask for any file uploads.
-4. Build and send the request — the runbook content goes in the `system` message:
+3. Parse the Parameters section of the runbook. Identify all `{{template_variable}}` placeholders and their defaults. Ask the user for any required parameter values that are missing (use AskUserQuestion). These go in `jetty.template_variables`.
+4. **Check trial key eligibility** — use the same trial detection logic from [Trial Key Support](#trial-key-support) above. If the trial is active and no provider keys are configured, set `use_trial_keys: true` in the `jetty` block below.
+5. Ask the user for the collection and task name. Also ask for any file uploads.
+6. Build and send the request — the runbook content goes in the `system` message, and template variables go in `jetty.template_variables` (**not** in the user message):
 
 ```bash
 # Read the runbook content
 RUNBOOK_CONTENT="$(cat /path/to/RUNBOOK.md)"
+
+# Check trial eligibility (see Trial Key Support section)
+TOKEN="$(cat ~/.config/jetty/token)"
+TRIAL=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/trial/{COLLECTION}")
+TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active', False))")
+COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}")
+HAS_KEYS=$(echo "$COLL" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+evars = d.get('environment_variables', {})
+keys = ['OPENAI_API_KEY', 'ANTHROPIC_API_KEY', 'GEMINI_API_KEY', 'REPLICATE_API_TOKEN']
+print(any(k in evars for k in keys))
+")
+# Set USE_TRIAL to true if trial is active and no provider keys exist
+USE_TRIAL=$( [ "$TRIAL_ACTIVE" = "True" ] && [ "$HAS_KEYS" = "False" ] && echo true || echo false )
 
 # Build the request payload
 cat <<PAYLOAD | curl -s -X POST \
@@ -378,21 +401,29 @@ cat <<PAYLOAD | curl -s -X POST \
   "model": "claude-sonnet-4-6",
   "messages": [
     {"role": "system", "content": $(jq -Rs '.' <<< "$RUNBOOK_CONTENT")},
-    {"role": "user", "content": "Execute the runbook with parameters: results_dir=/app/results"}
+    {"role": "user", "content": "Execute the runbook."}
   ],
   "stream": false,
   "jetty": {
     "runbook": true,
     "collection": "{COLLECTION}",
     "task": "{TASK}",
-    "agent": "claude-code"
+    "agent": "claude-code",
+    "snapshot": "python312-uv",
+    "template_variables": {
+      "sample_size": "10",
+      "results_dir": "/app/results"
+    },
+    "use_trial_keys": $USE_TRIAL
   }
 }
 PAYLOAD
 ```
 
-5. Extract the trajectory ID from the response
-6. Monitor the trajectory using the standard trajectory inspection commands:
+**Important:** Template variables (`{{sample_size}}`, `{{results_dir}}`, etc.) must go in `jetty.template_variables`, NOT in the user message text. The backend substitutes `{{var}}` placeholders in the runbook instruction before the agent sees it. The user message is only used as a prompt/instruction to the agent.
+
+7. Extract the trajectory ID from the response
+8. Monitor the trajectory using the standard trajectory inspection commands:
    ```bash
    curl -s -H "Authorization: Bearer $TOKEN" \
      "https://flows-api.jetty.io/api/v1/db/trajectory/{COLLECTION}/{TASK}/{TRAJECTORY_ID}" | jq '{status, steps: (.steps | keys)}'
@@ -415,7 +446,10 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.collection` | string | Yes | Namespace for the task |
 | `jetty.task` | string | Yes | Task identifier |
 | `jetty.agent` | string | Yes | `claude-code`, `codex`, or `gemini-cli` |
+| `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default) or `prism-playwright` (browser). Read from runbook frontmatter |
+| `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
 | `jetty.file_paths` | string[] | No | Files to upload into the sandbox |
+| `jetty.use_trial_keys` | boolean | No | Use Jetty trial keys (default: false). Set to true for trial users with no own provider keys |
 
 **File upload** (if the runbook needs input files):
 ```bash
@@ -446,7 +480,7 @@ response = client.chat.completions.create(
     model="claude-sonnet-4-6",
     messages=[
         {"role": "system", "content": runbook},
-        {"role": "user", "content": "Execute the runbook"}
+        {"role": "user", "content": "Execute the runbook."}
     ],
     stream=True,
     extra_body={
@@ -455,15 +489,21 @@ response = client.chat.completions.create(
             "collection": "my-org",
             "task": "my-task",
             "agent": "claude-code",
+            "snapshot": "python312-uv",  # or "prism-playwright" for browser
+            "template_variables": {
+                "sample_size": "10",
+            },
         }
     }
 )
 ```
 
 **Sandbox conventions:**
-- `{{results_dir}}` defaults to `/app/results` on Jetty (vs `./results` locally)
+- Template variables (`{{results_dir}}`, `{{sample_size}}`, etc.) are substituted by the backend before the agent sees the instruction. Pass them in `jetty.template_variables`, never in the user message text
+- `results_dir` defaults to `/app/results` on Jetty (vs `./results` locally) — it's auto-included as a template variable
 - Everything written to `/app/results/` is persisted to cloud storage
 - Secrets resolve from collection environment variables
+- `snapshot` controls the sandbox image: `python312-uv` (default) or `prism-playwright` (Playwright + Chromium for browser tasks). Read this from the runbook's YAML frontmatter
 - The sandbox is destroyed after execution — artifacts and logs survive
 
 ### Datasets & Models

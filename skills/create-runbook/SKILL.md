@@ -547,6 +547,10 @@ Tell the user:
 >       "collection": "{your-collection}",
 >       "task": "{task-name}",
 >       "agent": "{agent from frontmatter}",
+>       "snapshot": "{snapshot from frontmatter}",
+>       "template_variables": {
+>         "sample_size": "10"
+>       },
 >       "file_paths": []
 >     }
 >   }'
@@ -557,7 +561,8 @@ Tell the user:
 > |---|---|---|
 > | `agent` | `jetty.agent` | Which agent CLI runs the runbook (`claude-code`, `codex`, `gemini-cli`) |
 > | `model` | `model` (top-level) | Which LLM the agent uses |
-> | `snapshot` | *(auto-selected)* | Sandbox environment — set via collection config |
+> | `snapshot` | `jetty.snapshot` | Sandbox environment: `python312-uv` or `prism-playwright` |
+> | parameters | `jetty.template_variables` | Key-value pairs for `{{var}}` substitution in the runbook |
 > | — | `jetty.collection` | Namespace that holds your env vars and secrets |
 > | — | `jetty.task` | Task name for grouping trajectories |
 > | — | `jetty.file_paths` | Files to upload into the sandbox workspace |
