@@ -14,7 +14,7 @@ Set your API token:
 export JETTY_API_TOKEN="mlc_your_token_here"
 ```
 
-Get a token at [flows.jetty.io](https://flows.jetty.io) → Settings → API Tokens.
+Get a token at [jetty.io](https://jetty.io) → Settings → API Tokens.
 
 ## Environment Variables
 

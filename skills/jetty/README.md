@@ -75,7 +75,7 @@ jetty_last_output myproject my-task
 
 ## Getting Your API Token
 
-1. Log in to [flows.jetty.io](https://flows.jetty.io)
+1. Log in to [jetty.io](https://jetty.io)
 2. Go to **Settings** → **API Tokens**
 3. Click **Create Token**
 4. Copy the token (format: `mlc_xxxxxxxxxxxxx`)

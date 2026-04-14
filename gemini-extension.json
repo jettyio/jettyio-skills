@@ -14,7 +14,7 @@
   "settings": [
     {
       "name": "Jetty API Token",
-      "description": "Your Jetty API token (starts with mlc_). Get one at https://flows.jetty.io/sign-up → Settings → API Tokens.",
+      "description": "Your Jetty API token (starts with mlc_). Get one at https://jetty.io/sign-up → Settings → API Tokens.",
       "envVariable": "JETTY_API_TOKEN"
     }
   ],

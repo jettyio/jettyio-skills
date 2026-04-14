@@ -156,7 +156,7 @@ The server communicates over stdio using the MCP protocol.
 
 ## Get Your API Token
 
-1. Sign up at [flows.jetty.io](https://flows.jetty.io/sign-up)
+1. Sign up at [jetty.io](https://jetty.io/sign-up)
 2. Go to **Settings → API Tokens**
 3. Create a token (starts with `mlc_`)
 4. Add it to your tool's config as shown above
@@ -362,12 +362,12 @@ Results are stored as **trajectories** with full step-by-step outputs, downloada
 | Service | URL | Purpose |
 |---------|-----|---------|
 | Jetty API | `flows-api.jetty.io` | All operations: workflows, collections, tasks, datasets, trajectories, files |
-| Web UI | `flows.jetty.io` | Dashboard and management |
+| Web UI | `jetty.io` | Dashboard and management |
 
 ## Prerequisites
 
 - Node.js 18+ (for the MCP server via `npx`)
-- A Jetty API token ([get one here](https://flows.jetty.io/sign-up))
+- A Jetty API token ([get one here](https://jetty.io/sign-up))
 - An AI provider API key for workflow steps (OpenAI for DALL-E/GPT, or Google Gemini)
 - For runbooks: an agent runtime API key (Anthropic, OpenAI, or Google — see [agent reference](skills/jetty/references/agents-and-models.md))
 
@@ -396,7 +396,7 @@ For agents without skill support, see [QUICKSTART.md](QUICKSTART.md).
 
 | Problem | Solution |
 |---------|----------|
-| "Invalid or expired token" | Regenerate at flows.jetty.io → Settings → API Tokens |
+| "Invalid or expired token" | Regenerate at jetty.io → Settings → API Tokens |
 | "Access denied" | Verify your token has access to the collection |
 | MCP tools not showing up | Restart your editor/agent after config changes |
 | Workflow fails | Use `get-trajectory` to inspect step-by-step outputs |
