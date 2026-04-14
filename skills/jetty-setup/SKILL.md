@@ -69,11 +69,11 @@ Ask the user to paste their API key using AskUserQuestion:
 - Question: "Please paste your Jetty API key (starts with mlc_):"
 - Options:
   - "I'll type it in" / "Let me enter my API key" (they will use the "Other" option to type it)
-  - "I need to find it" / "Open flows.jetty.io so I can get my key"
+  - "I need to find it" / "Open jetty.io so I can get my key"
 
 If they need to find it, open the browser:
 ```bash
-open "https://flows.jetty.io/settings" 2>/dev/null || xdg-open "https://flows.jetty.io/settings" 2>/dev/null
+open "https://jetty.io/settings" 2>/dev/null || xdg-open "https://jetty.io/settings" 2>/dev/null
 ```
 
 ### If "No, I need to sign up":
@@ -86,7 +86,7 @@ Tell the user:
 
 Open the signup page:
 ```bash
-open "https://flows.jetty.io/sign-up" 2>/dev/null || xdg-open "https://flows.jetty.io/sign-up" 2>/dev/null
+open "https://jetty.io/sign-up" 2>/dev/null || xdg-open "https://jetty.io/sign-up" 2>/dev/null
 ```
 
 Then wait for them to come back and paste the key. Use AskUserQuestion:
@@ -97,7 +97,7 @@ Then wait for them to come back and paste the key. Use AskUserQuestion:
   - "I'm stuck" / "I need help finding my API key"
 
 If they're stuck, provide guidance:
-> "Your API key is at flows.jetty.io → Settings → API Tokens. Click Create Token, copy it, and paste it here."
+> "Your API key is at jetty.io → Settings → API Tokens. Click Create Token, copy it, and paste it here."
 
 ### Validate the Key
 
@@ -115,7 +115,7 @@ curl -s -H "Authorization: Bearer $(cat ~/.config/jetty/token)" "https://flows-a
 **Important:** The `read -rs` command reads input silently (no echo) directly from the terminal. The token value never appears in the generated command, shell history, or tool-call logs.
 
 **If validation fails (401 or error):**
-Tell the user the key didn't work and let them try again (up to 3 attempts). After 3 failures, suggest visiting https://flows.jetty.io/settings to verify.
+Tell the user the key didn't work and let them try again (up to 3 attempts). After 3 failures, suggest visiting https://jetty.io/settings to verify.
 
 **If validation succeeds:**
 1. Parse the response to find the collection name(s)
@@ -423,6 +423,6 @@ After the runbook is created (or if the user wants to come back later), tell the
 - **Read the token from file**: Use `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash command block. Environment variables do not persist between bash invocations.
 - **Never log credentials**: Do not echo, print, or include tokens/keys in output shown to the user. Use redacted forms like `mlc_...xxxx`.
 - **Read secrets interactively via `read -rs`**: Never embed secrets in generated commands, heredocs, or temp files. Use `read -rs VAR && printf ... "$VAR" | curl --data-binary @-` so the secret flows from the user's terminal directly into the API call without appearing in tool-call output or shell history. Always `unset` the variable immediately after use.
-- **URL disambiguation**: Use `flows-api.jetty.io` for all API calls (workflows, collections, tasks, trajectories, files). NEVER use `flows.jetty.io` for API calls (it's the web frontend).
+- **URL disambiguation**: Use `flows-api.jetty.io` for all API calls (workflows, collections, tasks, trajectories, files). NEVER use `jetty.io` for API calls (it's the web frontend).
 - **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}` — always access via `.trajectories[]`.
 - **Steps are objects, not arrays**: Trajectory steps are keyed by step name (e.g., `.steps.expand_prompt`), not by index.

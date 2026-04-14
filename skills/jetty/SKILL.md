@@ -20,7 +20,7 @@ Before doing any work, ask the user which collection to use via AskUserQuestion 
 | Service | Base URL | Purpose |
 |---------|----------|---------|
 | **Jetty API** | `https://flows-api.jetty.io` | All operations: workflows, collections, tasks, datasets, models, trajectories, files |
-| **Frontend** | `https://flows.jetty.io` | Web UI only — do NOT use for API calls |
+| **Frontend** | `https://jetty.io` | Web UI only — do NOT use for API calls |
 
 ### Frontend URLs for Users
 
@@ -28,9 +28,9 @@ When sharing links with the user (e.g., after launching a run), use these exact 
 
 | What | URL Pattern | Example |
 |------|-------------|---------|
-| Task (all trajectories) | `https://flows.jetty.io/{COLLECTION}/{TASK}` | `https://flows.jetty.io/jettyio/figma-draw` |
-| Single trajectory | `https://flows.jetty.io/{COLLECTION}/{TASK}/{TRAJECTORY_ID}` | `https://flows.jetty.io/jettyio/figma-draw/aa7e4430` |
-| Collection overview | `https://flows.jetty.io/{COLLECTION}` | `https://flows.jetty.io/jettyio` |
+| Task (all trajectories) | `https://jetty.io/{COLLECTION}/{TASK}` | `https://jetty.io/jettyio/figma-draw` |
+| Single trajectory | `https://jetty.io/{COLLECTION}/{TASK}/{TRAJECTORY_ID}` | `https://jetty.io/jettyio/figma-draw/aa7e4430` |
+| Collection overview | `https://jetty.io/{COLLECTION}` | `https://jetty.io/jettyio` |
 
 ---
 
@@ -643,7 +643,7 @@ For batch run scripts, read `references/batch-runs.md`.
 
 | Status | Meaning | Resolution |
 |--------|---------|------------|
-| 401 | Invalid/expired token | Regenerate at flows.jetty.io → Settings → API Tokens |
+| 401 | Invalid/expired token | Regenerate at jetty.io → Settings → API Tokens |
 | 403 | Access denied | Verify token has access to the collection |
 | 404 | Not found | Check collection/task names for typos |
 | 422 | Validation error | Check request body format and required fields |

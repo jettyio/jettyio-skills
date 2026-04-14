@@ -13,7 +13,7 @@ export class JettyClient {
     if (!this.token) {
       throw new Error(
         "JETTY_API_TOKEN environment variable is required. " +
-          "Get your token at https://flows.jetty.io → Settings → API Tokens"
+          "Get your token at https://jetty.io → Settings → API Tokens"
       );
     }
     return this.token;

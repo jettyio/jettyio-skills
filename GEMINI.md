@@ -72,5 +72,5 @@ Copy the appropriate template, customize the sections for your task, and follow 
 ## Getting Help
 
 - Platform docs: https://jetty.io
-- Sign up: https://flows.jetty.io/sign-up
-- API tokens: flows.jetty.io → Settings → API Tokens
+- Sign up: https://jetty.io/sign-up
+- API tokens: jetty.io → Settings → API Tokens

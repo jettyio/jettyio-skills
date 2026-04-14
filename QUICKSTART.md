@@ -5,7 +5,7 @@ For Claude Code users, run `/jetty-setup` instead for a guided experience.
 
 ## 1. Get Your API Token
 
-Sign up at [flows.jetty.io/sign-up](https://flows.jetty.io/sign-up) → Settings → API Tokens → Create Token.
+Sign up at [jetty.io/sign-up](https://jetty.io/sign-up) → Settings → API Tokens → Create Token.
 
 Your token starts with `mlc_`.
 

@@ -203,7 +203,7 @@ Use AskUserQuestion:
 ## Important Notes
 
 - **Read the token from file**: `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash block.
-- **URL**: Use `flows-api.jetty.io` for API calls. Never `flows.jetty.io`.
+- **URL**: Use `flows-api.jetty.io` for API calls. Never `jetty.io`.
 - **Trajectories shape**: `{"trajectories": [...]}` — access via `.trajectories[]`.
 - **Steps are objects**: keyed by name, not indexed.
 - **Minimum trajectories**: Works with 1+, but 3+ gives better patterns.
