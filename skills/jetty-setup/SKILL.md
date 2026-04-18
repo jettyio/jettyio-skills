@@ -9,154 +9,129 @@ metadata:
 
 # Jetty Setup Wizard
 
-You are guiding a user through first-time Jetty setup. The goal is to get them from zero to running their first AI workflow in under 5 minutes. Follow these steps IN ORDER. Be friendly and concise.
+You are guiding a user through first-time Jetty setup. The goal is to get them from zero to their first runbook in under 3 minutes.
+
+## What's about to happen (show this first)
+
+Before running any commands, orient the user with this message:
+
+> **Welcome to Jetty.** Jetty is an agentic evaluation platform for long-running AI/ML workflows — things like data extraction pipelines, content generation with quality checks, or API regression testing. You describe the work in a **runbook**, a coding agent executes it end-to-end, and Jetty captures every step for replay and analysis.
+>
+> **What's a runbook?** A plain-markdown file that tells a coding agent (Claude Code, Codex, Gemini CLI) how to accomplish a multi-step task — like a detailed recipe.
+>
+> - **Plain markdown** — read, edit, and version-control like any document
+> - **Agent-executed** — a coding agent carries out each step autonomously
+> - **Long-running** — runs for several minutes (up to 60), not a chat turn
+> - **Measurable outcome** — every runbook ends with something concrete (a report, a dataset, a passing test suite)
+> - **Evaluation loops** — the agent can check its own work and iterate until quality bars are met
+> - **API-connected** — can reach any system whose keys live in your Jetty collection
+>
+> **Here's the plan (~3 minutes):**
+> 1. **Connect your Jetty account** — I'll check for an existing token or walk you through signup (~30s)
+> 2. **Add your AI provider keys in the web app** — you'll add them at **jetty.io → Settings → Environment Variables** (~1 min, in your browser)
+> 3. **Build your first runbook** — I'll hand you off to the runbook wizard (~2 min)
+>
+> You'll start seeing things in the Jetty web app at **https://jetty.io** as soon as step 1 finishes — your collection is live there, and every workflow run, trajectory, and result will appear there too.
+
+Then proceed to Step 1.
+
+---
 
 ## Security Guidelines
 
 - **Never echo, print, or log API tokens or keys** in output. Use redacted forms (e.g., `mlc_...xxxx`) when referring to tokens in messages to the user.
 - **Never store tokens in project files** like `CLAUDE.md` that may be committed to version control. Use the user-scoped config directory `~/.config/jetty/`.
-- **Read secrets interactively with `read -rs`** so the raw value never appears in generated commands, tool-call logs, or shell history. Pipe the value directly from the variable into `curl` and `unset` it immediately after.
-- **Confirm with the user before each API call** that sends credentials to an external service.
-- **Never store provider API keys locally** — they are sent directly to the Jetty API for server-side storage and are not written to any local file.
+- **Read secrets interactively with `read -rs`** so the raw value never appears in generated commands, tool-call logs, or shell history.
+- **Never ask the user to paste provider API keys (OpenAI, Anthropic, Gemini, Replicate) into this skill.** Those keys belong in the Jetty web app under Settings → Environment Variables. This skill only handles the Jetty API token itself.
 
 ---
 
-## Step 1: Check for Existing Token
+## Step 1: Connect Your Jetty Account
 
-Check if a Jetty API token already exists:
+### 1a: Check for an Existing Token
 
-1. Check `~/.config/jetty/token` for a stored token
-2. Also check the project's `CLAUDE.md` file (for backward compatibility) for a token starting with `mlc_`
-3. If found in `CLAUDE.md` but not in `~/.config/jetty/token`, migrate it (see "Save the Token" below) and remove it from `CLAUDE.md`
-4. If found, validate it:
+Check `~/.config/jetty/token` and, for backward compatibility, the project's `CLAUDE.md` for a line containing a token starting with `mlc_`. If found in `CLAUDE.md` but not in `~/.config/jetty/token`, migrate it and remove that line from `CLAUDE.md`.
+
+If a token exists, validate it:
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token 2>/dev/null)"
 curl -s -H "Authorization: Bearer $TOKEN" "https://flows-api.jetty.io/api/v1/collections/" | head -c 200
 ```
 
-If the response contains collection data (not an error), the token is valid. Tell the user (with token redacted):
-> "Found a valid Jetty token (`mlc_...{last 4 chars}`). You're already connected!"
+If the response contains collection data (not an error), tell the user (redacted):
+> "Found a valid Jetty token (`mlc_...{last 4 chars}`). You're connected — your collection is live at https://jetty.io."
 
-Then use AskUserQuestion:
-- Header: "Setup"
-- Question: "You already have a Jetty token configured. What would you like to do?"
-- Options:
-  - "Create my first runbook" / "Learn about runbooks and build one"
-  - "Reconfigure" / "Start fresh with a new token or provider"
-  - "I'm good" / "No further setup needed"
+Parse the response to find the collection name and save it for Step 2. Then skip directly to **Step 2**.
 
-If they choose "Create my first runbook", skip to **Step 4**.
-If they choose "Reconfigure", continue to **Step 2** but skip the signup part.
-If they choose "I'm good", end the setup.
+If no valid token exists, continue to 1b.
 
-If no valid token is found, continue to **Step 2**.
-
----
-
-## Step 2: Account Creation
+### 1b: Sign Up or Paste Existing Key
 
 Use AskUserQuestion:
-- Header: "Account"
+- Header: "Jetty Account"
 - Question: "Do you already have a Jetty account?"
 - Options:
-  - "Yes, I have an API key" / "I have a Jetty account and can paste my API key"
+  - "Yes, I have an API key" / "I'll paste my Jetty API key"
   - "No, I need to sign up" / "Open the Jetty signup page in my browser"
 
-### If "Yes, I have an API key":
-Ask the user to paste their API key using AskUserQuestion:
-- Header: "API Key"
-- Question: "Please paste your Jetty API key (starts with mlc_):"
-- Options:
-  - "I'll type it in" / "Let me enter my API key" (they will use the "Other" option to type it)
-  - "I need to find it" / "Open jetty.io so I can get my key"
+**If "No, I need to sign up":**
 
-If they need to find it, open the browser:
-```bash
-open "https://jetty.io/settings" 2>/dev/null || xdg-open "https://jetty.io/settings" 2>/dev/null
-```
-
-### If "No, I need to sign up":
 Tell the user:
-> "Opening Jetty in your browser. Here's what to do:
+> "Opening Jetty in your browser. Steps:
 > 1. Click **Get started free** to create your account
-> 2. Complete the onboarding (pick a collection name — this is your workspace)
-> 3. Once you're on the dashboard, go to **Settings** to find your API key
-> 4. Copy the API key and come back here to paste it"
+> 2. Pick a collection name (this is your workspace)
+> 3. Once on the dashboard, go to **Settings → API Tokens** and create a token
+> 4. Copy it and come back here"
 
-Open the signup page:
 ```bash
 open "https://jetty.io/sign-up" 2>/dev/null || xdg-open "https://jetty.io/sign-up" 2>/dev/null
 ```
 
-Then wait for them to come back and paste the key. Use AskUserQuestion:
-- Header: "API Key"
-- Question: "Once you've signed up, paste your Jetty API key here (starts with mlc_):"
-- Options:
-  - "I'll type it in" / "Let me paste my API key" (they will use the "Other" option)
-  - "I'm stuck" / "I need help finding my API key"
-
-If they're stuck, provide guidance:
-> "Your API key is at jetty.io → Settings → API Tokens. Click Create Token, copy it, and paste it here."
-
-### Validate the Key
-
-Once you have the key, save it to the secure config location first, then validate using the stored file. **Never embed the raw token in a generated command, heredoc, or variable assignment.** Instead, prompt the user to paste it interactively via `read -rs`:
+**In both cases, read the Jetty API token interactively and save it.** Never embed it in a generated command:
 
 ```bash
 mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
-echo "Paste your Jetty API token and press Enter:"
+echo "Paste your Jetty API token (starts with mlc_) and press Enter:"
 read -rs JETTY_TOKEN && printf '%s' "$JETTY_TOKEN" > ~/.config/jetty/token && unset JETTY_TOKEN
 chmod 600 ~/.config/jetty/token
-# Now validate using the stored file
 curl -s -H "Authorization: Bearer $(cat ~/.config/jetty/token)" "https://flows-api.jetty.io/api/v1/collections/"
 ```
 
-**Important:** The `read -rs` command reads input silently (no echo) directly from the terminal. The token value never appears in the generated command, shell history, or tool-call logs.
+If validation fails (401 or error), let them retry up to 3 times. If still failing, point to https://jetty.io/settings.
 
-**If validation fails (401 or error):**
-Tell the user the key didn't work and let them try again (up to 3 attempts). After 3 failures, suggest visiting https://jetty.io/settings to verify.
+On success, parse the response for the collection name (save it as `COLLECTION` for Step 2). Tell the user:
+> "Connected. Token saved to `~/.config/jetty/token` (user-scoped, won't be committed to git). Your collection `{name}` is live at https://jetty.io — you can open it in your browser anytime."
 
-**If validation succeeds:**
-1. Parse the response to find the collection name(s)
-2. Tell the user which collections they have access to
-
-### Save the Token
-
-The token was already saved during validation above. If validation failed and the user provided a corrected key, overwrite the file the same way (use `read -rs` so the raw token never appears in generated commands).
-
-If `CLAUDE.md` contains an old token line (`I have a production jetty api token mlc_...`), remove that line from `CLAUDE.md` to avoid leaving credentials in project files.
-
-Tell the user:
-> "Your API token is saved to `~/.config/jetty/token` (user-scoped, outside your project directory). It won't be accidentally committed to git."
+If `CLAUDE.md` still has an old `mlc_...` line, remove it.
 
 ---
 
-## Step 3: Choose Provider & Store API Key
+## Step 2: Add AI Provider Keys in the Web App
 
-### Step 3a: Check for Existing Keys & Offer Trial
+Runbooks need API keys to reach AI providers (OpenAI, Anthropic, Gemini) and any other services your workflows call. Those keys live **server-side** in your Jetty collection's environment variables — you add them once in the web app and every workflow/runbook in that collection can use them.
 
-First, check whether the collection already has AI provider keys configured:
+### 2a: Check What's Already Configured
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
-RESPONSE=$(curl -s "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" \
-  -H "Authorization: Bearer $TOKEN")
-echo "$RESPONSE" | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Configured keys:', list(evars.keys()) if evars else 'none')"
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Configured keys:', list(evars.keys()) if evars else 'none')"
 ```
 
-Parse `environment_variables` from the response. If **all four** of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, and `REPLICATE_API_TOKEN` are missing (i.e., none of them are present), offer the trial option below. If any of those keys are already configured, **skip this check entirely** and proceed to the provider selection prompt below.
+### 2b: If No Keys Are Configured, Offer the Trial
+
+If **all four** of `OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, and `REPLICATE_API_TOKEN` are missing, offer the trial as a zero-friction option.
 
 Use AskUserQuestion:
 - Header: "Getting Started"
-- Question: "Your collection doesn't have any AI provider keys configured yet.\n\nWould you like to:"
+- Question: "Your collection has no AI provider keys yet. How would you like to proceed?"
 - Options:
-  - "Try Jetty free" / "Get 10 free runs (up to 60 minutes) using Jetty-provided AI keys. No third-party signup needed."
-  - "Add your own keys" / "Configure your OpenAI, Anthropic, Gemini, or Replicate API keys now."
+  - "Try Jetty free" / "Activate 10 free runs (up to 60 minutes) using Jetty-provided keys. No third-party signup needed."
+  - "I'll add my own keys" / "Open jetty.io → Settings → Environment Variables to add my keys now"
 
-**If the user chooses "Try Jetty free":**
-
-Activate the trial:
+**If "Try Jetty free":**
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
@@ -166,263 +141,82 @@ curl -s -X POST "https://flows-api.jetty.io/api/v1/trial/$COLLECTION/activate" \
 import sys, json
 d = json.load(sys.stdin)
 if d.get('active') or d.get('status') == 'active':
-    print(f'Trial activated! Runs remaining: {d.get(\"runs_remaining\", \"?\")}, Minutes remaining: {d.get(\"minutes_remaining\", \"?\")}')
+    print(f'Trial activated. Runs remaining: {d.get(\"runs_remaining\", \"?\")}, Minutes remaining: {d.get(\"minutes_remaining\", \"?\")}')
 else:
     print('Error:', json.dumps(d))
 "
 ```
 
-- On success: Tell the user their trial is activated, show remaining runs and minutes, then **skip directly to Step 4** (Deploy the Demo Workflow). The trial provides all necessary AI keys server-side.
-- On error: Inform the user the trial could not be activated, then fall through to the "Add your own keys" flow below.
+On success, skip to **Step 3**. On failure, fall through to "I'll add my own keys".
 
-**If the user chooses "Add your own keys":**
-
-Continue with the provider selection prompt below.
-
----
-
-### Step 3b: Choose Provider
-
-Use AskUserQuestion:
-- Header: "Provider"
-- Question: "Which AI provider would you like to configure for your workflows?"
-- Options:
-  - "OpenAI" / "GPT models, DALL-E image generation, and more"
-  - "Google Gemini" / "Gemini models for text, vision, and image generation"
-
-Based on their choice, ask for the provider API key using AskUserQuestion:
-- Header: "Provider Key"
-- Question: "Paste your {OpenAI/Google} API key:"
-- Options:
-  - "I'll type it in" / "Let me paste my API key" (they will use the "Other" option)
-  - "Where do I get one?" / "Help me find or create an API key"
-
-If they need help getting a key:
-- **OpenAI**: "Get your API key at https://platform.openai.com/api-keys"
-  ```bash
-  open "https://platform.openai.com/api-keys" 2>/dev/null || xdg-open "https://platform.openai.com/api-keys" 2>/dev/null
-  ```
-- **Gemini**: "Get your API key at https://aistudio.google.com/apikey"
-  ```bash
-  open "https://aistudio.google.com/apikey" 2>/dev/null || xdg-open "https://aistudio.google.com/apikey" 2>/dev/null
-  ```
-
-### Step 3c: Store the Provider Key in Collection Environment Variables
-
-First, identify which collection to use. If the user has multiple collections, ask them to choose. If they have one, use it automatically.
-
-Before storing, confirm with the user using AskUserQuestion:
-- Header: "Confirm"
-- Question: "I'll now send your {provider} API key to Jetty's server so your workflows can use it. The key is stored server-side in your collection's environment variables and is NOT saved locally. Proceed?"
-- Options:
-  - "Yes, store it" / "Send my API key to Jetty"
-  - "Cancel" / "Don't store the key"
-
-If the user cancels, skip this step and warn them the demo won't work without a provider key.
-
-Then store the key by reading it interactively via `read -rs` and piping it directly to the API. **Never embed the provider key in a generated command, heredoc, temp file, or variable assignment visible in tool-call output.**
-
-**For OpenAI:**
-```bash
-COLLECTION="the-collection-name"
-echo "Paste your OpenAI API key and press Enter:"
-read -rs PROVIDER_KEY && \
-  printf '{"environment_variables": {"OPENAI_API_KEY": "%s"}}' "$PROVIDER_KEY" | \
-  curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
-    -H "Content-Type: application/json" \
-    "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
-    --data-binary @- && \
-  unset PROVIDER_KEY
-```
-
-**For Gemini:**
-```bash
-COLLECTION="the-collection-name"
-echo "Paste your Gemini API key and press Enter:"
-read -rs PROVIDER_KEY && \
-  printf '{"environment_variables": {"GEMINI_API_KEY": "%s"}}' "$PROVIDER_KEY" | \
-  curl -s -X PATCH -H "Authorization: Bearer $(cat ~/.config/jetty/token)" \
-    -H "Content-Type: application/json" \
-    "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
-    --data-binary @- && \
-  unset PROVIDER_KEY
-```
-
-**Important:** The `read -rs` command reads input silently (no echo). The key flows from stdin directly into `printf` and then into `curl` via pipe — it never appears in any generated command text, temp file, or shell history.
-
-Verify the key was stored (only print key names, never values):
-```bash
-TOKEN="$(cat ~/.config/jetty/token)"
-curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Stored keys:', list(evars.keys()) if evars else 'none')"
-```
-
-Tell the user:
-> "Your {provider} API key has been stored in your Jetty collection's server-side environment. Workflows will use it automatically. The key was not saved to any local file."
-
-### Step 3d: Agent Runtime Key (for Runbooks)
-
-Runbooks execute inside a coding agent on Jetty. The agent needs its own API key (separate from the image generation provider key above).
-
-Use AskUserQuestion:
-- Header: "Agent Runtime"
-- Question: "Jetty runbooks run inside a coding agent. Which will you use?"
-- Options:
-  - "Claude Code" / "Anthropic's claude-sonnet-4-6. Needs an Anthropic API key (~$3/MTok input)"
-  - "Codex" / "OpenAI's gpt-5.4. Needs an OpenAI API key"
-  - "Gemini CLI" / "Google's gemini-3.1-pro-preview. Needs a Google AI API key"
-  - "Skip for now" / "I'll configure this later when I need runbooks"
-
-If the user chooses "Skip", move on to Step 4.
-
-Otherwise, check if the required key already exists in the collection env vars:
-- Claude Code → `ANTHROPIC_API_KEY`
-- Codex → `OPENAI_API_KEY` (may already exist from provider step above)
-- Gemini CLI → `GOOGLE_API_KEY` (may already exist from provider step above)
-
-```bash
-TOKEN="$(cat ~/.config/jetty/token)"
-COLLECTION="the-collection-name"
-curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Stored keys:', list(evars.keys()) if evars else 'none')"
-```
-
-If the key exists, tell the user:
-> "Your {agent} API key is already configured. You're ready to run runbooks!"
-
-If the key is missing, ask the user to paste it and store it using the same secure pattern as the provider key (`read -rs` → pipe to `curl PATCH` → `unset`).
-
-Help links if they need a key:
-- **Anthropic**: "Get your key at https://console.anthropic.com/settings/keys"
-  ```bash
-  open "https://console.anthropic.com/settings/keys" 2>/dev/null || xdg-open "https://console.anthropic.com/settings/keys" 2>/dev/null
-  ```
-- **OpenAI**: "Get your key at https://platform.openai.com/api-keys"
-- **Google**: "Get your key at https://aistudio.google.com/apikey"
-
----
-
-## Step 4: Introduce Runbooks
-
-Now that the user has a working Jetty account and API keys, introduce the concept of runbooks.
+### 2c: Direct the User to the Web App
 
 Tell the user:
 
-> **What's a runbook?**
+> **Add your keys in the Jetty web app:**
 >
-> A runbook is a **human-readable markdown file** that describes a series of steps for a coding agent to follow — like a recipe for automation. Here's what makes them powerful:
->
-> - **Plain markdown** — You can read, edit, and version-control them just like any other document
-> - **Agent-executed** — A coding agent (Claude Code, Codex, Gemini CLI) reads the runbook and carries out each step autonomously
-> - **Measurable outcomes** — Every runbook ends with a concrete, verifiable result (a report, a dataset, a set of passing tests)
-> - **Multi-step with judgment** — Runbooks can include evaluation loops where the agent checks its own work and iterates until the result meets a quality bar
-> - **API-connected** — Tasks can interact with any system you give them access to via API keys stored in your Jetty collection. They can call external APIs, query databases, process files, and more
-> - **Long-running** — Unlike a quick chat response, runbook tasks typically run for **several minutes** (up to 60), working through complex multi-step processes end to end
->
-> Think of a runbook as the difference between asking someone a question and handing them a detailed project brief.
+> 1. Open **https://jetty.io/settings** (I'll open it for you)
+> 2. Go to **Environment Variables**
+> 3. Add whichever keys your runbooks will need:
+>    - `OPENAI_API_KEY` — for OpenAI models (GPT, DALL-E) — [get one](https://platform.openai.com/api-keys)
+>    - `ANTHROPIC_API_KEY` — for Claude models, and for running Claude Code as the agent runtime — [get one](https://console.anthropic.com/settings/keys)
+>    - `GEMINI_API_KEY` / `GOOGLE_API_KEY` — for Gemini models, and for the Gemini CLI agent runtime — [get one](https://aistudio.google.com/apikey)
+>    - Plus any other service keys your runbooks need (Snowflake, Langfuse, etc.)
+> 4. Come back here when you're done and I'll verify them
+
+```bash
+open "https://jetty.io/settings" 2>/dev/null || xdg-open "https://jetty.io/settings" 2>/dev/null
+```
+
+Wait for the user to confirm they're done. Use AskUserQuestion:
+- Header: "Keys"
+- Question: "Have you added your keys at jetty.io → Settings → Environment Variables?"
+- Options:
+  - "Yes, keys added" / "Verify the keys are configured"
+  - "Skip for now" / "I'll add keys later — continue to the runbook wizard"
+
+**If "Yes, keys added":** re-run the check from 2a and list the configured key names (never values). Confirm which runtime keys are present. If the user added keys but the check shows nothing, they may not have saved them — ask them to verify in the web app and re-check.
+
+**If "Skip for now":** warn that runbooks won't execute without keys, and continue.
 
 ---
 
-## Step 5: Suggest a Starter Runbook
+## Step 3: Build Your First Runbook
 
-Use AskUserQuestion:
-- Header: "Your First Runbook"
-- Question: "What kind of task would you like to automate? Pick a starter template or describe your own."
-- Options:
-  - "Data extraction" / "Extract structured data from documents, validate against a schema, and produce a quality report"
-  - "Content generation" / "Generate content from a brief, score it against a rubric, and iterate until it meets a quality bar"
-  - "Testing & regression" / "Run a test suite or replay queries against an API, evaluate pass/fail, and produce a regression report"
-  - "Something else" / "I'll describe what I want to automate"
+Hand off to the `/create-runbook` skill. Tell the user:
 
-### If the user picks a template:
+> "You're set up. I'm handing you off to the **runbook wizard**, which will walk you through building your first runbook step by step. When you run it, you'll see the trajectory appear live at **https://jetty.io** — every step, input, and output captured for replay."
 
-Briefly describe what the chosen template does:
+Then invoke `/create-runbook`. If the agent platform doesn't support skill invocation, tell the user:
 
-**Data extraction:**
-> "This runbook will pull data from a source you specify (documents, APIs, web pages), extract structured fields, validate them against a schema, and iterate on any errors — then produce a summary report."
-
-**Content generation:**
-> "This runbook will take a brief or prompt, generate content (text, images, code — whatever you need), evaluate the output against quality criteria you define, and refine it until it's good enough."
-
-**Testing & regression:**
-> "This runbook will run a set of test cases against an API or system, compare results to expected outcomes, and produce a pass/fail regression report with details on any failures."
-
-Then ask for specifics using AskUserQuestion:
-- Header: "Describe Your Task"
-- Question: "Now describe your specific use case in a sentence or two. What goes in, what processing happens, and what comes out? For example: 'Pull product descriptions from our CSV, translate them to Spanish, and check that each translation preserves the brand name and key specs.'"
-- Options:
-  - "I'll describe it" / "Let me type my use case" (user types in the text field)
-
-### If the user chose "Something else":
-
-Use AskUserQuestion:
-- Header: "Describe Your Task"
-- Question: "Describe the task you'd like to automate in simple terms. What goes in, what processing happens, and what should come out at the end? Remember — any system you can reach via an API key, the agent can interact with too."
-- Options:
-  - "I'll describe it" / "Let me type a description" (user types in the text field)
-  - "Show me more examples" / "I'd like to see more ideas first"
-
-**If "Show me more examples"**, display:
-
-> **Example runbook tasks people have built:**
->
-> 1. **NL-to-SQL Regression** — Pull failed queries from a log, replay them against an NL-to-SQL API, execute on a database, evaluate pass/fail, produce a regression report
-> 2. **PDF-to-Metadata Conversion** — Extract metadata from academic PDFs, generate structured JSON-LD, validate against a schema, iterate on errors
-> 3. **Branded Social Graphics** — Parse a text script, generate AI images, compose HTML with overlays, judge against a brand rubric, iterate until on-brand
-> 4. **Clinical Training Content** — Parse competency documents, generate training scenarios, score with a rubric, produce learning plans
-> 5. **API Health Monitor** — Hit a list of endpoints, compare response shapes to expected schemas, flag regressions, produce a status report
-
-Then re-ask the description question.
-
-Save the user's task description for use in the next step.
+> "Run `/create-runbook` to start building your runbook."
 
 ---
 
-## Step 6: Hand Off to Create-Runbook
+## What's Next (show after the handoff completes, or if the user returns later)
 
-Now that you have the user's task description, hand off to the create-runbook skill to scaffold their runbook.
-
-Tell the user:
-
-> "Great — I have enough to get started. I'm going to hand you off to the **runbook creation wizard**, which will walk you through building your runbook step by step."
-
-Then invoke the `/create-runbook` skill with the user's task description as the argument. If the agent platform doesn't support skill invocation, tell the user:
-
-> "Run `/create-runbook <their task description>` to start building your runbook."
-
----
-
-## Step 7: Next Steps
-
-After the runbook is created (or if the user wants to come back later), tell the user:
-
-> "You're all set! Here's what you can do next:
+> **Useful commands:**
 >
-> **Run your runbook on Jetty:**
-> `/jetty run-runbook <path-to-your-runbook>`
+> - `/jetty run-runbook <path>` — run a runbook on Jetty
+> - `/create-runbook` — build another runbook
+> - `/optimize-runbook` — analyze past runs and suggest improvements
+> - `/jetty list tasks` — see everything in your collection
+> - `/jetty show trajectories` — past runs and results
 >
-> **Create another runbook:**
-> `/create-runbook` — the wizard will guide you through it
->
-> **Optimize a runbook after a few runs:**
-> `/optimize-runbook` — analyzes past executions and suggests improvements
->
-> **Manage your workflows and tasks:**
-> `/jetty list tasks` — see everything in your collection
->
-> **Check execution history:**
-> `/jetty show trajectories` — see all past runs and their results
->
-> The `/jetty` command is your gateway to the full Jetty platform. Just describe what you want in natural language."
+> **In the web app at https://jetty.io:**
+> - Your collection, workflows, and tasks
+> - Live trajectories for every run (step-by-step replay)
+> - Settings → Environment Variables for managing provider keys
+> - Settings → API Tokens for managing Jetty tokens
 
 ---
 
 ## Important Notes
 
-- **Read the token from file**: Use `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash command block. Environment variables do not persist between bash invocations.
-- **Never log credentials**: Do not echo, print, or include tokens/keys in output shown to the user. Use redacted forms like `mlc_...xxxx`.
-- **Read secrets interactively via `read -rs`**: Never embed secrets in generated commands, heredocs, or temp files. Use `read -rs VAR && printf ... "$VAR" | curl --data-binary @-` so the secret flows from the user's terminal directly into the API call without appearing in tool-call output or shell history. Always `unset` the variable immediately after use.
-- **URL disambiguation**: Use `flows-api.jetty.io` for all API calls (workflows, collections, tasks, trajectories, files). NEVER use `jetty.io` for API calls (it's the web frontend).
-- **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}` — always access via `.trajectories[]`.
+- **Read the token from file**: Use `TOKEN="$(cat ~/.config/jetty/token)"` at the start of each bash block. Environment variables don't persist across bash invocations.
+- **Never log credentials**: Don't echo, print, or include tokens/keys in output. Use redacted forms like `mlc_...xxxx`.
+- **Read secrets interactively via `read -rs`**: Never embed secrets in generated commands, heredocs, or temp files. Always `unset` after use.
+- **Provider keys go in the web app, not this skill.** The only secret this skill handles is the Jetty API token itself.
+- **URL disambiguation**: Use `flows-api.jetty.io` for all API calls. `jetty.io` is the web frontend.
+- **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}`.
 - **Steps are objects, not arrays**: Trajectory steps are keyed by step name (e.g., `.steps.expand_prompt`), not by index.
