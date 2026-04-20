@@ -109,18 +109,7 @@ Then re-ask (same question, minus "Help me decide").
 
 Save the chosen evaluation pattern: `programmatic` or `rubric`.
 
-### 2c: File Location
-
-Use AskUserQuestion:
-- Header: "Location"
-- Question: "Where should I create the RUNBOOK.md file?"
-- Options:
-  - "Here" / "Create ./RUNBOOK.md in the current directory"
-  - "Custom path" / "Let me specify where to put it" (user types a path)
-
-Save the target file path.
-
-### 2d: Agent Runtime & Snapshot
+### 2c: Agent Runtime & Snapshot
 
 Use AskUserQuestion:
 - Header: "Agent Runtime"
@@ -145,6 +134,8 @@ Use AskUserQuestion:
   - "No browser needed" / "Use python312-uv snapshot (lighter, faster startup)"
 
 Save the snapshot choice. These values will be written into the runbook frontmatter in Step 3.
+
+The runbook file will always be written as `./RUNBOOK.md` in the current working directory — do not ask the user where to save it.
 
 ---
 
@@ -175,16 +166,16 @@ Now customize the template using the task description from Step 2a:
 2. **Objective**: Write a 2-5 sentence objective based on what the user described — input, processing, output
 3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.)
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
-5. **Agent/model/snapshot**: Write the choices from Step 2d into the frontmatter fields
-5. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
+5. **Agent/model/snapshot**: Write the choices from Step 2c into the frontmatter fields
+6. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
 
 Leave `{TODO: ...}` markers, `{How to fix it}`, and similar placeholders in sections that require detailed domain input from the user (evaluation criteria, common fixes, tips, dependencies).
 
-Write the customized runbook to the path chosen in Step 2c using the Write tool.
+Write the customized runbook to `./RUNBOOK.md` (always — do not ask the user for a different path) using the Write tool.
 
 Tell the user:
 
-> "I've created a runbook scaffold at `{path}`. It has the full structure with your task details filled in and placeholder markers where I need your input. Let's walk through each section."
+> "I've created a runbook scaffold at `./RUNBOOK.md`. It has the full structure with your task details filled in and placeholder markers where I need your input. Let's walk through each section."
 
 ---
 
@@ -473,7 +464,7 @@ chmod +x /tmp/validate_runbook.sh
 bash /tmp/validate_runbook.sh "THE_RUNBOOK_PATH"
 ```
 
-Replace `THE_RUNBOOK_PATH` with the actual path from Step 2c.
+Replace `THE_RUNBOOK_PATH` with `./RUNBOOK.md`.
 
 **If there are errors**, tell the user what needs to be fixed and guide them through the fixes using Edit. Re-run validation after fixes.
 
