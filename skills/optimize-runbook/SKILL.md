@@ -17,6 +17,99 @@ This skill uses `AskUserQuestion` for interactive choices. If running in an envi
 
 ---
 
+## Mode dispatch — READ THIS FIRST
+
+Before Step 1, check whether you are in **headless mode**:
+
+```bash
+echo "${JETTY_OPTIMIZE:-0}"
+```
+
+- If the value is `1`, follow **ONLY** the "Headless Mode" section below. Do not execute Steps 1–7.
+- Otherwise, follow Steps 1–7 as normal (interactive flow with the user).
+
+Headless mode runs inside a Jetty Optimize sandbox where the inputs have been pre-loaded to known file paths and there is no user on the other end to answer `AskUserQuestion` prompts mid-skill. The user's interaction (if any) comes **after** you finish the initial pass, in the form of follow-up turns.
+
+---
+
+## Headless Mode (when `JETTY_OPTIMIZE=1`)
+
+### H1. Verify pre-loaded inputs
+
+Confirm the three inputs are on disk. If any are missing, emit an error to stdout and stop — Spot will surface it to the user.
+
+```bash
+ls -la /app/RUNBOOK.md /app/baseline-RUNBOOK.md /app/trajectory.json
+```
+
+Read the runbook and the trajectory:
+
+- `/app/RUNBOOK.md` — the runbook to edit (your working copy)
+- `/app/baseline-RUNBOOK.md` — read-only snapshot for comparison
+- `/app/trajectory.json` — the one trajectory you are analyzing
+
+Do **NOT** call the Jetty trajectory list/fetch API. Do **NOT** use `AskUserQuestion` anywhere in headless mode.
+
+### H2. Analyze
+
+From `trajectory.json`, extract and hold in memory:
+
+- `trajectory_id`, `status`, total duration, iteration counts per step
+- Each step's inputs, outputs, errors, duration
+- Any labels already applied
+
+Apply the same six pattern lenses as Step 4 of the interactive flow, against this single trajectory:
+
+1. Consistent failures (evaluation criteria below threshold)
+2. Iteration waste (retry-heavy steps)
+3. Timeout / long-duration bottlenecks
+4. Divergent agent behavior vs. the runbook's stated expectations
+5. Missing guardrails (errors that the runbook's evaluation section doesn't catch)
+6. Score plateaus (rubric-only — iterations that didn't improve)
+
+For each pattern you find, plan one concrete edit to `/app/RUNBOOK.md`. Edits must be specific (exact before/after text) and cite the trajectory step(s) that motivated them.
+
+### H3. Emit the structured analysis payload
+
+**Before editing any file**, print a single-line JSON object on its own line with this exact shape (Spot parses this for the diff-gutter citations):
+
+```json
+{"type":"optimize_analysis","trajectory_id":"<id>","patterns":["<short description>","..."],"proposed_changes":[{"section":"<runbook section name>","before":"<exact current text>","after":"<exact replacement>","citations":["<step_name>","..."]},"..."]}
+```
+
+Rules:
+
+- One JSON object, one line, no pretty-printing.
+- `citations` must reference concrete step names or event ids from the trajectory. An empty citations array is a bug — don't emit one.
+- If you found **zero** patterns, still emit the payload with `"patterns": []` and `"proposed_changes": []`, then stop and report "no actionable patterns found in this trajectory."
+
+After the JSON line, feel free to print a short human-readable summary in prose (Spot will render it in the chat pane alongside the diff).
+
+### H4. Apply each change
+
+For every item in `proposed_changes`, use the `Edit` tool against `/app/RUNBOOK.md` to replace the `before` text with the `after` text. Then bump the runbook version in the frontmatter (patch increment — e.g. `1.0.0` → `1.0.1`). If no version field exists, add `version: "1.0.1"`.
+
+Do **not** edit `/app/baseline-RUNBOOK.md` — it stays pristine for the diff view.
+
+### H5. Stop and wait
+
+Emit a one-paragraph summary (counts of patterns and edits applied). Then stop. The user may send follow-up turns asking for refinements (e.g. "also tighten step 3's iteration budget"). Apply those incrementally via `Edit` and wait again. Do **not** call the skill's subsequent steps; the interactive flow's Step 6–7 "apply changes" prompts are not applicable in headless mode.
+
+### H6. What's different from the interactive flow
+
+| | Interactive | Headless |
+|---|---|---|
+| Runbook location | Discovered via `ls RUNBOOK*.md` | Always `/app/RUNBOOK.md` |
+| Trajectory source | Jetty API (list + fetch) | `/app/trajectory.json` |
+| Trajectory count | N (user-chosen) | Always 1 |
+| `AskUserQuestion` | Used | **Never used** |
+| Apply-changes gate | User picks "Apply all" / "Let me choose" / "Save as report" | Auto-apply all |
+| Version bump | After apply | After apply |
+| Output artifact | Modified `RUNBOOK.md` + optional `./runbook-optimization-report.md` | Modified `/app/RUNBOOK.md` only |
+| Analysis JSON emission | Not emitted | **Required** (§H3) |
+
+---
+
 ## Step 1: Identify the Runbook
 
 1. Look for runbook files in the current directory:
