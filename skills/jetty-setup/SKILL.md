@@ -15,23 +15,26 @@ You are guiding a user through first-time Jetty setup. The goal is to get them f
 
 Before running any commands, orient the user with this message:
 
-> **Welcome to Jetty.** Jetty is an agentic evaluation platform for long-running AI/ML workflows — things like data extraction pipelines, content generation with quality checks, or API regression testing. You describe the work in a **runbook**, a coding agent executes it end-to-end, and Jetty captures every step for replay and analysis.
+> **Welcome to Jetty.** Jetty exists to run **runbooks** — plain-markdown files you write once that tell a coding agent how to do a long, multi-step job end-to-end. Think of a runbook like a recipe, except the agent (Claude Code, Codex, or Gemini CLI) is the cook, the kitchen is a fresh sandbox we spin up for every run, and Jetty captures every step it takes so you can replay or grade it later.
 >
-> **What's a runbook?** A plain-markdown file that tells a coding agent (Claude Code, Codex, Gemini CLI) how to accomplish a multi-step task — like a detailed recipe.
+> **A few examples of what people put in a runbook:**
+> - *"Pull yesterday's failed SQL queries from Langfuse, replay them against our NL-to-SQL API, and produce a regression report."*
+> - *"Take this CSV of product names, generate a branded social graphic for each one, and rate them against our brand rubric until they all score 4+."*
+> - *"Extract structured metadata from these academic PDFs and validate it against the Croissant schema — iterate on errors until everything passes."*
 >
-> - **Plain markdown** — read, edit, and version-control like any document
-> - **Agent-executed** — a coding agent carries out each step autonomously
-> - **Long-running** — runs for several minutes (up to 60), not a chat turn
-> - **Measurable outcome** — every runbook ends with something concrete (a report, a dataset, a passing test suite)
-> - **Evaluation loops** — the agent can check its own work and iterate until quality bars are met
-> - **API-connected** — can reach any system whose keys live in your Jetty collection
+> **Why runbooks (not just a chat or a script):**
+> - **Plain markdown** — readable, editable, version-controllable like any doc
+> - **Long-running** — minutes, not a chat turn (runs go up to 60 min)
+> - **Always end with something concrete** — a dataset, a report, a passing test suite, a manifest
+> - **Self-evaluating** — the runbook tells the agent how to grade its own output and iterate until it's good enough
+> - **Reach any system** whose keys live in your Jetty collection
 >
-> **Here's the plan (~3 minutes):**
-> 1. **Connect your Jetty account** — I'll check for an existing token or walk you through signup (~30s)
-> 2. **Add your AI provider keys in the web app** — you'll add them at **jetty.io → Settings → Environment Variables** (~1 min, in your browser)
-> 3. **Build your first runbook** — I'll hand you off to the runbook wizard (~2 min)
+> **Here's the 3-minute plan:**
+> 1. **Connect your Jetty account** (~30s) — I'll check for an existing token or open the signup page
+> 2. **Add AI provider keys** (~1 min) — at **jetty.io → Settings → Environment Variables**, in your browser
+> 3. **Build your first runbook** (~2 min) — I'll hand you to the runbook wizard, which walks you through it interactively
 >
-> You'll start seeing things in the Jetty web app at **https://jetty.io** as soon as step 1 finishes — your collection is live there, and every workflow run, trajectory, and result will appear there too.
+> Your collection appears in the Jetty web app at **https://jetty.io** as soon as step 1 finishes. Every run, trajectory, and result will land there too.
 
 Then proceed to Step 1.
 
@@ -183,9 +186,19 @@ Wait for the user to confirm they're done. Use AskUserQuestion:
 
 ## Step 3: Build Your First Runbook
 
-Hand off to the `/create-runbook` skill. Tell the user:
+This is the part that matters — your account exists to run runbooks. Hand off to the `/create-runbook` skill now.
 
-> "You're set up. I'm handing you off to the **runbook wizard**, which will walk you through building your first runbook step by step. When you run it, you'll see the trajectory appear live at **https://jetty.io** — every step, input, and output captured for replay."
+Tell the user:
+
+> "You're connected. Now the main event: **building your first runbook.** I'm handing you to the runbook wizard, which will:
+>
+> 1. Ask what task you want to automate (or show example tasks if you want inspiration)
+> 2. Pick the right evaluation pattern (rubric scoring or programmatic checks) and sandbox for you
+> 3. Scaffold a `RUNBOOK.md` with your task, parameters, evaluation criteria, and output manifest
+> 4. Pre-register the task on Jetty with file-upload support so you can drop in CSVs/PDFs/images at run time
+> 5. Optionally walk through a dry run before you execute it for real
+>
+> When you eventually trigger the runbook, you'll watch the trajectory appear live at **https://jetty.io** — every step, input, and output captured for replay and grading."
 
 Then invoke `/create-runbook`. If the agent platform doesn't support skill invocation, tell the user:
 

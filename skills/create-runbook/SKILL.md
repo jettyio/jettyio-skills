@@ -83,31 +83,26 @@ Save the user's task description for use in all subsequent steps.
 
 ### 2b: Evaluation Pattern
 
-Use AskUserQuestion:
+**Default to `rubric`.** Most runbooks produce content where quality is multi-dimensional, and rubric scoring is the more general-purpose pattern. Only choose `programmatic` when the task description **clearly** describes a coding/structured-output task. Skip the question entirely in those clear cases — just pick and tell the user what you picked and why (one line).
+
+Pick `programmatic` without asking when the task description clearly involves any of:
+- Schema validation, JSON Schema, OpenAPI, Croissant, JSON-LD
+- SQL, query execution, database regression
+- Unit tests, test suites, lint, type-check, build, compile
+- API response shape checks, HTTP status assertions
+- Code generation where the success criterion is "the code compiles / passes tests"
+- File/data format conversion with a strict target spec (CSV with N columns, etc.)
+
+Pick `rubric` without asking for everything else (content generation, creative output, reports, training material, image composition, summarization, classification quality, UX/brand checks).
+
+Only fall back to AskUserQuestion when the task is genuinely ambiguous (e.g., "extract data from PDFs" — could be schema-validated or rubric-scored on completeness). When you ask:
 - Header: "Evaluation"
-- Question: "How will you know when the output is good enough?"
+- Question: "Your task could go either way. Programmatic = strict pass/fail against a schema or test. Rubric = 1–5 scoring across quality dimensions. Which fits?"
 - Options:
-  - "Programmatic checks" / "I can validate with code, a schema, tests, or an API (objective pass/fail)"
-  - "Quality rubric" / "I need to score against multiple criteria (subjective quality on a 1-5 scale)"
-  - "Help me decide" / "Not sure which fits my task"
+  - "Quality rubric" / "Score against multiple criteria (1-5 scale)"
+  - "Programmatic checks" / "Validate with code, schema, or tests (objective pass/fail)"
 
-**If "Help me decide"**, explain:
-
-> **Programmatic** is right when:
-> - Your output is structured data (JSON, CSV, SQL)
-> - You can validate with a schema, test suite, or API call
-> - Pass/fail is objective — it either works or it doesn't
-> - *Examples: schema validation, SQL execution, test suites, API response checks*
->
-> **Rubric** is right when:
-> - Your output is creative or complex (text, images, reports, designs)
-> - Quality is subjective across multiple dimensions
-> - You need a numeric score to track improvement
-> - *Examples: content quality, brand compliance, UX evaluation, report comprehensiveness*
-
-Then re-ask (same question, minus "Help me decide").
-
-Save the chosen evaluation pattern: `programmatic` or `rubric`.
+Save the chosen evaluation pattern: `programmatic` or `rubric`. When you skip the question, tell the user in one short line: *"I'm using a rubric for this — your output is {reason}."* or *"Going with programmatic — {reason}."*
 
 ### 2c: Agent Runtime & Snapshot
 
@@ -124,14 +119,16 @@ Save the agent and model choice. The mapping is:
 - Codex → agent: `codex`, model: `gpt-5.4`
 - Gemini CLI → agent: `gemini-cli`, model: `gemini-3.1-pro-preview`
 
-Then ask about the sandbox:
+Then pick the sandbox. **Don't ask** if the task obviously needs a browser — just pick `prism-playwright` and tell the user in one line. Browser is obvious when the task description mentions any of: web scraping, scrape, screenshot, browser, Playwright, Selenium, OAuth flow, web UI testing, e2e, HTML rendering, page navigation, crawl/crawler, login flow, or specific URLs/web apps.
 
-Use AskUserQuestion:
+If the task is clearly text/data-only (no browser cues), default to `python312-uv` and tell the user in one line.
+
+Only ask when ambiguous (e.g., "fetch data from a website" — could be HTTP scraping or browser scraping). When you ask:
 - Header: "Sandbox"
-- Question: "Will your runbook need a web browser (Playwright)?\nExamples: taking screenshots, web scraping, OAuth flows, testing web UIs"
+- Question: "Will your runbook need a real browser (Playwright + Chromium), or is HTTP enough?"
 - Options:
-  - "Yes, I need a browser" / "Use prism-playwright snapshot (Python 3.12, uv, Playwright + Chromium pre-installed)"
-  - "No browser needed" / "Use python312-uv snapshot (lighter, faster startup)"
+  - "Browser" / "Use prism-playwright snapshot (Playwright + Chromium pre-installed)"
+  - "No browser" / "Use python312-uv snapshot (lighter, faster startup)"
 
 Save the snapshot choice. These values will be written into the runbook frontmatter in Step 3.
 
@@ -474,6 +471,62 @@ Replace `THE_RUNBOOK_PATH` with `./RUNBOOK.md`.
 
 ---
 
+## Step 5b: Pre-register the Task with File Uploads Enabled
+
+Most runbooks benefit from accepting file uploads at trigger time — users frequently want to attach a CSV, PDF, image, or dataset when running. Pre-register the Task row server-side now so the Jetty web app shows the file-upload affordance on the very first run, before any chat-completions call has materialized the row.
+
+Derive the task name from the runbook title (kebab-case, e.g., `nl-to-sql-regression`) and the agent/snapshot from the frontmatter you wrote in Step 3.
+
+Detect the user's collection from their token:
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+COLLECTION=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/collections/" \
+  | python3 -c "import sys,json; d=json.load(sys.stdin); cols=d.get('collections',d) if isinstance(d,dict) else d; print(cols[0]['name'] if cols else '')")
+echo "Collection: $COLLECTION"
+```
+
+If multiple collections are returned, ask the user which one with AskUserQuestion (Header: "Collection", Question: "Which collection should this runbook live in?", Options: one per collection name).
+
+Now upsert the Task row with `has_file_uploads=true` and `is_chat_flow=true`. Try `PUT` first (works whether the task exists or not via auto-create on chat-completions); if that returns 404, fall back to `POST`:
+
+```bash
+TASK_NAME="REPLACE_WITH_KEBAB_TASK_NAME"
+TOKEN="$(cat ~/.config/jetty/token)"
+
+# Try update first
+HTTP=$(curl -s -o /tmp/task_resp.json -w "%{http_code}" -X PUT \
+  "https://flows-api.jetty.io/api/v1/tasks/$COLLECTION/$TASK_NAME" \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{"has_file_uploads": true, "is_chat_flow": true}')
+
+if [ "$HTTP" = "404" ]; then
+  curl -s -X POST "https://flows-api.jetty.io/api/v1/tasks/$COLLECTION" \
+    -H "Authorization: Bearer $TOKEN" \
+    -H "Content-Type: application/json" \
+    -d "$(python3 -c "import json; print(json.dumps({
+      'name': '$TASK_NAME',
+      'workflow': {'init_params': {}, 'step_configs': {'completion': {'activity': 'passthrough'}}, 'steps': ['completion']},
+      'description': 'Runbook task (pre-registered with file uploads enabled)',
+      'has_file_uploads': True,
+      'is_chat_flow': True,
+      'is_private': True,
+      'entity_type': 'task'
+    }))")
+fi
+```
+
+Tell the user (one line):
+> "Pre-registered task `{collection}/{task_name}` with file uploads enabled — you can attach files when triggering runs from the web app or via the API."
+
+If pre-registration fails (network, auth, etc.), don't block — log a warning and tell the user the task will auto-register on first run; they can manually flip `has_file_uploads` later via `PUT /api/v1/tasks/{collection}/{task_name}` or in the web app.
+
+Save `TASK_NAME` and `COLLECTION` for use in Step 7.
+
+---
+
 ## Step 6: Optional Dry Run
 
 Use AskUserQuestion:
@@ -542,10 +595,12 @@ Tell the user:
 >       "template_variables": {
 >         "sample_size": "10"
 >       },
->       "file_paths": []
+>       "file_paths": ["uploads/2026/04/my-input.csv"]
 >     }
 >   }'
 > ```
+>
+> **Attaching files at run time:** This task was pre-registered with `has_file_uploads=true`, so the Jetty web app shows a file-upload control on the task page. Files dropped there are stored and their storage paths are passed to the runbook in `init_params.file_paths`. You can also pass `jetty.file_paths` directly in the API call (as shown) or upload via `multipart/form-data` to `/v1/files` and pass the returned file IDs as `jetty.files`.
 >
 > The `jetty` block fields map directly to your runbook's frontmatter:
 > | Frontmatter field | `jetty` block field | Purpose |
