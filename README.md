@@ -128,6 +128,37 @@ To install from a local clone instead:
 gemini extensions install --path /path/to/jettyio-skills
 ```
 
+### Antigravity
+
+Antigravity (Google's agentic IDE) loads skills from `~/.gemini/antigravity/skills/` and reads MCP servers from `~/.gemini/antigravity/mcp_config.json`. It does **not** auto-install from any of the manifests in this repo — file-drop only.
+
+**Skills:** clone the repo and either symlink or copy each skill directory you want into Antigravity's skill path. For example:
+
+```bash
+git clone https://github.com/jettyio/jettyio-skills.git
+mkdir -p ~/.gemini/antigravity/skills
+ln -s "$(pwd)/jettyio-skills/skills/jetty-setup"     ~/.gemini/antigravity/skills/jetty-setup
+ln -s "$(pwd)/jettyio-skills/skills/create-runbook"  ~/.gemini/antigravity/skills/create-runbook
+ln -s "$(pwd)/jettyio-skills/skills/optimize-runbook" ~/.gemini/antigravity/skills/optimize-runbook
+ln -s "$(pwd)/jettyio-skills/skills/jetty"           ~/.gemini/antigravity/skills/jetty
+```
+
+**MCP server:** add to `~/.gemini/antigravity/mcp_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "jetty": {
+      "command": "npx",
+      "args": ["-y", "jetty-mcp-server"],
+      "env": { "JETTY_API_TOKEN": "mlc_your_token" }
+    }
+  }
+}
+```
+
+Restart Antigravity after editing the config. Skills trigger on natural language (slash commands aren't auto-discovered for skills) — say *"set up Jetty"* or *"create a runbook for X"* and the agent will pick the right skill via the description in its frontmatter.
+
 ### Codex CLI
 
 Add to `~/.codex/config.json`:

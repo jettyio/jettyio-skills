@@ -15,7 +15,9 @@ Follow these steps IN ORDER. Be friendly and concise. At each decision point, us
 
 ## Cross-Agent Compatibility
 
-This skill uses `AskUserQuestion` for interactive choices. If you are running in an environment where `AskUserQuestion` is not available (e.g., Codex CLI, Gemini CLI, Cursor), replace each AskUserQuestion call with a direct question to the user in your text output. Ask the user to reply with their choice. The wizard flow is the same — only the interaction mechanism differs.
+This skill uses `AskUserQuestion` for interactive choices. If you are running in an environment where `AskUserQuestion` is not available (e.g., Codex CLI, Gemini CLI, Cursor, Antigravity), replace each AskUserQuestion call with a direct question to the user in your text output. Ask the user to reply with their choice. The wizard flow is the same — only the interaction mechanism differs.
+
+**Antigravity-specific note:** Antigravity skills are triggered semantically by the `description` frontmatter, not by slash commands. Users will say "create a runbook for X" or similar — there is no `/create-runbook` slash invocation. References to other slash commands in this skill (e.g., "run `/jetty-setup`") should be presented to the Antigravity user as natural-language asks ("ask me to set up Jetty"), since slash discovery doesn't apply.
 
 For non-interactive / batch execution (e.g., Codex with `--quiet`), the user should pass the required context as the skill argument:
 ```

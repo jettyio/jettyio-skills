@@ -11,6 +11,16 @@ metadata:
 
 You are guiding a user through first-time Jetty setup. The goal is to get them from zero to their first runbook in under 3 minutes.
 
+## Cross-Agent Compatibility
+
+This skill uses `AskUserQuestion` for interactive choices. If you are running in an environment where `AskUserQuestion` is not available (Codex CLI, Gemini CLI, Cursor, Antigravity), replace each AskUserQuestion call with a direct text-mode question and have the user reply in chat. The wizard flow is unchanged — only the interaction mechanism differs.
+
+**Antigravity-specific notes:**
+- Skills are triggered by semantic match on the frontmatter `description`, not by slash commands. The handoff to `/create-runbook` in Step 3 should be phrased as "ask me to create your first runbook" rather than telling the user to type a slash command.
+- The token path `~/.config/jetty/token` works (Antigravity is a desktop app, not sandboxed). The MCP server runs from `~/.gemini/antigravity/mcp_config.json`, not the repo's `.mcp.json` — if the user's MCP tools aren't responding, point them at the README's Antigravity install section.
+
+---
+
 ## What's about to happen (show this first)
 
 Before running any commands, orient the user with this message:
