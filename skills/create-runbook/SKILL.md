@@ -108,7 +108,35 @@ Save the chosen evaluation pattern: `programmatic` or `rubric`. When you skip th
 
 ### 2c: Agent Runtime & Snapshot
 
-Use AskUserQuestion:
+**Default to `claude-code` + `claude-sonnet-4-6` without asking.** This is the right choice for the vast majority of users — strong reasoning, broad tool support, and it matches the runtime the forge itself uses. Only fall back to AskUserQuestion when the user has explicitly asked for a different agent in their task description (e.g., "use Codex", "I only have a Gemini key").
+
+Before defaulting silently, do a quick check to confirm the choice is safe — the user should not be steered to Claude if they're paying for it themselves with no key configured. Run:
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+COLLECTION="{collection from Step 2a or jetty whoami default}"
+
+# Trial status
+TRIAL=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/trial/$COLLECTION")
+TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active', False))")
+
+# Org-level ANTHROPIC_API_KEY presence
+COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION")
+HAS_ANTHROPIC=$(echo "$COLL" | python3 -c "
+import sys, json
+d = json.load(sys.stdin)
+evars = d.get('environment_variables', {})
+print('ANTHROPIC_API_KEY' in evars)
+")
+```
+
+Decision:
+- `TRIAL_ACTIVE == True` **or** `HAS_ANTHROPIC == True` → silently pick `claude-code` + `claude-sonnet-4-6`. Tell the user in one line: *"Using Claude Code (claude-sonnet-4-6) — your trial covers it."* or *"Using Claude Code (claude-sonnet-4-6) — your org has ANTHROPIC_API_KEY set."*
+- Neither → still default to `claude-code` + `claude-sonnet-4-6`, but tell the user: *"Defaulting to Claude Code (claude-sonnet-4-6). You'll need to add an ANTHROPIC_API_KEY in Jetty before running — or tell me to use a different agent."*
+
+Only use AskUserQuestion when the user's task description explicitly names a different runtime, or they push back on the default. When you do ask:
 - Header: "Agent Runtime"
 - Question: "Which agent will run this runbook on Jetty?"
 - Options:
