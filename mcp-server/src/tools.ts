@@ -349,4 +349,237 @@ export function registerTools(server: McpServer, client: JettyClient) {
       );
     }
   );
+
+  // ── Routines (Scheduled Runs) ─────────────────────────────────
+
+  const cadenceSchema = z
+    .object({
+      type: z
+        .enum(["manual", "hourly", "daily", "weekdays", "weekly"])
+        .describe(
+          "Cadence type. 'manual' creates a saved invocation preset (no schedule); the others register a Temporal schedule."
+        ),
+      hour_utc: z
+        .number()
+        .int()
+        .min(0)
+        .max(23)
+        .optional()
+        .describe(
+          "Hour of day in UTC (0-23). Required for daily/weekdays/weekly."
+        ),
+      minute_utc: z
+        .number()
+        .int()
+        .min(0)
+        .max(59)
+        .optional()
+        .describe("Minute of the hour in UTC (0-59). Defaults to 0."),
+      day_of_week: z
+        .enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"])
+        .optional()
+        .describe("Day of week. Required for weekly cadence."),
+    })
+    .describe(
+      "Cadence config. Examples: {type:'hourly', minute_utc:15}, {type:'daily', hour_utc:9}, {type:'weekly', day_of_week:'mon', hour_utc:9}."
+    );
+
+  server.tool(
+    "list-routines",
+    "List scheduled routines for a collection (optionally scoped to a task)",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z
+        .string()
+        .optional()
+        .describe("Task name (omit to list all routines in the collection)"),
+    },
+    async ({ collection, task }) => {
+      return jsonResult(await client.listRoutines(collection, task));
+    }
+  );
+
+  server.tool(
+    "get-routine",
+    "Get a single routine including resolved next_run_at from Temporal",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name (unique per collection+task)"),
+    },
+    async ({ collection, task, name }) => {
+      return jsonResult(await client.getRoutine(collection, task, name));
+    }
+  );
+
+  server.tool(
+    "create-routine",
+    "Create a scheduled routine for an existing task. init_params_overrides keys must be a subset of task.workflow.init_params.",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name (slug, unique per task)"),
+      cadence: cadenceSchema,
+      init_params_overrides: z
+        .record(z.unknown())
+        .optional()
+        .describe(
+          "Init param overrides. Keys must be a subset of task.workflow.init_params; unknown keys return 400."
+        ),
+      secret_params: z
+        .record(z.unknown())
+        .optional()
+        .describe(
+          "Secrets injected at fire time (encrypted at rest, never logged)."
+        ),
+      paused: z
+        .boolean()
+        .optional()
+        .describe("Create the routine in paused state"),
+      webhook_url: z
+        .string()
+        .optional()
+        .describe("Optional webhook to notify on each run"),
+      webhook_secret: z
+        .string()
+        .optional()
+        .describe("Optional shared secret for webhook signing"),
+    },
+    async ({
+      collection,
+      task,
+      name,
+      cadence,
+      init_params_overrides,
+      secret_params,
+      paused,
+      webhook_url,
+      webhook_secret,
+    }) => {
+      const body: Record<string, unknown> = { name, cadence };
+      if (init_params_overrides !== undefined)
+        body.init_params_overrides = init_params_overrides;
+      if (secret_params !== undefined) body.secret_params = secret_params;
+      if (paused !== undefined) body.paused = paused;
+      if (webhook_url !== undefined) body.webhook_url = webhook_url;
+      if (webhook_secret !== undefined) body.webhook_secret = webhook_secret;
+      return jsonResult(await client.createRoutine(collection, task, body));
+    }
+  );
+
+  server.tool(
+    "update-routine",
+    "Patch a routine — provide any subset of cadence/overrides/secrets/paused/webhook fields",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name"),
+      cadence: cadenceSchema.optional(),
+      init_params_overrides: z
+        .record(z.unknown())
+        .optional()
+        .describe("Replace init param overrides"),
+      secret_params: z
+        .record(z.unknown())
+        .optional()
+        .describe("Replace secret params"),
+      paused: z.boolean().optional().describe("Pause/resume the routine"),
+      webhook_url: z.string().optional().describe("Update webhook URL"),
+      webhook_secret: z
+        .string()
+        .optional()
+        .describe("Update webhook signing secret"),
+    },
+    async ({
+      collection,
+      task,
+      name,
+      cadence,
+      init_params_overrides,
+      secret_params,
+      paused,
+      webhook_url,
+      webhook_secret,
+    }) => {
+      const patch: Record<string, unknown> = {};
+      if (cadence !== undefined) patch.cadence = cadence;
+      if (init_params_overrides !== undefined)
+        patch.init_params_overrides = init_params_overrides;
+      if (secret_params !== undefined) patch.secret_params = secret_params;
+      if (paused !== undefined) patch.paused = paused;
+      if (webhook_url !== undefined) patch.webhook_url = webhook_url;
+      if (webhook_secret !== undefined) patch.webhook_secret = webhook_secret;
+      return jsonResult(
+        await client.updateRoutine(collection, task, name, patch)
+      );
+    }
+  );
+
+  server.tool(
+    "delete-routine",
+    "Delete a routine and unregister its Temporal schedule",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name"),
+    },
+    async ({ collection, task, name }) => {
+      return jsonResult(await client.deleteRoutine(collection, task, name));
+    }
+  );
+
+  server.tool(
+    "pause-routine",
+    "Pause a routine (stops future fires until resumed)",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name"),
+    },
+    async ({ collection, task, name }) => {
+      return jsonResult(await client.pauseRoutine(collection, task, name));
+    }
+  );
+
+  server.tool(
+    "resume-routine",
+    "Resume a paused routine",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name"),
+    },
+    async ({ collection, task, name }) => {
+      return jsonResult(await client.resumeRoutine(collection, task, name));
+    }
+  );
+
+  server.tool(
+    "run-routine-now",
+    "Fire a routine immediately, bypassing the schedule. Returns workflow_id (parity with run-workflow).",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name"),
+    },
+    async ({ collection, task, name }) => {
+      return jsonResult(await client.runRoutineNow(collection, task, name));
+    }
+  );
+
+  server.tool(
+    "list-routine-runs",
+    "List recent trajectories triggered by this routine (filtered by triggered_by_routine_id)",
+    {
+      collection: z.string().describe("Collection name"),
+      task: z.string().describe("Task name"),
+      name: z.string().describe("Routine name"),
+      limit: z.number().optional().describe("Max results"),
+    },
+    async ({ collection, task, name, limit }) => {
+      return jsonResult(
+        await client.listRoutineRuns(collection, task, name, limit)
+      );
+    }
+  );
 }
