@@ -506,6 +506,58 @@ response = client.chat.completions.create(
 - `snapshot` controls the sandbox image: `python312-uv` (default) or `prism-playwright` (Playwright + Chromium for browser tasks). Read this from the runbook's YAML frontmatter
 - The sandbox is destroyed after execution — artifacts and logs survive
 
+### Scheduling routines
+
+A **routine** is a saved schedule that fires an existing task on a recurring cadence. Routines build on the same `FlowWorkflow.run` pipeline as one-shot runs, with optional `init_params_overrides` merged on top of the task's defaults. Trajectories produced by a routine are tagged with `triggered_by_routine_id` for easy filtering.
+
+Use the MCP tools (preferred) or hit the REST API directly:
+
+| Tool | Endpoint |
+|---|---|
+| `list-routines` | `GET /api/v1/routines/{COLLECTION}` or `GET /api/v1/routines/{COLLECTION}/{TASK}` |
+| `get-routine` | `GET /api/v1/routines/{COLLECTION}/{TASK}/{NAME}` |
+| `create-routine` | `POST /api/v1/routines/{COLLECTION}/{TASK}` |
+| `update-routine` | `PATCH /api/v1/routines/{COLLECTION}/{TASK}/{NAME}` |
+| `delete-routine` | `DELETE /api/v1/routines/{COLLECTION}/{TASK}/{NAME}` |
+| `pause-routine` / `resume-routine` | `POST .../pause` / `POST .../resume` |
+| `run-routine-now` | `POST .../run-now` — returns `workflow_id` |
+| `list-routine-runs` | `GET .../runs` — recent trajectories |
+
+**Cadence enum** (UTC only in v1):
+
+| `cadence.type` | Required fields | Behavior |
+|---|---|---|
+| `manual` | — | Saved invocation preset; only `run-routine-now` triggers it. No Temporal schedule registered. |
+| `hourly` | `minute_utc` (default 0) | Fires every hour at `minute_utc`. |
+| `daily` | `hour_utc`, `minute_utc?` | Fires once per day at the given UTC time. |
+| `weekdays` | `hour_utc`, `minute_utc?` | Fires Mon–Fri only at the given UTC time. |
+| `weekly` | `day_of_week`, `hour_utc`, `minute_utc?` | Fires once per week. |
+
+**Validation rules** (enforced server-side):
+
+- `init_params_overrides` keys MUST be a subset of `task.workflow.init_params`. Unknown keys return 400 with the offending key list.
+- `daily` / `weekdays` / `weekly` require `hour_utc`. `weekly` additionally requires `day_of_week`.
+- `manual` rejects cadence params other than `type`.
+- API keys can only manage routines in the collection they are bound to.
+
+**Example: schedule a daily 9am UTC summary**
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token)"
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  "https://flows-api.jetty.io/api/v1/routines/{COLLECTION}/{TASK}" \
+  -d '{
+    "name": "daily-summary",
+    "cadence": {"type": "daily", "hour_utc": 9, "minute_utc": 0},
+    "init_params_overrides": {"prompt": "Summarize yesterday"}
+  }' | jq
+```
+
+To inspect runs from a routine, call `list-routine-runs` (or hit `.../runs`) — these are the same trajectories you would see via `list-trajectories`, filtered to those tagged with `triggered_by_routine_id`.
+
+---
+
 ### Datasets & Models
 
 ```bash

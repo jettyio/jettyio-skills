@@ -1,4 +1,4 @@
-const API_URL = process.env.JETTY_API_URL || "https://flows-api.jetty.io";
+const DEFAULT_API_URL = "https://flows-api.jetty.io";
 
 export class JettyClient {
   private token: string | undefined;
@@ -6,7 +6,7 @@ export class JettyClient {
 
   constructor() {
     this.token = process.env.JETTY_API_TOKEN || undefined;
-    this.apiUrl = API_URL;
+    this.apiUrl = process.env.JETTY_API_URL || DEFAULT_API_URL;
   }
 
   private requireToken(): string {
@@ -219,5 +219,81 @@ export class JettyClient {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ environment_variables: vars }),
     });
+  }
+
+  // Routines (scheduled runs)
+  async listRoutines(collection: string, task?: string) {
+    const path = task
+      ? `/api/v1/routines/${collection}/${task}`
+      : `/api/v1/routines/${collection}`;
+    return this.api(path);
+  }
+
+  async getRoutine(collection: string, task: string, name: string) {
+    return this.api(`/api/v1/routines/${collection}/${task}/${name}`);
+  }
+
+  async createRoutine(
+    collection: string,
+    task: string,
+    body: Record<string, unknown>
+  ) {
+    return this.api(`/api/v1/routines/${collection}/${task}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  }
+
+  async updateRoutine(
+    collection: string,
+    task: string,
+    name: string,
+    patch: Record<string, unknown>
+  ) {
+    return this.api(`/api/v1/routines/${collection}/${task}/${name}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+  }
+
+  async deleteRoutine(collection: string, task: string, name: string) {
+    return this.api(`/api/v1/routines/${collection}/${task}/${name}`, {
+      method: "DELETE",
+    });
+  }
+
+  async pauseRoutine(collection: string, task: string, name: string) {
+    return this.api(
+      `/api/v1/routines/${collection}/${task}/${name}/pause`,
+      { method: "POST" }
+    );
+  }
+
+  async resumeRoutine(collection: string, task: string, name: string) {
+    return this.api(
+      `/api/v1/routines/${collection}/${task}/${name}/resume`,
+      { method: "POST" }
+    );
+  }
+
+  async runRoutineNow(collection: string, task: string, name: string) {
+    return this.api(
+      `/api/v1/routines/${collection}/${task}/${name}/run-now`,
+      { method: "POST" }
+    );
+  }
+
+  async listRoutineRuns(
+    collection: string,
+    task: string,
+    name: string,
+    limit?: number
+  ) {
+    const qs = typeof limit === "number" ? `?limit=${limit}` : "";
+    return this.api(
+      `/api/v1/routines/${collection}/${task}/${name}/runs${qs}`
+    );
   }
 }
