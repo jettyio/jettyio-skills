@@ -36,17 +36,20 @@ Headless mode runs inside a Jetty Optimize sandbox where the inputs have been pr
 
 ### H1. Verify pre-loaded inputs
 
-Confirm the three inputs are on disk. If any are missing, emit an error to stdout and stop — Spot will surface it to the user.
+Confirm the three inputs are on disk. The trajectory metadata is at `/app/trajectory.json` (Mise also symlinks it under `/app/trajectory/trajectory.json` and the canonical `/app/trajectory/{trajectory_id}.json` — any of these works).
 
 ```bash
 ls -la /app/RUNBOOK.md /app/baseline-RUNBOOK.md /app/trajectory.json
 ```
+
+If any of those files is missing, **emit the H3 JSON payload with `patterns:["precheck failed: <which file>"]` and `proposed_changes:[]`, then stop.** Never exit silently — Spot relies on the JSON to surface the failure to the user.
 
 Read the runbook and the trajectory:
 
 - `/app/RUNBOOK.md` — the runbook to edit (your working copy)
 - `/app/baseline-RUNBOOK.md` — read-only snapshot for comparison
 - `/app/trajectory.json` — the one trajectory you are analyzing
+- `/app/trajectory/` — step output assets (images, documents, uploaded inputs)
 
 Do **NOT** call the Jetty trajectory list/fetch API. Do **NOT** use `AskUserQuestion` anywhere in headless mode.
 
@@ -58,7 +61,9 @@ From `trajectory.json`, extract and hold in memory:
 - Each step's inputs, outputs, errors, duration
 - Any labels already applied
 
-Apply the same six pattern lenses as Step 4 of the interactive flow, against this single trajectory:
+**Special case — degenerate baseline.** If the trajectory's top-level `status` is anything other than `completed`, OR every step has `status` of `null` / `failed` / no `outputs`, the baseline never produced real evidence (e.g. the original agent failed at startup with `Not logged in`, an authentication error, or a quota issue). In that case, **skip the six pattern lenses** and go straight to H3 with `patterns:["baseline trajectory produced no usable evidence: <one-line cause>"]` and `proposed_changes:[]`. Do not fabricate patterns from log noise.
+
+Otherwise, apply the same six pattern lenses as Step 4 of the interactive flow, against this single trajectory:
 
 1. Consistent failures (evaluation criteria below threshold)
 2. Iteration waste (retry-heavy steps)
@@ -69,9 +74,9 @@ Apply the same six pattern lenses as Step 4 of the interactive flow, against thi
 
 For each pattern you find, plan one concrete edit to `/app/RUNBOOK.md`. Edits must be specific (exact before/after text) and cite the trajectory step(s) that motivated them.
 
-### H3. Emit the structured analysis payload
+### H3. Emit the structured analysis payload (REQUIRED — always)
 
-**Before editing any file**, print a single-line JSON object on its own line with this exact shape (Spot parses this for the diff-gutter citations):
+**Before editing any file, and before any other terminal action**, print a single-line JSON object on its own line with this exact shape (Spot parses this for the diff-gutter citations):
 
 ```json
 {"type":"optimize_analysis","trajectory_id":"<id>","patterns":["<short description>","..."],"proposed_changes":[{"section":"<runbook section name>","before":"<exact current text>","after":"<exact replacement>","citations":["<step_name>","..."]},"..."]}
@@ -81,9 +86,9 @@ Rules:
 
 - One JSON object, one line, no pretty-printing.
 - `citations` must reference concrete step names or event ids from the trajectory. An empty citations array is a bug — don't emit one.
-- If you found **zero** patterns, still emit the payload with `"patterns": []` and `"proposed_changes": []`, then stop and report "no actionable patterns found in this trajectory."
+- **Always emit this payload, even on the no-evidence path or precheck failure.** When there's nothing to propose, emit `"proposed_changes": []` and put the reason in `"patterns"` (one short string, e.g. `"baseline trajectory failed at startup: Not logged in"`). Stopping without emitting the payload leaves the user staring at a dead UI.
 
-After the JSON line, feel free to print a short human-readable summary in prose (Spot will render it in the chat pane alongside the diff).
+After the JSON line, print a short human-readable summary in prose (Spot will render it in the chat pane alongside the diff). Even when there's nothing to apply, the prose paragraph tells the user what you saw and what to do next (e.g. "Re-run the baseline with credentials configured, then start a new optimize session.").
 
 ### H4. Apply each change
 
