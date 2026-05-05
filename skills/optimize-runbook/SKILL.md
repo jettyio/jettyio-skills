@@ -61,6 +61,8 @@ From `trajectory.json`, extract and hold in memory:
 - Each step's inputs, outputs, errors, duration
 - Any labels already applied
 
+**Stay-alive cue.** Mise's stream-tail heartbeat keys off log writes from your CLI. Long quiet stretches (e.g. >20s of pure thinking after a batch of `Read`s) used to starve the heartbeat and silently kill the activity mid-turn — your edits would still land on disk but Spot would lose the trail. The newer mise build heartbeats from a separate timer so this is no longer load-bearing, but **prefer printing a one-line status before transitioning between phases** (e.g. `"Reads complete; analyzing patterns now."`) regardless. It costs nothing, keeps the SSE stream fresh, and it gives the user a visible breadcrumb when the inter-tool gap is long.
+
 **Special case — degenerate baseline.** If the trajectory's top-level `status` is anything other than `completed`, OR every step has `status` of `null` / `failed` / no `outputs`, the baseline never produced real evidence (e.g. the original agent failed at startup with `Not logged in`, an authentication error, or a quota issue). In that case, **skip the six pattern lenses** and go straight to H3 with `patterns:["baseline trajectory produced no usable evidence: <one-line cause>"]` and `proposed_changes:[]`. Do not fabricate patterns from log noise.
 
 Otherwise, apply the same six pattern lenses as Step 4 of the interactive flow, against this single trajectory:
