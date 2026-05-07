@@ -6,18 +6,19 @@ Jetty runs agent code inside sandboxed environments. When running a runbook, you
 
 | Agent | Runtime ID | Default Model | API Key Env Var | Best For |
 |-------|-----------|--------------|-----------------|----------|
-| Claude Code | `claude-code` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | Reasoning, tool use, complex multi-step tasks |
-| Codex | `codex` | `gpt-5.4` | `OPENAI_API_KEY` | Code generation, OpenAI ecosystem |
+| **Claude Code** ⭐ | `claude-code` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | **Recommended default** — strong reasoning, broad tool use |
+| Codex | `codex` | `gpt-5.5` | `OPENAI_API_KEY` | Code generation, OpenAI ecosystem |
 | Gemini CLI | `gemini-cli` | `gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | Google ecosystem, free tier available |
 
 ### Model Options
 
-**Anthropic (claude-code)**:
-- `claude-sonnet-4-6` — Fast, cost-effective, recommended default
+**Anthropic (claude-code)** — recommended:
+- `claude-sonnet-4-6` — Fast, cost-effective, default
 - `claude-opus-4-6` — Most capable, higher cost
 
 **OpenAI (codex)**:
-- `gpt-5.4` — Latest, most capable
+- `gpt-5.5` — Latest, most capable
+- `gpt-5.4` — Stable, prior generation
 - `gpt-4.1` — Stable, lower cost
 - `o4-mini` — Fast reasoning
 - `o3` — Advanced reasoning
