@@ -141,12 +141,12 @@ Only use AskUserQuestion when the user's task description explicitly names a dif
 - Question: "Which agent will run this runbook on Jetty?"
 - Options:
   - "Claude Code (Anthropic)" / "Uses claude-sonnet-4-6 — strong at reasoning and tool use. Requires an Anthropic API key."
-  - "Codex (OpenAI)" / "Uses gpt-5.4 — strong at code generation. Requires an OpenAI API key."
+  - "Codex (OpenAI)" / "Uses gpt-5.5 — strong at code generation. Requires an OpenAI API key."
   - "Gemini CLI (Google)" / "Uses gemini-3.1-pro-preview — free tier available. Requires a Google AI API key."
 
 Save the agent and model choice. The mapping is:
 - Claude Code → agent: `claude-code`, model: `claude-sonnet-4-6`
-- Codex → agent: `codex`, model: `gpt-5.4`
+- Codex → agent: `codex`, model: `gpt-5.5`
 - Gemini CLI → agent: `gemini-cli`, model: `gemini-3.1-pro-preview`
 
 Then pick the sandbox. **Don't ask** if the task obviously needs a browser — just pick `prism-playwright` and tell the user in one line. Browser is obvious when the task description mentions any of: web scraping, scrape, screenshot, browser, Playwright, Selenium, OAuth flow, web UI testing, e2e, HTML rendering, page navigation, crawl/crawler, login flow, or specific URLs/web apps.
