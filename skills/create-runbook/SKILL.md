@@ -108,9 +108,9 @@ Save the chosen evaluation pattern: `programmatic` or `rubric`. When you skip th
 
 ### 2c: Agent Runtime & Snapshot
 
-**Default to `claude-code` + `claude-sonnet-4-6` without asking.** This is the right choice for the vast majority of users — strong reasoning, broad tool support, and it matches the runtime the forge itself uses. Only fall back to AskUserQuestion when the user has explicitly asked for a different agent in their task description (e.g., "use Codex", "I only have a Gemini key").
+**Default to `opencode` + `anthropic/claude-sonnet-4.6` (routed via OpenRouter) without asking.** OpenRouter gives unified billing, provider failover, and a single key (`OPENROUTER_API_KEY`) that unlocks Sonnet, GPT, Gemini, and any other catalog model — so it's the right starting point for the vast majority of users. Only fall back to AskUserQuestion when the user has explicitly asked for a different agent in their task description (e.g., "use claude-code directly", "use Codex", "I only have a Gemini key").
 
-Before defaulting silently, do a quick check to confirm the choice is safe — the user should not be steered to Claude if they're paying for it themselves with no key configured. Run:
+Before defaulting silently, do a quick check to confirm the choice is safe — the user should not be steered to OpenRouter if they have no key configured. Run:
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
@@ -121,33 +121,35 @@ TRIAL=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/trial/$COLLECTION")
 TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active', False))")
 
-# Org-level ANTHROPIC_API_KEY presence
+# Org-level OPENROUTER_API_KEY presence
 COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/collections/$COLLECTION")
-HAS_ANTHROPIC=$(echo "$COLL" | python3 -c "
+HAS_OPENROUTER=$(echo "$COLL" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
 evars = d.get('environment_variables', {})
-print('ANTHROPIC_API_KEY' in evars)
+print('OPENROUTER_API_KEY' in evars)
 ")
 ```
 
 Decision:
-- `TRIAL_ACTIVE == True` **or** `HAS_ANTHROPIC == True` → silently pick `claude-code` + `claude-sonnet-4-6`. Tell the user in one line: *"Using Claude Code (claude-sonnet-4-6) — your trial covers it."* or *"Using Claude Code (claude-sonnet-4-6) — your org has ANTHROPIC_API_KEY set."*
-- Neither → still default to `claude-code` + `claude-sonnet-4-6`, but tell the user: *"Defaulting to Claude Code (claude-sonnet-4-6). You'll need to add an ANTHROPIC_API_KEY in Jetty before running — or tell me to use a different agent."*
+- `TRIAL_ACTIVE == True` **or** `HAS_OPENROUTER == True` → silently pick `opencode` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`. Tell the user in one line: *"Using opencode + anthropic/claude-sonnet-4.6 via OpenRouter — your trial covers it."* or *"Using opencode + anthropic/claude-sonnet-4.6 via OpenRouter — your org has OPENROUTER_API_KEY set."*
+- Neither → still default to `opencode` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`, but tell the user: *"Defaulting to opencode + anthropic/claude-sonnet-4.6 via OpenRouter. You'll need to add an OPENROUTER_API_KEY in Jetty before running — or tell me to use a different agent."*
 
 Only use AskUserQuestion when the user's task description explicitly names a different runtime, or they push back on the default. When you do ask:
 - Header: "Agent Runtime"
 - Question: "Which agent will run this runbook on Jetty?"
 - Options:
-  - "Claude Code (Anthropic)" / "Uses claude-sonnet-4-6 — strong at reasoning and tool use. Requires an Anthropic API key."
-  - "Codex (OpenAI)" / "Uses gpt-5.5 — strong at code generation. Requires an OpenAI API key."
-  - "Gemini CLI (Google)" / "Uses gemini-3.1-pro-preview — free tier available. Requires a Google AI API key."
+  - "opencode + OpenRouter (Recommended)" / "Uses anthropic/claude-sonnet-4.6 routed through OpenRouter. Single key (OPENROUTER_API_KEY) unlocks any catalog model with unified billing and provider failover."
+  - "Claude Code (Anthropic)" / "Uses claude-sonnet-4-6 directly via Anthropic. Requires an ANTHROPIC_API_KEY."
+  - "Codex (OpenAI)" / "Uses gpt-5.5 — strong at code generation. Requires an OPENAI_API_KEY."
+  - "Gemini CLI (Google)" / "Uses gemini-3.1-pro-preview — free tier available. Requires a GOOGLE_API_KEY."
 
-Save the agent and model choice. The mapping is:
-- Claude Code → agent: `claude-code`, model: `claude-sonnet-4-6`
-- Codex → agent: `codex`, model: `gpt-5.5`
-- Gemini CLI → agent: `gemini-cli`, model: `gemini-3.1-pro-preview`
+Save the agent, model, and provider choice. The mapping is:
+- opencode + OpenRouter → agent: `opencode`, model: `anthropic/claude-sonnet-4.6`, model_provider: `openrouter`
+- Claude Code → agent: `claude-code`, model: `claude-sonnet-4-6`, model_provider: `anthropic`
+- Codex → agent: `codex`, model: `gpt-5.5`, model_provider: `openai`
+- Gemini CLI → agent: `gemini-cli`, model: `gemini-3.1-pro-preview`, model_provider: `google`
 
 Then pick the sandbox. **Don't ask** if the task obviously needs a browser — just pick `prism-playwright` and tell the user in one line. Browser is obvious when the task description mentions any of: web scraping, scrape, screenshot, browser, Playwright, Selenium, OAuth flow, web UI testing, e2e, HTML rendering, page navigation, crawl/crawler, login flow, or specific URLs/web apps.
 
@@ -193,7 +195,7 @@ Now customize the template using the task description from Step 2a:
 2. **Objective**: Write a 2-5 sentence objective based on what the user described — input, processing, output
 3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.)
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
-5. **Agent/model/snapshot**: Write the choices from Step 2c into the frontmatter fields
+5. **Agent/model/model_provider/snapshot**: Write the choices from Step 2c into the frontmatter fields. Include `model_provider` so routing is explicit (opencode → `openrouter`, claude-code → `anthropic`, codex → `openai`, gemini-cli → `google`).
 6. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
 
 Leave `{TODO: ...}` markers, `{How to fix it}`, and similar placeholders in sections that require detailed domain input from the user (evaluation criteria, common fixes, tips, dependencies).
@@ -641,6 +643,7 @@ Tell the user:
 >       "collection": "{your-collection}",
 >       "task": "{task-name}",
 >       "agent": "{agent from frontmatter}",
+>       "model_provider": "{model_provider from frontmatter}",
 >       "snapshot": "{snapshot from frontmatter}",
 >       "template_variables": {
 >         "sample_size": "10"
@@ -655,8 +658,9 @@ Tell the user:
 > The `jetty` block fields map directly to your runbook's frontmatter:
 > | Frontmatter field | `jetty` block field | Purpose |
 > |---|---|---|
-> | `agent` | `jetty.agent` | Which agent CLI runs the runbook (`claude-code`, `codex`, `gemini-cli`) |
-> | `model` | `model` (top-level) | Which LLM the agent uses |
+> | `agent` | `jetty.agent` | Which agent CLI runs the runbook (`opencode`, `claude-code`, `codex`, `gemini-cli`) |
+> | `model` | `model` (top-level) | Which LLM the agent uses (e.g. `anthropic/claude-sonnet-4.6` for opencode + OpenRouter) |
+> | `model_provider` | `jetty.model_provider` | How the model id is routed: `openrouter`, `anthropic`, `openai`, `google`, `bedrock` |
 > | `snapshot` | `jetty.snapshot` | Sandbox environment: `python312-uv` or `prism-playwright` |
 > | parameters | `jetty.template_variables` | Key-value pairs for `{{var}}` substitution in the runbook |
 > | — | `jetty.collection` | Namespace that holds your env vars and secrets |

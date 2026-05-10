@@ -1,6 +1,6 @@
 {
   "name": "jetty",
-  "version": "1.6.5",
+  "version": "1.6.6",
   "description": "Build, run, and monitor AI/ML workflows on Jetty — from prompt to production in 5 minutes.",
   "author": {
     "name": "Jetty AI",
