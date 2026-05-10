@@ -210,6 +210,20 @@ Tell the user:
 
 Walk through each section that needs user input. For each, show the user what's currently in the runbook and ask for their refinement. Use the Edit tool to apply changes.
 
+### Authoring sandbox shortcut
+
+If you are running inside a Jetty authoring sandbox — detected by either `AUTHORING_MISSION` being set in the environment or `/app/MISSION.md` existing on disk — **skip sub-steps 4d (Dependencies), 4h (Common Fixes), and 4i (Tips)**. These three sections are best filled in *after* the runbook has been executed at least once, when real failure modes, real dependencies, and real gotchas are known. Leave the placeholder rows in `RUNBOOK.md` as-is; they signal "fill in after first run". Walk through 4a, 4b, 4c, 4e, 4f, 4g only.
+
+```bash
+if [ -n "${AUTHORING_MISSION:-}" ] || [ -f /app/MISSION.md ]; then
+  AUTHORING_SANDBOX=1
+else
+  AUTHORING_SANDBOX=0
+fi
+```
+
+Outside the authoring sandbox (local CLI / IDE), walk through all nine sub-steps below.
+
 ### 4a: Review Objective
 
 Show the user the Objective section you drafted. Use AskUserQuestion:
@@ -245,6 +259,8 @@ Show proposed parameters. Use AskUserQuestion:
 Apply changes via Edit.
 
 ### 4d: Dependencies
+
+**Skip this sub-step entirely if `AUTHORING_SANDBOX=1` (see Step 4 shortcut).** Leave the Dependencies table placeholder row intact for later.
 
 Use AskUserQuestion:
 - Header: "Dependencies"
@@ -336,6 +352,8 @@ Update the rubric table via Edit.
 
 ### 4h: Common Fixes (optional)
 
+**Skip this sub-step entirely if `AUTHORING_SANDBOX=1` (see Step 4 shortcut).** Leave the Common Fixes table placeholder rows intact — they get filled in after the first real run surfaces actual failure modes.
+
 Use AskUserQuestion:
 - Header: "Common Fixes"
 - Question: "Do you know the typical failure modes for this task? If so, describe them and I'll build a fix table. If not, you can fill this in after your first few runs."
@@ -346,6 +364,8 @@ Use AskUserQuestion:
 If they provide issues, populate the Common Fixes table via Edit. If skipped, leave the placeholder rows.
 
 ### 4i: Tips (optional)
+
+**Skip this sub-step entirely if `AUTHORING_SANDBOX=1` (see Step 4 shortcut).** Leave the Tips section's placeholder bullets intact — they get filled in after the first run reveals real gotchas.
 
 Use AskUserQuestion:
 - Header: "Tips"
