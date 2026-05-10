@@ -6,20 +6,20 @@ Jetty runs agent code inside sandboxed environments. When running a runbook, you
 
 | Agent | Runtime ID | Default Model | API Key Env Var | Best For |
 |-------|-----------|--------------|-----------------|----------|
-| **opencode** ⭐ | `opencode` | `anthropic/claude-sonnet-4.6` | `OPENROUTER_API_KEY` | **Recommended default** — routes through OpenRouter for unified billing, provider failover, and one key for any catalog model |
-| Claude Code | `claude-code` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | Direct Anthropic API access; native MCP/tool-use ergonomics |
+| **Claude Code** ⭐ | `claude-code` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | **Recommended default** — strong reasoning, broad tool support, native MCP/tool-use ergonomics |
+| opencode | `opencode` | `anthropic/claude-sonnet-4.6` | `OPENROUTER_API_KEY` | Routes through OpenRouter for unified billing, provider failover, and one key for any catalog model |
 | Codex | `codex` | `gpt-5.5` | `OPENAI_API_KEY` | Code generation, OpenAI ecosystem |
 | Gemini CLI | `gemini-cli` | `gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | Google ecosystem, free tier available |
 
 ### Model Options
 
-**OpenRouter (opencode)** — recommended:
-- `anthropic/claude-sonnet-4.6` — Default. Note the OpenRouter slug uses dot-versioning (`4.6`) and the `anthropic/` vendor prefix; the Anthropic-internal `claude-sonnet-4-6` spelling is *not* a valid OpenRouter model id.
-- Any other OpenRouter-catalog id (e.g. `anthropic/claude-opus-4.6`, `openai/gpt-5.5`, `google/gemini-2.5-pro`) — opencode passes the model id straight through to OpenRouter.
-
-**Anthropic (claude-code)**:
-- `claude-sonnet-4-6` — Fast, cost-effective
+**Anthropic (claude-code)** — recommended:
+- `claude-sonnet-4-6` — Fast, cost-effective, default
 - `claude-opus-4-6` — Most capable, higher cost
+
+**OpenRouter (opencode)**:
+- `anthropic/claude-sonnet-4.6` — Default opencode model. Note the OpenRouter slug uses dot-versioning (`4.6`) and the `anthropic/` vendor prefix; the Anthropic-internal `claude-sonnet-4-6` spelling is *not* a valid OpenRouter model id.
+- Any other OpenRouter-catalog id (e.g. `anthropic/claude-opus-4.6`, `openai/gpt-5.5`, `google/gemini-2.5-pro`) — opencode passes the model id straight through to OpenRouter.
 
 **OpenAI (codex)**:
 - `gpt-5.5` — Latest, most capable
@@ -54,7 +54,7 @@ If you don't specify an agent in your runbook frontmatter, Jetty infers it from 
 | `google` | `gemini-cli` | `GOOGLE_API_KEY` |
 | `bedrock` | `claude-code` (and others) | `AWS_BEARER_TOKEN_BEDROCK` |
 
-If `model_provider` is omitted, Jetty auto-defaults to `openrouter` when `OPENROUTER_API_KEY` is configured (codex is excluded — the Rust CLI ignores `OPENAI_BASE_URL`). Always set it explicitly to avoid surprises.
+If `model_provider` is omitted, Jetty infers it from `agent`: `claude-code` → `anthropic`, `opencode` → `openrouter`, `codex` → `openai`, `gemini-cli` → `google`. Always set it explicitly in frontmatter to avoid surprises.
 
 ## Sandbox Snapshots
 
@@ -84,14 +84,14 @@ Declare your agent, model, and snapshot in the runbook's YAML frontmatter:
 ---
 version: "1.0.0"
 evaluation: programmatic
-agent: opencode
-model: anthropic/claude-sonnet-4.6
-model_provider: openrouter
+agent: claude-code
+model: claude-sonnet-4-6
+model_provider: anthropic
 snapshot: python312-uv
 ---
 ```
 
-These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. If omitted, defaults are: agent=opencode, model=anthropic/claude-sonnet-4.6, model_provider=openrouter, snapshot=python312-uv.
+These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. If omitted, defaults are: agent=claude-code, model=claude-sonnet-4-6, model_provider=anthropic, snapshot=python312-uv.
 
 ## API Key Storage
 
@@ -99,6 +99,6 @@ Agent runtime API keys are stored in your collection's environment variables on 
 
 Use the MCP tools `check-secrets` and `set-environment-vars`, or the `/jetty` skill:
 ```
-/jetty check secrets for OPENROUTER_API_KEY in my-collection
-/jetty set OPENROUTER_API_KEY in my-collection
+/jetty check secrets for ANTHROPIC_API_KEY in my-collection
+/jetty set ANTHROPIC_API_KEY in my-collection
 ```

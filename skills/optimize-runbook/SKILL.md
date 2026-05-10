@@ -259,7 +259,7 @@ Guidelines:
 - Changes must be **specific** — quote exact sections, provide exact replacements
 - Changes must be **evidence-backed** — cite trajectories, scores, or errors
 - Prefer **additive** changes (add a Common Fix, add a tip, strengthen descriptions)
-- If frontmatter fields are missing (`agent`, `model`, `model_provider`, `snapshot`), propose adding them. Default to `agent: opencode`, `model: anthropic/claude-sonnet-4.6`, `model_provider: openrouter` unless the trajectories show the runbook is already pinned to a different agent.
+- If frontmatter fields are missing (`agent`, `model`, `model_provider`, `snapshot`), propose adding them. Default to `agent: claude-code`, `model: claude-sonnet-4-6`, `model_provider: anthropic` unless the trajectories show the runbook is already pinned to a different agent.
 - Don't fabricate evidence — only cite patterns actually observed
 
 ---

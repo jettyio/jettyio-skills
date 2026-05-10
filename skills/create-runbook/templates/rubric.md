@@ -1,9 +1,9 @@
 ---
 version: "1.0.0"
 evaluation: rubric
-agent: opencode                       # Agent runtime: opencode | claude-code | codex | gemini-cli
-model: anthropic/claude-sonnet-4.6   # Model for the agent (OpenRouter slug; see agents-and-models reference)
-model_provider: openrouter            # Routes the model through OpenRouter (requires OPENROUTER_API_KEY)
+agent: claude-code                    # Agent runtime: claude-code | opencode | codex | gemini-cli
+model: claude-sonnet-4-6              # Model for the agent (see agents-and-models reference)
+model_provider: anthropic             # Routes the model through Anthropic directly (requires ANTHROPIC_API_KEY)
 snapshot: python312-uv                # Sandbox: python312-uv | prism-playwright | custom image
 secrets:                              # Optional — declare sensitive params here
   # EXAMPLE_API_KEY:

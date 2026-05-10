@@ -356,9 +356,9 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
 
 1. Read the runbook file with the Read tool
 2. Parse the YAML frontmatter for `agent`, `model`, `model_provider`, `snapshot`, and `secrets`:
-   - `agent` → use as `jetty.agent` (default: `opencode`)
-   - `model` → use as `model` in the request (default: `anthropic/claude-sonnet-4.6`)
-   - `model_provider` → use as `jetty.model_provider` (default: `openrouter`)
+   - `agent` → use as `jetty.agent` (default: `claude-code`)
+   - `model` → use as `model` in the request (default: `claude-sonnet-4-6`)
+   - `model_provider` → use as `jetty.model_provider` (default: `anthropic`)
    - `snapshot` → use as `jetty.snapshot` (default: `python312-uv`; use `prism-playwright` if the runbook needs a browser)
    - `secrets` → check that each required secret is configured as a collection env var:
    ```bash
@@ -399,7 +399,7 @@ cat <<PAYLOAD | curl -s -X POST \
   "https://flows-api.jetty.io/v1/chat/completions" \
   --data-binary @-
 {
-  "model": "anthropic/claude-sonnet-4.6",
+  "model": "claude-sonnet-4-6",
   "messages": [
     {"role": "system", "content": $(jq -Rs '.' <<< "$RUNBOOK_CONTENT")},
     {"role": "user", "content": "Execute the runbook."}
@@ -409,8 +409,8 @@ cat <<PAYLOAD | curl -s -X POST \
     "runbook": true,
     "collection": "{COLLECTION}",
     "task": "{TASK}",
-    "agent": "opencode",
-    "model_provider": "openrouter",
+    "agent": "claude-code",
+    "model_provider": "anthropic",
     "snapshot": "python312-uv",
     "template_variables": {
       "sample_size": "10",
@@ -447,8 +447,8 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.runbook` | boolean | Yes | Enable runbook/agent mode |
 | `jetty.collection` | string | Yes | Namespace for the task |
 | `jetty.task` | string | Yes | Task identifier |
-| `jetty.agent` | string | Yes | `opencode` (recommended default), `claude-code`, `codex`, or `gemini-cli` |
-| `jetty.model_provider` | string | No | `openrouter`, `anthropic`, `openai`, `google`, `bedrock`. Set explicitly to avoid relying on inference |
+| `jetty.agent` | string | Yes | `claude-code` (recommended default), `opencode`, `codex`, or `gemini-cli` |
+| `jetty.model_provider` | string | No | `anthropic`, `openrouter`, `openai`, `google`, `bedrock`. Set explicitly to avoid relying on inference |
 | `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default) or `prism-playwright` (browser). Read from runbook frontmatter |
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
 | `jetty.file_paths` | string[] | No | Files to upload into the sandbox |
@@ -480,7 +480,7 @@ with open("RUNBOOK.md") as f:
     runbook = f.read()
 
 response = client.chat.completions.create(
-    model="anthropic/claude-sonnet-4.6",
+    model="claude-sonnet-4-6",
     messages=[
         {"role": "system", "content": runbook},
         {"role": "user", "content": "Execute the runbook."}
@@ -491,8 +491,8 @@ response = client.chat.completions.create(
             "runbook": True,
             "collection": "my-org",
             "task": "my-task",
-            "agent": "opencode",
-            "model_provider": "openrouter",
+            "agent": "claude-code",
+            "model_provider": "anthropic",
             "snapshot": "python312-uv",  # or "prism-playwright" for browser
             "template_variables": {
                 "sample_size": "10",
