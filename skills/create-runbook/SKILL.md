@@ -123,7 +123,7 @@ TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdi
 
 # Org-level ANTHROPIC_API_KEY presence
 COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION")
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment")
 HAS_ANTHROPIC=$(echo "$COLL" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
