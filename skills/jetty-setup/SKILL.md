@@ -129,7 +129,7 @@ Runbooks need API keys to reach AI providers (OpenAI, Anthropic, Gemini) and any
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION" \
+  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
   | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Configured keys:', list(evars.keys()) if evars else 'none')"
 ```
 

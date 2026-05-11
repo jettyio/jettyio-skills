@@ -153,7 +153,7 @@ TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdi
 
 # Check if provider keys exist
 COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}")
+  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment")
 HAS_KEYS=$(echo "$COLL" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
@@ -272,7 +272,7 @@ curl -s "https://flows-api.jetty.io/api/v1/step-templates" | jq '.templates[] | 
 ```bash
 # List environment variable keys for a collection
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment" | jq 'keys'
+  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment" | jq '.environment_variables | keys'
 
 # Set an environment variable (merge semantics — other vars preserved)
 # Use stdin to avoid exposing the value in process args
@@ -363,7 +363,7 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
    - `secrets` → check that each required secret is configured as a collection env var:
    ```bash
    curl -s -H "Authorization: Bearer $TOKEN" \
-     "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment" | jq 'keys'
+     "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment" | jq '.environment_variables | keys'
    ```
    If any required secrets are missing, prompt the user to set them (or pass via `secret_params`).
 3. Parse the Parameters section of the runbook. Identify all `{{template_variable}}` placeholders and their defaults. Ask the user for any required parameter values that are missing (use AskUserQuestion). These go in `jetty.template_variables`.
@@ -381,7 +381,7 @@ TRIAL=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/trial/{COLLECTION}")
 TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active', False))")
 COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}")
+  "https://flows-api.jetty.io/api/v1/collections/{COLLECTION}/environment")
 HAS_KEYS=$(echo "$COLL" | python3 -c "
 import sys, json
 d = json.load(sys.stdin)
