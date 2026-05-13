@@ -102,3 +102,17 @@ Use the MCP tools `check-secrets` and `set-environment-vars`, or the `/jetty` sk
 /jetty check secrets for ANTHROPIC_API_KEY in my-collection
 /jetty set ANTHROPIC_API_KEY in my-collection
 ```
+
+## Multimodal Generation in the Sandbox
+
+When an agent runs inside a runbook sandbox, mise auto-forwards a curated set of multimodal-generation keys from the trajectory environment into the agent's process env. Any of these keys, when present on the collection (user-supplied) or available via the Jetty trial fallback, will be readable from the agent's code as a normal env var:
+
+| Key | Typical use |
+|---|---|
+| `REPLICATE_API_TOKEN` | Image/video generation (Flux, Seedance, Sora), segmentation, embeddings |
+| `GEMINI_API_KEY` | Imagen image generation, Gemini vision inputs |
+| `OPENAI_API_KEY` | DALL·E, gpt-image-1, GPT-4 vision |
+
+No frontmatter declaration is required for these three keys — the auto-forward applies to every runbook run. Declare them in the runbook's `secrets:` block anyway if you want the verification block in Step 1 to flag missing setup early; explicit `secrets:` entries take precedence over auto-forward and double as documentation.
+
+Other keys (e.g. `GITHUB_PAT`, `HUGGINGFACE_TOKEN`, `STRIPE_API_KEY`) are *not* auto-forwarded and must be declared in `secrets:` to reach the sandbox.
