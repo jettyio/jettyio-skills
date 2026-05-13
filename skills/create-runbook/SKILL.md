@@ -302,6 +302,14 @@ secrets:
 
 Also add a verification block in Step 1 (Environment Setup) that checks each required secret is available as an environment variable.
 
+**Multimodal pre-fill.** If the task description involves images, video, vision, OCR, screenshots, image generation, or similar multimodal work, pre-populate the `secrets:` block *without* asking — and tell the user which keys you added in a single line. Pick from:
+
+- `REPLICATE_API_TOKEN` — Flux, Seedance, Sora, segmentation, embeddings. The default choice for image/video generation.
+- `GEMINI_API_KEY` — Imagen image generation, Gemini vision inputs.
+- `OPENAI_API_KEY` — DALL·E, gpt-image-1, GPT-4 vision.
+
+You only need to declare the ones the task actually uses (e.g., a "generate product hero images" task gets `REPLICATE_API_TOKEN` alone; "describe what's in this PDF" gets `GEMINI_API_KEY` or `OPENAI_API_KEY`). These three keys are also **auto-forwarded by mise** when present on the trajectory, so a trial-eligible collection will get usable tokens even without the explicit declaration — but declaring them keeps the runbook self-documenting and makes the verification block in Step 1 catch missing setup early.
+
 ### 4f: Processing Steps
 
 Based on the task description, propose a sequence of processing steps. Show the user your proposed outline. Use AskUserQuestion:
