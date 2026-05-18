@@ -624,6 +624,32 @@ The step template docs and actual runtime parameters differ for several activiti
 - Use `prompt` / `prompt_path` (NOT `user_prompt` / `user_prompt_path`)
 - `system_prompt` / `system_prompt_path` works as documented
 
+### `list_emit_await`
+- For a child task in the same collection, use the plain task name in
+  `child_workflow_name` (for example, `process-single-item`), not
+  `{COLLECTION}/process-single-item`.
+- Use `child_init_params` / `child_init_params_path` for values shared by every
+  emitted child workflow.
+- The runtime returns child references at
+  **`.outputs.trajectory_references`** (NOT `.outputs.trajectory_ids`).
+
+### `extract_from_trajectories`
+- Use `trajectory_list_path` pointing at a list of trajectory reference objects
+  (usually `fanout_step.outputs.trajectory_references`), NOT
+  `trajectory_ids_path`.
+- Use `extract_keys` as a dictionary of output key to child trajectory path, NOT
+  `extract_paths`.
+- Example:
+  ```json
+  {
+    "activity": "extract_from_trajectories",
+    "trajectory_list_path": "process_all.outputs.trajectory_references",
+    "extract_keys": {
+      "text": "extract.outputs.text"
+    }
+  }
+  ```
+
 ### `replicate_text2image`
 - Outputs at **`.outputs.images[0].path`** (NOT `.outputs.storage_path` or `.outputs.image_url`)
 - Also available: `.outputs.images[0].extension`, `.outputs.images[0].content_type`

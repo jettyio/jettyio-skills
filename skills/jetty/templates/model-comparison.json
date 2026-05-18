@@ -10,13 +10,13 @@
     "response_a": {
       "activity": "litellm_chat",
       "model_path": "init_params.model_a",
-      "user_prompt_path": "init_params.prompt",
+      "prompt_path": "init_params.prompt",
       "temperature_path": "init_params.temperature"
     },
     "response_b": {
       "activity": "litellm_chat",
       "model_path": "init_params.model_b",
-      "user_prompt_path": "init_params.prompt",
+      "prompt_path": "init_params.prompt",
       "temperature_path": "init_params.temperature"
     },
     "compare": {
