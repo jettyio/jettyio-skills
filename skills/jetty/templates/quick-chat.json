@@ -7,7 +7,7 @@
     "chat": {
       "activity": "litellm_chat",
       "model_path": "init_params.model",
-      "user_prompt_path": "init_params.prompt",
+      "prompt_path": "init_params.prompt",
       "temperature": 0.7
     }
   },

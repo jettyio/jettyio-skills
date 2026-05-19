@@ -11,7 +11,7 @@
         "activity": "litellm_chat",
         "model_path": "init_params.model",
         "system_prompt": "You are a helpful assistant.",
-        "user_prompt_path": "init_params.prompt",
+        "prompt_path": "init_params.prompt",
         "temperature": 0.7
       }
     },

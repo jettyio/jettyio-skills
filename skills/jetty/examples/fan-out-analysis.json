@@ -3,8 +3,7 @@
   "description": "Splits text into chunks, processes each in parallel, then aggregates results",
   "workflow": {
     "init_params": {
-      "text": "Your long text to analyze...",
-      "child_workflow": "my-collection/analyze-chunk"
+      "text": "Your long text to analyze..."
     },
     "step_configs": {
       "split_text": {
@@ -16,25 +15,25 @@
       "parallel_analyze": {
         "activity": "list_emit_await",
         "items_path": "split_text.outputs.chunks",
-        "child_workflow_name_path": "init_params.child_workflow",
+        "child_workflow_name": "analyze-chunk",
         "item_param_name": "chunk_text",
         "max_concurrency": 5,
         "continue_on_error": true
       },
       "gather_results": {
         "activity": "extract_from_trajectories",
-        "trajectory_ids_path": "parallel_analyze.outputs.trajectory_ids",
-        "extract_paths": [
-          "analysis.outputs.summary",
-          "analysis.outputs.entities"
-        ],
+        "trajectory_list_path": "parallel_analyze.outputs.trajectory_references",
+        "extract_keys": {
+          "summary": "analysis.outputs.summary",
+          "entities": "analysis.outputs.entities"
+        },
         "flatten_results": false
       },
       "final_summary": {
         "activity": "litellm_chat",
         "model": "gpt-4o",
         "system_prompt": "Synthesize the following analysis results into a coherent summary.",
-        "user_prompt_path": "gather_results.outputs.extracted_data",
+        "prompt_path": "gather_results.outputs.extracted_data",
         "response_format": {
           "type": "json_schema",
           "json_schema": {

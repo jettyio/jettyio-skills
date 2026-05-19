@@ -19,8 +19,12 @@ Complete catalog of available step templates (activities) for Jetty workflows.
 | Activity | Purpose | Key Parameters |
 |----------|---------|----------------|
 | `list_emit_await` | Fan-out parallel execution | `items_path`, `child_workflow_name`, `max_concurrency` |
-| `extract_from_trajectories` | Fan-in gather results | `trajectory_ids_path`, `extract_paths` |
+| `extract_from_trajectories` | Fan-in gather results | `trajectory_list_path`, `extract_keys` |
 | `conditional_branch` | Conditional branching | `condition_path`, `true_step`, `false_step` |
+
+Runtime note: some API schema responses and older examples still mention
+`trajectory_ids_path` and `extract_paths`. The current runtime requires
+`trajectory_list_path` and `extract_keys`.
 
 ## Data Processing
 

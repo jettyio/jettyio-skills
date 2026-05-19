@@ -3,24 +3,27 @@
     "items": ["item1", "item2", "item3"],
     "instruction": "Process this item and return the result",
     "model": "gpt-4o-mini",
-    "max_concurrency": 5
+    "max_concurrency": 5,
+    "child_init_params": {
+      "instruction": "Process this item and return the result",
+      "model": "gpt-4o-mini"
+    }
   },
   "step_configs": {
     "process_all": {
       "activity": "list_emit_await",
       "items_path": "init_params.items",
-      "child_workflow_name": "YOUR_COLLECTION/process-single-item",
+      "child_workflow_name": "process-single-item",
       "item_param_name": "item",
-      "additional_params": {
-        "instruction_path": "init_params.instruction",
-        "model_path": "init_params.model"
-      },
+      "child_init_params_path": "init_params.child_init_params",
       "max_concurrency_path": "init_params.max_concurrency"
     },
     "gather_results": {
       "activity": "extract_from_trajectories",
-      "trajectory_ids_path": "process_all.outputs.trajectory_ids",
-      "extract_paths": ["process.outputs.text"]
+      "trajectory_list_path": "process_all.outputs.trajectory_references",
+      "extract_keys": {
+        "text": "process.outputs.text"
+      }
     }
   },
   "steps": ["process_all", "gather_results"]

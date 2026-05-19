@@ -10,7 +10,7 @@
       "activity": "litellm_chat",
       "model_path": "init_params.model",
       "system_prompt_path": "init_params.system_prompt",
-      "user_prompt_path": "init_params.prompt",
+      "prompt_path": "init_params.prompt",
       "temperature_path": "init_params.temperature"
     }
   },

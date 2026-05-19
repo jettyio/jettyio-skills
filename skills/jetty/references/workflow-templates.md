@@ -108,14 +108,16 @@ Splits text into chunks, processes each in parallel, then gathers results.
     "process_chunks": {
       "activity": "list_emit_await",
       "items_path": "split.outputs.chunks",
-      "child_workflow_name": "{COLLECTION}/process-chunk",
+      "child_workflow_name": "process-chunk",
       "item_param_name": "chunk",
       "max_concurrency": 10
     },
     "gather": {
       "activity": "extract_from_trajectories",
-      "trajectory_ids_path": "process_chunks.outputs.trajectory_ids",
-      "extract_paths": ["summarize.outputs.text"]
+      "trajectory_list_path": "process_chunks.outputs.trajectory_references",
+      "extract_keys": {
+        "summary": "summarize.outputs.text"
+      }
     }
   },
   "steps": ["split", "process_chunks", "gather"]
