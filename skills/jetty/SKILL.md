@@ -703,6 +703,31 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/workflows-logs/{WORKFLOW_ID}" | jq
 ```
 
+**Errors from fan-out children often surface on the parent.** When a
+`list_emit_await` orchestrator reports something vague like "synthesize step
+missing", the real failure is usually in one of the child trajectories — for
+example, a downstream LLM call rejecting an empty prompt because the parent
+didn't forward `init_params` correctly. Walk the chain:
+
+```bash
+# 1. Pull the parent trajectory and find the fan-out step.
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/db/trajectory/{COLLECTION}/{ORCHESTRATOR_TASK}/{TRAJECTORY_ID}" \
+  | jq '.steps.{FANOUT_STEP}.outputs.trajectory_references[] | {trajectory_id, name}'
+
+# 2. For each child trajectory, fetch and look at its failed step.
+CHILD_ID=...   # from step 1
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/db/trajectory/{COLLECTION}/{CHILD_TASK}/${CHILD_ID}" \
+  | jq '{status, error, steps: (.steps | to_entries[] | select(.value.status == "failed") | {step: .key, error: .value.error})}'
+```
+
+The root cause is almost always at the deepest layer (the LLM call's error
+message), not the parent's "missing step" summary. If a child trajectory's
+`init_params` arrive empty or wrong-shaped, that's a signal the orchestrator's
+state wiring (e.g. `child_init_params` / `child_init_params_path`) isn't
+forwarding what you expected — re-check the parent's step config.
+
 ### Create and Test a Task
 
 ```bash
