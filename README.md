@@ -340,7 +340,7 @@ Reference secrets in runbook steps as `{{secrets.OPENAI_API_KEY}}` — distinct 
 
 - Secrets are **never stored** in `init_params`, trajectories, or output files
 - The `secret_params` API field merges credentials into the runtime environment without persisting them
-- Collection environment variables are stored server-side and never returned in plain text after creation
+- Collection environment variables are stored server-side. By default, `GET /api/v1/collections/{COLLECTION}/environment` returns values **in plain text** to the holder of a collection-owner token. Treat that token like a root credential. To make the endpoint redact specific keys, set the collection's `redacted_param_keys` (it defaults to `null`, i.e. no redaction)
 
 ---
 
