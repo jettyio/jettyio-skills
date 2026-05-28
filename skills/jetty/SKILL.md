@@ -22,6 +22,20 @@ Before doing any work, ask the user which collection to use via AskUserQuestion 
 | **Jetty API** | `https://flows-api.jetty.io` | All operations: workflows, collections, tasks, datasets, models, trajectories, files |
 | **Frontend** | `https://jetty.io` | Web UI only — do NOT use for API calls |
 
+### API Discovery
+
+For endpoints not documented in this skill, the Jetty API serves a live
+OpenAPI spec and Swagger UI:
+
+| Endpoint | What it gives you |
+|----------|-------------------|
+| `https://flows-api.jetty.io/openapi.json` | Machine-readable OpenAPI 3 spec — request/response schemas, parameter types, examples |
+| `https://flows-api.jetty.io/docs` | Interactive Swagger UI for the same spec — useful when probing an unfamiliar endpoint |
+
+Both are reachable without authentication. When this skill's docs don't
+mention an endpoint you need, check the OpenAPI spec first — it's the
+ground truth.
+
 ### Frontend URLs for Users
 
 When sharing links with the user (e.g., after launching a run), use these exact URL patterns. **Do NOT guess or invent URL paths** — only use the formats listed here:
