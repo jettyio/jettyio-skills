@@ -640,6 +640,11 @@ The step template docs and actual runtime parameters differ for several activiti
   emitted child workflow.
 - The runtime returns child references at
   **`.outputs.trajectory_references`** (NOT `.outputs.trajectory_ids`).
+- **`items: [...]` (literal array) is not accepted — only `items_path: "<ref>"`.**
+  Passing a literal items array fails workflow start with `ValueError:
+  items_path is required`. Workaround: hoist the literal set into `init_params`
+  and reference it, e.g. `init_params.perspectives: ["a", "b", "c", "d"]` plus
+  `items_path: "init_params.perspectives"`.
 
 ### `extract_from_trajectories`
 - Use `trajectory_list_path` pointing at a list of trajectory reference objects
