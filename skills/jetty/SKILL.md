@@ -645,6 +645,21 @@ The step template docs and actual runtime parameters differ for several activiti
   Workaround: stringify the array caller-side and pass a single string
   (`prompt: JSON.stringify(arr)` or a delimited join), and describe the shape
   in `system_prompt` so the model knows to parse it.
+- **Haiku-class models can default to acknowledgement boilerplate on large
+  inputs.** If a step that distills/synthesizes/transforms a long input
+  (a chat history, a multi-doc dossier, a structured JSON blob) starts
+  returning `"I understand. I'm ready to receive..."` style messages
+  instead of the expected output, the user prompt is reading as *context*
+  rather than as *a request*. Two patches that consistently fix this in
+  practice:
+  - In the runbook's `system_prompt`, explicitly bracket the input
+    (`"The subject input begins below the horizontal rule and ends at
+    end-of-message."`) and name the deliverable.
+  - On the caller side, append an explicit trailing instruction after the
+    long input — e.g. `"\n\nProduce the X JSON now per your output schema.
+    Begin your response with { and end with }. No preamble, no markdown
+    fences, no commentary."` Together these make the request shape
+    unambiguous even on Haiku-tier models.
 
 ### `list_emit_await`
 - For a child task in the same collection, use the plain task name in
