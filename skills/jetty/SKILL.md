@@ -623,6 +623,14 @@ The step template docs and actual runtime parameters differ for several activiti
 ### `litellm_chat`
 - Use `prompt` / `prompt_path` (NOT `user_prompt` / `user_prompt_path`)
 - `system_prompt` / `system_prompt_path` works as documented
+- **`prompt_path` must resolve to a single string.** If it resolves to an array
+  (e.g. `init_params.distill_texts: ["a", "b", "c"]`), the Anthropic provider
+  path crashes deep in litellm with
+  `TypeError: string indices must be integers, not 'str'` (the is_pdf_used
+  check assumes each content entry is a dict and indexes it with `"type"`).
+  Workaround: stringify the array caller-side and pass a single string
+  (`prompt: JSON.stringify(arr)` or a delimited join), and describe the shape
+  in `system_prompt` so the model knows to parse it.
 
 ### `list_emit_await`
 - For a child task in the same collection, use the plain task name in
