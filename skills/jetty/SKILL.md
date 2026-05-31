@@ -702,6 +702,7 @@ The step template docs and actual runtime parameters differ for several activiti
 ### `litellm_vision`
 - For **storage paths** from previous steps: use `image_path_expr` (NOT `image_url_path`)
 - `image_url_path` is for external HTTP URLs only
+- ⚠️ **External URLs may be rejected on the deployed runtime.** Observed 2026-05 on `flows-api.jetty.io`: passing an external URL via `image_url`/`image_url_path` fails with `ValueError: image_path is required for vision models`, and passing the same URL to `image_path`/`image_path_expr` makes Jetty parse `https://...` as a workflow reference (`task_name/trajectory_id`) and fail with `ValueError: Invalid workflow reference: https`. In that case `litellm_vision` only accepted an **internal** collection-prefixed storage key via `image_path`. If your image lives on an external CDN, first upload it to Jetty storage (`POST /api/v1/files`) and reference the returned storage key — or call the vision model's provider SDK directly outside Jetty.
 
 ### `simple_judge`
 - Use `item` / `item_path` (NOT `content` / `content_path`)
