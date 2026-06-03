@@ -88,10 +88,16 @@ agent: claude-code
 model: claude-sonnet-4-6
 model_provider: anthropic
 snapshot: python312-uv
+primary_outputs:          # optional — headline deliverable(s), relative to results_dir
+  - report.html
 ---
 ```
 
 These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. If omitted, defaults are: agent=claude-code, model=claude-sonnet-4-6, model_provider=anthropic, snapshot=python312-uv.
+
+### `primary_outputs`
+
+Optional. An ordered list of the runbook's headline deliverable(s), each given as a path **relative to `results_dir`** (e.g. `report.html` or `images/final.png`) — a single string is also accepted. After a run completes, mise resolves these declarations to their stored artifacts and emits them as `primary_files` on the `run` step output, in declaration order. The web app (spot) surfaces the **first** resolved entry as the run's "Main output" instead of guessing from filesystem walk order. When `primary_outputs` is omitted, behavior is unchanged: the first non-special results file is used. Keep the first entry in sync with the first row of the **REQUIRED OUTPUT FILES** table. Do not list `summary.md` or `validation_report.json` here — those are surfaced in their own dedicated panels.
 
 ## API Key Storage
 
