@@ -5,6 +5,11 @@ agent: claude-code                    # Agent runtime: claude-code | opencode | 
 model: claude-sonnet-4-6              # Model for the agent (see agents-and-models reference)
 model_provider: anthropic             # Routes the model through Anthropic directly (requires ANTHROPIC_API_KEY)
 snapshot: python312-uv                # Sandbox: python312-uv | prism-playwright | custom image
+# Headline deliverable(s), relative to results_dir, in priority order. spot
+# surfaces the first of these as the "Main output" when a run completes; if
+# omitted it falls back to the first file written.
+primary_outputs:
+  - "{primary_output}"
 secrets:                              # Optional — declare sensitive params here
   # EXAMPLE_API_KEY:
   #   env: EXAMPLE_API_KEY            # Collection env var name on Jetty / OS env var locally

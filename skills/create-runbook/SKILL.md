@@ -193,7 +193,7 @@ Now customize the template using the task description from Step 2a:
 
 1. **Title**: Replace `{Task Name}` with a concise name derived from the task description
 2. **Objective**: Write a 2-5 sentence objective based on what the user described — input, processing, output
-3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.)
+3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.). Replacing `{primary_output}` updates both the REQUIRED OUTPUT FILES table and the `primary_outputs:` frontmatter list at once — keep them in sync. `primary_outputs` is what lets spot surface the right file as the "Main output" when a run completes; list only headline deliverables (never `summary.md` or `validation_report.json`), most important first.
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
 5. **Agent/model/model_provider/snapshot**: Write the choices from Step 2c into the frontmatter fields. Include `model_provider` so routing is explicit (claude-code → `anthropic`, opencode → `openrouter`, codex → `openai`, gemini-cli → `google`).
 6. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
@@ -247,7 +247,7 @@ Show the proposed output manifest. Use AskUserQuestion:
   - "Add a file" / "I need an additional output file"
   - "Change a file" / "One of these needs to be different"
 
-Apply changes via Edit. Ensure `validation_report.json` and `summary.md` always remain in the manifest.
+Apply changes via Edit. Ensure `validation_report.json` and `summary.md` always remain in the manifest. When the user adds, removes, or renames a headline deliverable, update the `primary_outputs:` frontmatter to match — its first entry should be the file the user considers the main result (it becomes the "Main output" surfaced in spot).
 
 ### 4c: Parameters
 
@@ -443,6 +443,14 @@ if grep -q "summary.md" "$FILE"; then
   echo "PASS: summary.md in output manifest"
 else
   echo "WARN: summary.md not found in output manifest (recommended)"
+  WARNINGS=$((WARNINGS+1))
+fi
+
+# Check primary_outputs declaration (drives spot's "Main output" selection)
+if grep -q "^primary_outputs:" "$FILE"; then
+  echo "PASS: primary_outputs declared in frontmatter"
+else
+  echo "WARN: No primary_outputs in frontmatter — spot will fall back to filesystem order to pick the main output"
   WARNINGS=$((WARNINGS+1))
 fi
 
@@ -692,6 +700,7 @@ Tell the user:
 ## Important Notes
 
 - **Always keep `validation_report.json` in the output manifest.** This is the standardized machine-readable results filename across all Jetty runbooks. Never use `scores.json`, `results.json`, or other variants.
+- **Declare `primary_outputs` in the frontmatter.** List the headline deliverable(s) relative to `results_dir`, most important first. This is how the web app picks which file to surface as the "Main output" when a run finishes; without it, the choice falls back to arbitrary filesystem walk order. Keep the first entry aligned with the first row of the REQUIRED OUTPUT FILES table, and never list `summary.md` or `validation_report.json` here.
 - **The `{{results_dir}}` parameter** defaults to `/app/results` when running on Jetty and `./results` when running locally.
 - **Bound iteration.** Every iteration loop must specify a maximum round count (typically 3). Without bounds, the agent may loop indefinitely.
 - **Use imperative language** in the output manifest and final checklist. Agents tend to wrap up early when they encounter errors — strong language like "Do NOT finish until all items pass" overrides this.
