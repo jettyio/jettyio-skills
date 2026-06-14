@@ -40,8 +40,12 @@ from pathlib import Path
 CLERK_ISSUER = os.getenv("JETTY_CLERK_ISSUER", "https://clerk.jetty.io").rstrip("/")
 CLERK_CLIENT_ID = os.getenv("JETTY_CLERK_CLIENT_ID", "rD7TOA4HrSWohlly")
 JETTY_API = os.getenv("JETTY_API", "https://flows-api.jetty.io").rstrip("/")
+# NOTE: keep this in sync with the scopes registered on the Clerk OAuth app.
+# `openid` is intentionally omitted — it is not registered on the provisioned
+# app, and requesting it returns `invalid_scope`. Re-add it (and bump to an
+# OIDC flow) only once the app registers it and issues JWT access tokens.
 SCOPES = os.getenv(
-    "JETTY_CLERK_SCOPES", "openid email profile offline_access user:org:read"
+    "JETTY_CLERK_SCOPES", "email profile offline_access user:org:read"
 )
 # Loopback: Clerk registers http://127.0.0.1/callback. Per RFC 8252 §7.3 the
 # server should allow any port for a 127.0.0.1 redirect; we bind an ephemeral
@@ -62,21 +66,44 @@ def _b64url(raw: bytes) -> str:
     return base64.urlsafe_b64encode(raw).rstrip(b"=").decode("ascii")
 
 
+_UA = os.getenv(
+    "JETTY_HTTP_UA",
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/126.0.0.0 Safari/537.36",
+)
+
+
 def _post_form(url: str, data: dict) -> dict:
     body = urllib.parse.urlencode(data).encode()
     req = urllib.request.Request(
-        url, data=body, headers={"Accept": "application/json"}, method="POST"
+        url,
+        data=body,
+        headers={"Accept": "application/json", "User-Agent": _UA},
+        method="POST",
     )
     try:
         with urllib.request.urlopen(req, timeout=30) as r:
             return json.loads(r.read().decode())
-    except urllib.error.HTTPError as e:  # surface the IdP error code, not body
-        detail = ""
+    except urllib.error.HTTPError as e:  # surface the IdP error code + body
+        raw = ""
         try:
-            detail = json.loads(e.read().decode()).get("error", "")
+            raw = e.read().decode()
         except Exception:
             pass
-        raise SystemExit(f"token endpoint returned {e.code} {detail}".strip())
+        detail = ""
+        try:
+            j = json.loads(raw)
+            if isinstance(j, dict):
+                if j.get("error"):
+                    detail = j.get("error_description") or j.get("error")
+                elif j.get("errors"):
+                    detail = "; ".join(
+                        (x.get("long_message") or x.get("message") or x.get("code") or "")
+                        for x in j["errors"] if isinstance(x, dict)
+                    )
+        except Exception:
+            pass
+        raise SystemExit(f"token endpoint returned {e.code} {detail or raw[:600]}".strip())
 
 
 def _api(method: str, path: str, token: str, payload: dict | None = None) -> dict:
@@ -89,6 +116,7 @@ def _api(method: str, path: str, token: str, payload: dict | None = None) -> dic
             "Authorization": f"Bearer {token}",
             "Content-Type": "application/json",
             "Accept": "application/json",
+            "User-Agent": _UA,
         },
     )
     try:
