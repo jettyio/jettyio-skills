@@ -70,6 +70,50 @@ printf '%s' "$TOKEN" > ~/.config/jetty/token && chmod 600 ~/.config/jetty/token
 
 API keys are scoped to specific collections.
 
+### Two identities: API key vs. your Clerk user
+
+The `mlc_` API key is **collection-scoped** (it resolves to the org that owns the
+collection). **Subscription credentials** (Nous / Codex / Anthropic, under
+Settings → Connected Accounts) are **user-scoped to your Clerk user**. So to
+*link* or *run on* a personal subscription from the CLI, you must act as that
+user — an `mlc_` key can't see your linked accounts.
+
+`scripts/jetty_auth.py` does a browser login (Clerk OAuth, Authorization Code +
+PKCE, localhost loopback) and stores a refreshable user token at
+`~/.config/jetty/user-token.json` (separate from the `mlc_` key):
+
+```bash
+JA="$(dirname "$0")/scripts/jetty_auth.py"   # or the skill's scripts/jetty_auth.py
+python3 "$JA" login        # browser login as your Clerk user
+python3 "$JA" whoami       # show sub / email / azp
+python3 "$JA" accounts     # list your linked subscriptions
+python3 "$JA" connect nous # paste a Portal refresh token (hermes setup --portal)
+python3 "$JA" token        # print a fresh access token (auto-refreshes)
+python3 "$JA" logout
+```
+
+**Which token to use:**
+- **User-scoped ops** — Connected Accounts (`/connected-accounts/*`) and *running
+  a task on a subscription* — must use the **user token**:
+  `AUTH="Bearer $(python3 "$JA" token)"`.
+- **Collection-scoped ops** (create/run/inspect tasks normally) keep using the
+  `mlc_` key as above.
+
+**Run a runbook on a connected subscription** (user identity + the
+`subscription_credential` param):
+```bash
+python3 "$JA" login            # once
+TOK="$(python3 "$JA" token)"
+curl -s -X POST -H "Authorization: Bearer $TOK" \
+  -F 'init_params={"subscription_credential":"nous"}' \
+  "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}"
+```
+
+Requires the Clerk "Jetty CLI" OAuth app (provisioned) and mise accepting its
+`azp`. Config is env-overridable (`JETTY_CLERK_CLIENT_ID`, `JETTY_CLERK_ISSUER`,
+`JETTY_API`). See the "CLI login via Clerk OAuth" design doc on the Subscription
+Credential Forwarding project for the full architecture.
+
 ---
 
 ## Core Operations
