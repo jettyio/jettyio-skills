@@ -206,7 +206,7 @@ Tell the user:
 > 2. Pick the right evaluation pattern (rubric scoring or programmatic checks) and sandbox for you
 > 3. Scaffold a `RUNBOOK.md` with your task, parameters, evaluation criteria, and output manifest
 > 4. Pre-register the task on Jetty with file-upload support so you can drop in CSVs/PDFs/images at run time
-> 5. Optionally walk through a dry run before you execute it for real
+> 5. Hand you a single command to deploy it to Jetty (Claude Code on Sonnet 4.6 via OpenRouter) and run it for real
 >
 > When you eventually trigger the runbook, you'll watch the trajectory appear live at **https://jetty.io** — every step, input, and output captured for replay and grading."
 

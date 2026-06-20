@@ -56,6 +56,8 @@ If you don't specify an agent in your runbook frontmatter, Jetty infers it from 
 
 If `model_provider` is omitted, Jetty infers it from `agent`: `claude-code` → `anthropic`, `opencode` → `openrouter`, `codex` → `openai`, `gemini-cli` → `google`. Always set it explicitly in frontmatter to avoid surprises.
 
+**Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-4.6` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-4-6` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
+
 ## Sandbox Snapshots
 
 The snapshot determines what's pre-installed in the agent's sandbox.
@@ -85,15 +87,15 @@ Declare your agent, model, and snapshot in the runbook's YAML frontmatter:
 version: "1.0.0"
 evaluation: programmatic
 agent: claude-code
-model: claude-sonnet-4-6
-model_provider: anthropic
+model: anthropic/claude-sonnet-4.6
+model_provider: openrouter
 snapshot: python312-uv
 primary_outputs:          # optional — headline deliverable(s), relative to results_dir
   - report.html
 ---
 ```
 
-These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. If omitted, defaults are: agent=claude-code, model=claude-sonnet-4-6, model_provider=anthropic, snapshot=python312-uv.
+These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`. If you omit `model_provider` entirely, Jetty falls back to agent-based inference (`claude-code` → `anthropic`), so set it explicitly.
 
 ### `primary_outputs`
 
