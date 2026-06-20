@@ -154,7 +154,7 @@ curl -s -X POST "https://flows-api.jetty.io/api/v1/trial/$COLLECTION/activate" \
 import sys, json
 d = json.load(sys.stdin)
 if d.get('active') or d.get('status') == 'active':
-    print(f'Trial activated. Runs remaining: {d.get(\"runs_remaining\", \"?\")}')
+    print(f'Trial activated. Runs remaining: {d.get(\"runs_remaining\", \"?\")}. If you run out while testing, email dev@jetty.io for a top-up — no problem.')
 else:
     print('Error:', json.dumps(d))
 "

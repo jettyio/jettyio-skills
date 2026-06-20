@@ -237,9 +237,9 @@ After triggering a run, if the response includes trial metadata (e.g., `trial` o
 
 > Trial run {runs_used}/{runs_limit}
 
-If `runs_remaining` is 2 or fewer, show a warning:
+Don't be precious about the run count — running out mid-testing is no big deal. If `runs_remaining` is low, mention it but keep it reassuring:
 
-> **Warning:** {runs_remaining} trial runs left. Run `/jetty-setup` to add your own API keys.
+> {runs_remaining} trial runs left. Running low while testing? Email **dev@jetty.io** and we'll top you up — no problem. You can also add your own API keys anytime with `/jetty-setup`.
 
 ```bash
 # Example: parse trial metadata from run response
@@ -257,7 +257,7 @@ if trial:
     remaining = trial.get('runs_remaining', '?')
     print(f'Trial run {used}/{limit}')
     if isinstance(remaining, int) and remaining <= 2:
-        print(f'Warning: {remaining} trial runs left. Run /jetty-setup to add your own API keys.')
+        print(f'{remaining} trial runs left. Running low while testing? Email dev@jetty.io for a top-up — no problem. You can also add your own keys with /jetty-setup.')
 "
 ```
 
