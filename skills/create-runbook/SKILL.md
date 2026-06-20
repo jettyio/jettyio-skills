@@ -664,12 +664,12 @@ Tell the user:
 >       "template_variables": {
 >         "sample_size": "10"
 >       },
->       "file_paths": ["uploads/2026/04/my-input.csv"]
+>       "file_paths": ["{your-collection}/_sandbox_uploads/<id>/my-input.csv"]
 >     }
 >   }'
 > ```
 >
-> **Attaching files at run time:** This task was pre-registered with `has_file_uploads=true`, so the Jetty web app shows a file-upload control on the task page. Files dropped there are stored and their storage paths are passed to the runbook in `init_params.file_paths`. You can also pass `jetty.file_paths` directly in the API call (as shown) or upload via `multipart/form-data` to `/v1/files` and pass the returned file IDs as `jetty.files`.
+> **Attaching files at run time:** This task was pre-registered with `has_file_uploads=true`, so the Jetty web app shows a file-upload control on the task page. Files dropped there are stored and their storage paths are passed to the runbook in `init_params.file_paths`. From the API you have two paired flows: (a) upload via `POST /api/v1/sandbox/upload` (multipart, form field `files`) and pass the returned **storage paths** in `jetty.file_paths` — these mount under `/app/assets/`; or (b) upload via `POST /api/v1/files` and pass the returned `file-…` ids in `jetty.files`. ⚠️ Don't cross them: a `file-…` id placed in `jetty.file_paths` is **silently dropped** (it's read as a raw storage key), so `init_params.file_paths` arrives empty and the file never reaches the sandbox. There is no `/api/v1/files/upload` endpoint.
 >
 > The `jetty` block fields map directly to your runbook's frontmatter:
 > | Frontmatter field | `jetty` block field | Purpose |
@@ -681,7 +681,7 @@ Tell the user:
 > | parameters | `jetty.template_variables` | Key-value pairs for `{{var}}` substitution in the runbook |
 > | — | `jetty.collection` | Namespace that holds your env vars and secrets |
 > | — | `jetty.task` | Task name for grouping trajectories |
-> | — | `jetty.file_paths` | Files to upload into the sandbox workspace |
+> | — | `jetty.file_paths` | Storage paths (from `POST /api/v1/sandbox/upload`) to mount under `/app/assets/`; **not** OpenAI `file-…` ids — those go in `jetty.files` |
 >
 > Or use `/jetty run runbook` to have the agent build this request for you interactively.
 >

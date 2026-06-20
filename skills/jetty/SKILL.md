@@ -509,20 +509,36 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.model_provider` | string | No | `anthropic`, `openrouter`, `openai`, `google`, `bedrock`. Set explicitly to avoid relying on inference |
 | `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default) or `prism-playwright` (browser). Read from runbook frontmatter |
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
-| `jetty.file_paths` | string[] | No | Files to upload into the sandbox |
+| `jetty.file_paths` | string[] | No | **Storage paths** of input files to mount into the sandbox — e.g. the paths returned by `POST /api/v1/sandbox/upload`. These are raw storage keys, **not** OpenAI `file-…` ids (see warning below) |
+| `jetty.files` | string[] | No | OpenAI-style file ids (`file-…`) returned by `POST /api/v1/files`. Resolved server-side to their storage paths. Use this slot for `/api/v1/files` uploads — **not** `file_paths` |
 | `jetty.use_trial_keys` | boolean | No | Use Jetty trial keys (default: false). Set to true for trial users with no own provider keys |
 
 **File upload** (if the runbook needs input files):
-```bash
-# Upload a file first
-curl -s -X POST -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: multipart/form-data" \
-  -F "file=@/path/to/input.csv" \
-  -F "collection={COLLECTION}" \
-  "https://flows-api.jetty.io/api/v1/files/upload" | jq
 
-# Then reference the returned path in file_paths
+Pick **one** of the two flows below — the upload endpoint and the `jetty` field are paired; don't cross them.
+
+**Recommended — sandbox upload → `jetty.file_paths`:**
+```bash
+# 1. Upload via multipart. The form field name MUST be `files` (repeatable). Returns storage paths.
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -F "files=@/path/to/input.csv" \
+  "https://flows-api.jetty.io/api/v1/sandbox/upload" | jq
+# => { "upload_id": "...", "file_paths": ["{COLLECTION}/_sandbox_uploads/<id>/input.csv"], "count": 1 }
+
+# 2. Put the returned storage path(s) into jetty.file_paths on the chat-completions request.
+#    Files mount under /app/assets/ in the sandbox (the runbook step renames each stored
+#    copy to <trajectory_id>.NN.<ext>); zip files are auto-extracted.
 ```
+
+**Alternative — OpenAI-style upload → `jetty.files`:**
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -F "file=@/path/to/input.csv" \
+  "https://flows-api.jetty.io/api/v1/files" | jq '.id'
+# => "file-abc123"  — pass this in jetty.files (NOT jetty.file_paths)
+```
+
+> ⚠️ **Don't put a `file-…` id in `jetty.file_paths`.** Entries in `file_paths` are loaded as raw storage keys, so a `file-…` id fails to resolve and is **silently dropped** — `init_params.file_paths` arrives as `[]`, the file never reaches the sandbox, and the run can still report `success: true` with empty, schema-valid output. There is **no** `POST /api/v1/files/upload` endpoint (it returns 405); use `/api/v1/sandbox/upload` (→ `file_paths`) or `/api/v1/files` (→ `files`) as shown above.
 
 **With the OpenAI Python SDK:**
 ```python
