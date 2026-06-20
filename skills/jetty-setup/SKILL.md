@@ -141,7 +141,7 @@ Use AskUserQuestion:
 - Header: "Getting Started"
 - Question: "Your collection has no AI provider keys yet. How would you like to proceed?"
 - Options:
-  - "Try Jetty free" / "Activate 10 free runs (up to 60 minutes) using Jetty-provided keys. No third-party signup needed."
+  - "Try Jetty free" / "Activate 10 free runs using Jetty-provided keys. No third-party signup needed."
   - "I'll add my own keys" / "Open jetty.io → Settings → Environment Variables to add my keys now"
 
 **If "Try Jetty free":**
@@ -154,7 +154,7 @@ curl -s -X POST "https://flows-api.jetty.io/api/v1/trial/$COLLECTION/activate" \
 import sys, json
 d = json.load(sys.stdin)
 if d.get('active') or d.get('status') == 'active':
-    print(f'Trial activated. Runs remaining: {d.get(\"runs_remaining\", \"?\")}, Minutes remaining: {d.get(\"minutes_remaining\", \"?\")}')
+    print(f'Trial activated. Runs remaining: {d.get(\"runs_remaining\", \"?\")}')
 else:
     print('Error:', json.dumps(d))
 "

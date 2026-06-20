@@ -233,9 +233,9 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
 
 #### Displaying Trial Metadata After a Run
 
-After triggering a run, if the response includes trial metadata (e.g., `trial` object with `runs_used`, `runs_limit`, `minutes_remaining`), display it to the user:
+After triggering a run, if the response includes trial metadata (e.g., `trial` object with `runs_used`, `runs_limit`, `runs_remaining`), display it to the user:
 
-> Trial run {runs_used}/{runs_limit} -- {minutes_remaining} minutes remaining
+> Trial run {runs_used}/{runs_limit}
 
 If `runs_remaining` is 2 or fewer, show a warning:
 
@@ -255,8 +255,7 @@ if trial:
     used = trial.get('runs_used', '?')
     limit = trial.get('runs_limit', '?')
     remaining = trial.get('runs_remaining', '?')
-    mins = trial.get('minutes_remaining', '?')
-    print(f'Trial run {used}/{limit} -- {mins} minutes remaining')
+    print(f'Trial run {used}/{limit}')
     if isinstance(remaining, int) and remaining <= 2:
         print(f'Warning: {remaining} trial runs left. Run /jetty-setup to add your own API keys.')
 "
