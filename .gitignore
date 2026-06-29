@@ -2,3 +2,5 @@ node_modules/
 .DS_Store
 *.log
 CLAUDE.md
+__pycache__/
+*.pyc
