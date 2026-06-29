@@ -3,9 +3,7 @@
     "jetty": {
       "command": "npx",
       "args": ["-y", "jetty-mcp-server"],
-      "env": {
-        "JETTY_API_TOKEN": ""
-      }
+      "env": {}
     }
   }
 }
