@@ -1,19 +1,32 @@
+import { readFileSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
+
 const DEFAULT_API_URL = "https://flows-api.jetty.io";
+
+// The `jetty` CLI / Claude Code skill writes the collection-scoped `mlc_` key
+// here on `jetty login`. We fall back to it so an already-logged-in user does
+// not also have to plumb JETTY_API_TOKEN into the MCP server's env. Resolved
+// lazily (not memoized at module load) so HOME changes are honoured.
+function tokenFilePath(): string {
+  return join(homedir(), ".config", "jetty", "token");
+}
 
 export class JettyClient {
   private token: string | undefined;
   private apiUrl: string;
 
   constructor() {
-    this.token = process.env.JETTY_API_TOKEN || undefined;
+    this.token = resolveToken();
     this.apiUrl = process.env.JETTY_API_URL || DEFAULT_API_URL;
   }
 
   private requireToken(): string {
     if (!this.token) {
       throw new Error(
-        "JETTY_API_TOKEN environment variable is required. " +
-          "Get your token at https://jetty.io → Settings → API Tokens"
+        "No Jetty token found. Set JETTY_API_TOKEN, or run `jetty login` " +
+          `(writes ${tokenFilePath()}). ` +
+          "Get a token at https://jetty.io → Settings → API Tokens"
       );
     }
     return this.token;
@@ -296,4 +309,24 @@ export class JettyClient {
       `/api/v1/routines/${collection}/${task}/${name}/runs${qs}`
     );
   }
+}
+
+/**
+ * Resolve the API token: prefer JETTY_API_TOKEN (trimmed, non-empty), then the
+ * token file written by `jetty login`. The env var is checked for emptiness
+ * because the plugin's .mcp.json may pass it through as "" — which must not
+ * count as "set" and must not block the file fallback.
+ */
+function resolveToken(): string | undefined {
+  const fromEnv = process.env.JETTY_API_TOKEN?.trim();
+  if (fromEnv) return fromEnv;
+
+  try {
+    const fromFile = readFileSync(tokenFilePath(), "utf8").trim();
+    if (fromFile) return fromFile;
+  } catch {
+    // file absent / unreadable — fall through to undefined
+  }
+
+  return undefined;
 }

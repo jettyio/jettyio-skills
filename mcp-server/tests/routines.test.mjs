@@ -7,6 +7,9 @@
 
 import { test } from "node:test";
 import assert from "node:assert/strict";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { JettyClient } from "../dist/client.js";
 
 const TOKEN = "test-token-xyz";
@@ -214,9 +217,20 @@ test("listRoutineRuns hits /runs and includes ?limit when provided", async () =>
 test("missing JETTY_API_TOKEN raises a helpful error", async () => {
   delete process.env.JETTY_API_TOKEN;
   process.env.JETTY_API_URL = API_URL;
-  const c = new JettyClient();
-  await assert.rejects(
-    () => c.listRoutines("c"),
-    /JETTY_API_TOKEN environment variable is required/
-  );
+  // Point HOME at an empty dir so the ~/.config/jetty/token fallback can't fire
+  // (the dev machine running these tests may have a real token on disk).
+  const savedHome = process.env.HOME;
+  const home = mkdtempSync(join(tmpdir(), "jetty-notoken-"));
+  process.env.HOME = home;
+  try {
+    const c = new JettyClient();
+    await assert.rejects(
+      () => c.listRoutines("c"),
+      /No Jetty token found.*jetty login/s
+    );
+  } finally {
+    if (savedHome === undefined) delete process.env.HOME;
+    else process.env.HOME = savedHome;
+    rmSync(home, { recursive: true, force: true });
+  }
 });
