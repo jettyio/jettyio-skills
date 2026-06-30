@@ -64,8 +64,11 @@ The snapshot determines what's pre-installed in the agent's sandbox.
 
 | Snapshot | Includes | Startup | Use When |
 |----------|----------|---------|----------|
-| `python312-uv` | Python 3.12, uv package manager, network access | ~5s | Most tasks: data processing, API calls, code gen, file manipulation |
+| `python312-uv` | Python 3.12, uv package manager, **Node.js 22 + npm**, network access | ~5s | Most tasks: data processing, API calls, code gen, file manipulation, Node/JavaScript tooling |
+| `python312-uv-node` | **Identical to `python312-uv`** (Python 3.12 + uv *and* Node.js 22 + npm) — same image, just an explicitly Node-named alias | ~5s | Same as `python312-uv`; use this name when you want it unambiguous that Node is present |
 | `prism-playwright` | Everything in python312-uv + Playwright + Chromium | ~10s | Browser automation: screenshots, web scraping, OAuth, HTML rendering |
+
+> **Node.js is already in `python312-uv`.** It ships Node.js 22 + npm out of the box, so you do **not** need a custom image (or `python312-uv-node`) just to run Node/JavaScript tooling. `python312-uv-node` is a byte-for-byte-identical copy of `python312-uv` — pick whichever name reads more clearly for your runbook.
 
 ### Custom Images
 

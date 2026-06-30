@@ -506,7 +506,7 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.task` | string | Yes | Task identifier |
 | `jetty.agent` | string | Yes | `claude-code` (recommended default), `opencode`, `codex`, or `gemini-cli` |
 | `jetty.model_provider` | string | No | `anthropic`, `openrouter`, `openai`, `google`, `bedrock`. Set explicitly to avoid relying on inference |
-| `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default) or `prism-playwright` (browser). Read from runbook frontmatter |
+| `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default; includes Node.js 22 + npm) or `prism-playwright` (browser). `python312-uv-node` is an identical alias of `python312-uv`. Read from runbook frontmatter |
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
 | `jetty.file_paths` | string[] | No | **Storage paths** of input files to mount into the sandbox — e.g. the paths returned by `POST /api/v1/sandbox/upload`. These are raw storage keys, **not** OpenAI `file-…` ids (see warning below) |
 | `jetty.files` | string[] | No | OpenAI-style file ids (`file-…`) returned by `POST /api/v1/files`. Resolved server-side to their storage paths. Use this slot for `/api/v1/files` uploads — **not** `file_paths` |
@@ -580,7 +580,7 @@ response = client.chat.completions.create(
 - `results_dir` defaults to `/app/results` on Jetty (vs `./results` locally) — it's auto-included as a template variable
 - Everything written to `/app/results/` is persisted to cloud storage
 - Secrets resolve from collection environment variables
-- `snapshot` controls the sandbox image: `python312-uv` (default) or `prism-playwright` (Playwright + Chromium for browser tasks). Read this from the runbook's YAML frontmatter
+- `snapshot` controls the sandbox image: `python312-uv` (default — Python 3.12 + uv **and** Node.js 22 + npm) or `prism-playwright` (Playwright + Chromium for browser tasks). `python312-uv` already includes Node, so JavaScript/Node runbooks need no custom image; `python312-uv-node` is a byte-identical alias of `python312-uv`. Read this from the runbook's YAML frontmatter
 - The sandbox is destroyed after execution — artifacts and logs survive
 
 ### Scheduling routines

@@ -155,7 +155,7 @@ Save the agent, model, and provider choice. The mapping is:
 
 Then pick the sandbox. **Don't ask** if the task obviously needs a browser — just pick `prism-playwright` and tell the user in one line. Browser is obvious when the task description mentions any of: web scraping, scrape, screenshot, browser, Playwright, Selenium, OAuth flow, web UI testing, e2e, HTML rendering, page navigation, crawl/crawler, login flow, or specific URLs/web apps.
 
-If the task is clearly text/data-only (no browser cues), default to `python312-uv` and tell the user in one line.
+If the task is clearly text/data-only (no browser cues), default to `python312-uv` and tell the user in one line. Note that `python312-uv` already includes **Node.js 22 + npm** alongside Python/uv, so JavaScript/Node runbooks need no custom image. (`python312-uv-node` is a byte-identical alias of `python312-uv` if you prefer an explicitly Node-named snapshot.)
 
 Only ask when ambiguous (e.g., "fetch data from a website" — could be HTTP scraping or browser scraping). When you ask:
 - Header: "Sandbox"
