@@ -299,9 +299,10 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/db/trajectory/{COLLECTION}/{TASK}/{TRAJECTORY_ID}" \
   | jq -r '.steps.run.outputs.results_files[].path'
 
-# …then fetch each one via /api/v1/file/
+# …then fetch each one via /api/v1/file/ — each path value is already a
+# full collection-prefixed storage path; use it as-is, don't re-prefix
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/file/{COLLECTION}/{TASK}/0000/{PATH_FROM_RESULTS_FILES}" \
+  "https://flows-api.jetty.io/api/v1/file/{PATH_FROM_RESULTS_FILES}" \
   -o local_name.ext
 
 # List everything stored under a run's folder
