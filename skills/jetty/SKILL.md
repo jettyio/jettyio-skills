@@ -282,13 +282,39 @@ curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/db/stats/{COLLECTION}/{TASK}" | jq
 ```
 
-### Download Files
+### Download Files (results, artifacts, outputs)
+
+Any storage path the API returns can be downloaded with `GET /api/v1/file/{FULL_FILE_PATH}` — **singular `file`**, storage path appended as-is (no `?path=` form). Storage paths are collection-prefixed (`{collection}/{task}/0000/...`), and the token must belong to that collection. This works for:
+
+- Generated assets: `.steps.{STEP}.outputs.images[0].path`
+- **Runbook artifacts**: every `results_files[].path` and `primary_files[]` entry on the runbook `run` step output — i.e. everything the agent wrote to `/app/results/`
 
 ```bash
 # Download a generated file — path from trajectory: .steps.{STEP}.outputs.images[0].path
 curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/file/{FULL_FILE_PATH}" -o output_file.jpg
+
+# Runbook artifacts: list the storage paths from the run step output…
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/db/trajectory/{COLLECTION}/{TASK}/{TRAJECTORY_ID}" \
+  | jq -r '.steps.run.outputs.results_files[].path'
+
+# …then fetch each one via /api/v1/file/ — each path value is already a
+# full collection-prefixed storage path; use it as-is, don't re-prefix
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/file/{PATH_FROM_RESULTS_FILES}" \
+  -o local_name.ext
+
+# List everything stored under a run's folder
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/list-files?prefix={COLLECTION}/{TASK}/0000" | jq '.files'
+
+# Or download an entire trajectory (all assets) as a zip
+curl -s -H "Authorization: Bearer $TOKEN" \
+  "https://flows-api.jetty.io/api/v1/trajectory/{COLLECTION}/{TASK}/{TRAJECTORY_ID}/download" -o run.zip
 ```
+
+> ⚠️ These are the only download routes. `/api/v1/files/{path}` (plural) is the OpenAI-style Files API keyed by opaque `file-…` ids — it 404s on storage paths. `/api/v1/storage/...`, `/api/v1/results/...`, `/api/v1/sandbox/download`, and `?path=` variants do not exist.
 
 ### Update Trajectory Status
 
@@ -505,7 +531,7 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.collection` | string | Yes | Namespace for the task |
 | `jetty.task` | string | Yes | Task identifier |
 | `jetty.agent` | string | Yes | `claude-code` (recommended default), `opencode`, `codex`, or `gemini-cli` |
-| `jetty.model_provider` | string | No | `anthropic`, `openrouter`, `openai`, `google`, `bedrock`. Set explicitly to avoid relying on inference |
+| `jetty.model_provider` | string | No | `anthropic`, `openrouter`, `openai`, `google`, `bedrock`. Set explicitly to pin routing — when omitted, runs auto-default to `openrouter` whenever an `OPENROUTER_API_KEY` is available (Jetty **trial keys include one**, so trial runs show `via openrouter`; see agents-and-models reference) |
 | `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default) or `prism-playwright` (browser). Read from runbook frontmatter |
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
 | `jetty.file_paths` | string[] | No | **Storage paths** of input files to mount into the sandbox — e.g. the paths returned by `POST /api/v1/sandbox/upload`. These are raw storage keys, **not** OpenAI `file-…` ids (see warning below) |
@@ -578,7 +604,7 @@ response = client.chat.completions.create(
 **Sandbox conventions:**
 - Template variables (`{{results_dir}}`, `{{sample_size}}`, etc.) are substituted by the backend before the agent sees the instruction. Pass them in `jetty.template_variables`, never in the user message text
 - `results_dir` defaults to `/app/results` on Jetty (vs `./results` locally) — it's auto-included as a template variable
-- Everything written to `/app/results/` is persisted to cloud storage
+- Everything written to `/app/results/` is persisted to cloud storage — after the run, fetch artifacts with `GET /api/v1/file/{storage path}` using the `results_files`/`primary_files` paths from the `run` step output (see **Download Files** above)
 - Secrets resolve from collection environment variables
 - `snapshot` controls the sandbox image: `python312-uv` (default) or `prism-playwright` (Playwright + Chromium for browser tasks). Read this from the runbook's YAML frontmatter
 - The sandbox is destroyed after execution — artifacts and logs survive

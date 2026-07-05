@@ -54,7 +54,9 @@ If you don't specify an agent in your runbook frontmatter, Jetty infers it from 
 | `google` | `gemini-cli` | `GOOGLE_API_KEY` |
 | `bedrock` | `claude-code` (and others) | `AWS_BEARER_TOKEN_BEDROCK` |
 
-If `model_provider` is omitted, Jetty infers it from `agent`: `claude-code` → `anthropic`, `opencode` → `openrouter`, `codex` → `openai`, `gemini-cli` → `google`. Always set it explicitly in frontmatter to avoid surprises.
+If `model_provider` is omitted, Jetty auto-defaults in this order: `openrouter` when `OPENROUTER_API_KEY` is available and the agent supports it → `bedrock` when `AWS_BEARER_TOKEN_BEDROCK` is set → legacy inference from `agent` (`claude-code` → `anthropic`, `opencode` → `openrouter`, `codex` → `openai`, `gemini-cli` → `google`). Always set it explicitly in frontmatter to avoid surprises.
+
+> **Trial runs route through OpenRouter.** Jetty trial keys include `OPENROUTER_API_KEY`, so a trial run with no explicit `model_provider` auto-defaults to `openrouter` — progress shows `Running agent: claude-code via openrouter`. That's Jetty's trial routing (same model), not your provider choice being ignored. To pin a provider, set `model_provider` in the runbook frontmatter, or pass `jetty.model_provider` on the chat-completions request (honored by current mise; older deployments only read the frontmatter).
 
 **Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-4.6` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-4-6` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
 

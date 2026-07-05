@@ -422,9 +422,10 @@ else
   ERRORS=$((ERRORS+1))
 fi
 
-# Check required sections
-for section in "## Objective" "## REQUIRED OUTPUT FILES" "## Final Checklist"; do
-  if grep -q "$section" "$FILE"; then
+# Check required sections. Headings may carry a "Step N:" prefix — the
+# templates write "## Step 8: Final Checklist".
+for section in "Objective" "REQUIRED OUTPUT FILES" "Final Checklist"; do
+  if grep -qE "^## (Step [0-9]+: )?$section" "$FILE"; then
     echo "PASS: '$section' section found"
   else
     echo "ERROR: '$section' section missing"
@@ -514,8 +515,10 @@ else
 fi
 
 # Check for remaining TODO markers
-TODO_COUNT=$(grep -c "{TODO:" "$FILE" 2>/dev/null || echo 0)
-if [ "$TODO_COUNT" -gt 0 ]; then
+# grep -c prints "0" AND exits 1 on no match — don't `|| echo 0` (it would
+# yield "0\n0" and break the -gt test)
+TODO_COUNT=$(grep -c "{TODO:" "$FILE" 2>/dev/null)
+if [ "${TODO_COUNT:-0}" -gt 0 ]; then
   echo "WARN: $TODO_COUNT {TODO:} markers remain — fill these in before running"
   WARNINGS=$((WARNINGS+1))
 fi
@@ -559,10 +562,13 @@ echo "Collection: $COLLECTION"
 
 If multiple collections are returned, ask the user which one with AskUserQuestion (Header: "Collection", Question: "Which collection should this runbook live in?", Options: one per collection name).
 
-Now upsert the Task row with `has_file_uploads=true` and `is_chat_flow=true`. Try `PUT` first (works whether the task exists or not via auto-create on chat-completions); if that returns 404, fall back to `POST`:
+Now upsert the Task row with `has_file_uploads=true` and `is_chat_flow=true`. Try `PUT` first (updates an existing row); if that returns 404, fall back to `POST`.
+
+⚠️ **The pre-registered workflow must be a real runbook workflow** (`steps: ["run"]` with the `runbook` activity) — the same shape mise auto-creates on first run. Do NOT use a `completion`/`passthrough` stub: the engine executes the stored workflow on runbook runs, `passthrough` is not a runnable step, and the first run dies with `No step registered for 'completion'` before the sandbox boots.
 
 ```bash
 TASK_NAME="REPLACE_WITH_KEBAB_TASK_NAME"
+SNAPSHOT="REPLACE_WITH_SNAPSHOT_FROM_FRONTMATTER"   # e.g. python312-uv
 TOKEN="$(cat ~/.config/jetty/token)"
 
 # Try update first
@@ -578,7 +584,23 @@ if [ "$HTTP" = "404" ]; then
     -H "Content-Type: application/json" \
     -d "$(python3 -c "import json; print(json.dumps({
       'name': '$TASK_NAME',
-      'workflow': {'init_params': {}, 'step_configs': {'completion': {'activity': 'passthrough'}}, 'steps': ['completion']},
+      'workflow': {
+        'init_params': {},
+        'step_configs': {'run': {
+          'activity': 'runbook',
+          'agent_path': 'init_params.agent',
+          'model_path': 'init_params.model',
+          'instruction_path': 'init_params.instruction',
+          'template_variables_path': 'init_params.vars',
+          'files_path': 'init_params.file_paths',
+          'snapshot': '$SNAPSHOT',
+          'cpus': 4,
+          'memory': '8G',
+          'timeout_sec': 1200,
+          'network_enabled': True,
+        }},
+        'steps': ['run'],
+      },
       'description': 'Runbook task (pre-registered with file uploads enabled)',
       'has_file_uploads': True,
       'is_chat_flow': True,
