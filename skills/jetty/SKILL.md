@@ -36,6 +36,13 @@ Both are reachable without authentication. When this skill's docs don't
 mention an endpoint you need, check the OpenAPI spec first — it's the
 ground truth.
 
+For a compact orientation to the whole platform — the state model, the
+emulated CLI verbs (`jetty run`, `jetty status`, and the rolling-out
+`jetty simulate` / `jetty init`), the runbook file format, and the
+anti-patterns that bite — see [`MACHINE_CONTEXT.md`](../../MACHINE_CONTEXT.md)
+at the repo root, and [`agent-instructions.md`](../../agent-instructions.md)
+for the pasteable onboarding trigger.
+
 ### Frontend URLs for Users
 
 When sharing links with the user (e.g., after launching a run), use these exact URL patterns. **Do NOT guess or invent URL paths** — only use the formats listed here:
