@@ -39,14 +39,11 @@ Before running any commands, orient the user with this message:
 > - **Self-evaluating** — the runbook tells the agent how to grade its own output and iterate until it's good enough
 > - **Reach any system** whose keys live in your Jetty collection
 >
-> **Here's the 3-minute plan:**
-> 1. **Connect your Jetty account** (~30s) — I'll check for an existing token or open the signup page
-> 2. **Add AI provider keys** (~1 min) — at **jetty.io → Settings → Environment Variables**, in your browser (or grab a free trial and skip this)
-> 3. **Build your first runbook** (~2 min) — I'll hand you to the runbook wizard, which walks you through it interactively
->
-> Your workspace appears in the Jetty web app at **https://jetty.io** as soon as step 1 finishes — no need to name or configure anything, I'll handle that. Every run, trajectory, and result lands there too.
+> **Two ways to start — your call:**
+> - 🐦 **See Jetty run a quick example first** — I'll kick off a real runbook (extract structured data from a set of PDFs) and show you the report. No account, nothing to install, ~3 minutes.
+> - **Go straight to building your own** — I'll connect your account and hand you to the runbook wizard.
 
-Then proceed to Step 1.
+Then proceed to **Pick your path** below.
 
 ---
 
@@ -58,6 +55,101 @@ Then proceed to Step 1.
 - **Never ask the user to paste provider API keys (OpenAI, Anthropic, Gemini, Replicate) into this skill.** Those keys belong in the Jetty web app under Settings → Environment Variables. This skill only handles the Jetty API token itself.
 
 ---
+
+## Pick your path
+
+**First, check whether they're already set up.** Look for a token at `~/.config/jetty/token` (and, for backward compatibility, a `mlc_` line in the project's `CLAUDE.md`). If one exists, validate it:
+
+```bash
+TOKEN="$(cat ~/.config/jetty/token 2>/dev/null)"
+curl -s -H "Authorization: Bearer $TOKEN" "https://flows-api.jetty.io/api/v1/collections/" | head -c 200
+```
+
+If it returns collection data (a returning user), **skip the demo** and go straight to the **Build path** (Step 1 handles the already-connected case). Otherwise, offer the choice.
+
+Use AskUserQuestion:
+- Header: "Start"
+- Question: "🐦 Want to see Jetty run a quick example first, or go straight to building your own runbook?"
+- Options:
+  - "Run the demo" / "Watch Jetty extract structured data from a set of PDFs — no account needed"
+  - "Build my own" / "Connect my account and build a runbook now"
+
+- **"Run the demo"** → go to the **Simulate path** immediately below.
+- **"Build my own"** → go to the **Build path** (Step 1).
+
+---
+
+## Simulate path: watch Jetty run an example
+
+This runs a real, pre-built runbook — `conference-abstracts` — on Jetty's hosted demo, with **no account and no token**. It's the emulated `jetty simulate conference-abstracts` procedure (see `MACHINE_CONTEXT.md`). The whole thing talks to a public, rate-limited endpoint; you never handle a secret here.
+
+> **If anything in this path fails** — the request errors, the run doesn't finish in time, or the report can't be fetched — don't retry silently or block. Say something light ("🐦 Pelly's demo pond is busy right now — let's build your own instead") and fall through to the **Build path** (Step 1). The demo is a bonus, never a gate.
+
+### S1: Start the run
+
+```bash
+curl -s -X POST "https://jetty.io/api/demo/run" \
+  -H "Content-Type: application/json" \
+  -H "X-Jetty-Client: jetty-setup-skill/1.8.0" \
+  -d '{}'
+```
+
+Expect `{"run_id": "...", "task": "conference-abstracts", "estimated_seconds": ~210, "success": true}`. Save `run_id`. On any non-2xx or `success:false`, fall through to the Build path (see the note above).
+
+Tell the user what's happening, in Pelly's voice — e.g. *"🐦 On it — kicking off the conference-abstracts example. Jetty's spinning up a fresh sandbox and pulling in a handful of PDFs with all different layouts. Give it a couple minutes."*
+
+### S2: Poll for progress
+
+Every ~10 seconds (cap at ~6 minutes total), poll:
+
+```bash
+curl -s "https://jetty.io/api/demo/status/<run_id>" \
+  -H "X-Jetty-Client: jetty-setup-skill/1.8.0"
+```
+
+The response is `{"status": "...", "steps_completed": [...], "steps_total": [...]}`. Render progress lightly as it moves, e.g. `🐦 Step 3/6 — normalizing fields and checking provenance… ✅`. Keep it human; don't dump raw JSON.
+
+- `status: "completed"` → go to S3.
+- `status: "failed"` → tell them honestly it didn't finish, then fall through to the Build path.
+- Still `running`/`pending` after ~6 minutes → stop polling, say it's taking longer than expected, and offer to either keep waiting or build their own.
+
+### S3: Show the report
+
+```bash
+curl -s "https://jetty.io/api/demo/report/<run_id>" \
+  -H "X-Jetty-Client: jetty-setup-skill/1.8.0"
+```
+
+Returns `{"files": [{"name": "report.md", "content": "..."}, ...], "trajectory_url": "https://jetty.io/..."}`. Show the user:
+- the `report.md` content (rendered), and
+- the first ~3 data rows of `abstracts_rollup.csv` so they can see the structured output and its provenance columns.
+
+Then, in Pelly's voice: *"That's a real, working report — real sandbox, real extraction, every value linked back to where it came from in the source PDF. ✅ Pelly Approved. You can see the full run here: {trajectory_url}."*
+
+### S4: Offer to send it — and turn that into their account
+
+> "The only thing I'll ask in return is an email to send the report to. We'll only use it for Jetty things — this report and the occasional product note, nothing else."
+
+Ask for the email (a normal question — this is the one **[HUMAN]** step). When they give it:
+
+```bash
+curl -s -X POST "https://jetty.io/api/demo/email-report" \
+  -H "Content-Type: application/json" \
+  -H "X-Jetty-Client: jetty-setup-skill/1.8.0" \
+  -d '{"run_id": "<run_id>", "email": "<their-email>"}'
+```
+
+On success: *"Sent — check your inbox. 🐦"*
+
+> **Note:** in this release the email sends the report and we then set up their account the normal way. (A one-step email-as-signup that mints the account straight from this address is rolling out — when it lands, this step also stores their token and skips the sign-up page.)
+
+Then continue: *"Want to build one of these for your own data? Let's set you up."* → proceed to the **Build path** (Step 1) to connect an account, then hand off to `/create-runbook`.
+
+If they'd rather not share an email, that's fine — skip it and offer the Build path anyway.
+
+---
+
+## Build path: connect and build your own
 
 ## Step 1: Connect Your Jetty Account
 
