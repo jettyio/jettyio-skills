@@ -130,22 +130,47 @@ Then, in Pelly's voice: *"That's a real, working report — real sandbox, real e
 
 > "The only thing I'll ask in return is an email to send the report to. We'll only use it for Jetty things — this report and the occasional product note, nothing else."
 
-Ask for the email (a normal question — this is the one **[HUMAN]** step). When they give it:
+Ask for the email (a normal question — this is the one **[HUMAN]** step). When they give it, do two things.
+
+**First, email the report:**
 
 ```bash
 curl -s -X POST "https://jetty.io/api/demo/email-report" \
   -H "Content-Type: application/json" \
-  -H "X-Jetty-Client: jetty-setup-skill/1.8.0" \
+  -H "X-Jetty-Client: jetty-setup-skill/1.9.0" \
   -d '{"run_id": "<run_id>", "email": "<their-email>"}'
 ```
 
 On success: *"Sent — check your inbox. 🐦"*
 
-> **Note:** in this release the email sends the report and we then set up their account the normal way. (A one-step email-as-signup that mints the account straight from this address is rolling out — when it lands, this step also stores their token and skips the sign-up page.)
+**Then mint their workspace from that same email — no separate sign-up needed.** This is the emulated `jetty init` (see `MACHINE_CONTEXT.md`). The response contains an API token; pipe it straight into the parser below so it's written to the token file and **never printed** — only a redacted form is shown:
 
-Then continue: *"Want to build one of these for your own data? Let's set you up."* → proceed to the **Build path** (Step 1) to connect an account, then hand off to `/create-runbook`.
+```bash
+mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
+curl -s -X POST "https://jetty.io/api/onboarding/email-signup" \
+  -H "Content-Type: application/json" \
+  -H "X-Jetty-Client: jetty-setup-skill/1.9.0" \
+  -d '{"email": "<their-email>", "source": "agent-onboarding", "demo_run_id": "<run_id>"}' \
+  | python3 -c "
+import sys, json, os
+d = json.load(sys.stdin)
+if d.get('success') and d.get('api_key'):
+    p = os.path.expanduser('~/.config/jetty/token')
+    with open(p, 'w') as f: f.write(d['api_key'])
+    os.chmod(p, 0o600)
+    k = d['api_key']
+    print('STORED', k[:4] + '...' + k[-4:], 'trial_runs=' + str(d.get('trial_runs', '')))
+else:
+    print('SIGNUP_FAILED', d.get('error', ''))
+"
+```
 
-If they'd rather not share an email, that's fine — skip it and offer the Build path anyway.
+- **On `STORED …`:** the token is saved (chmod 600) and the trial is already active. Tell the user (redacted): *"You're all set — workspace created and connected (`mlc_...{last 4}`), with {trial_runs} free runs on the house. 🐦 No sign-up form, no key to paste."* Then **skip Step 2 entirely** (keys/trial are done) and hand off to `/create-runbook`.
+- **On `SIGNUP_FAILED …`:** don't block. Fall back to the normal flow — *"Let's finish setting you up."* → proceed to the **Build path** (Step 1) to connect an account, then `/create-runbook`.
+
+If they'd rather not share an email, that's fine — skip both calls and offer the Build path anyway.
+
+> **Security:** the API token from `email-signup` is written to `~/.config/jetty/token` by the parser and only ever shown redacted. Never echo the raw response or the key.
 
 ---
 
