@@ -85,92 +85,76 @@ This runs a real, pre-built runbook — `conference-abstracts` — on Jetty's ho
 
 > **If anything in this path fails** — the request errors, the run doesn't finish in time, or the report can't be fetched — don't retry silently or block. Say something light ("🐦 Pelly's demo pond is busy right now — let's build your own instead") and fall through to the **Build path** (Step 1). The demo is a bonus, never a gate.
 
-### S1: Start the run
+The whole demo is driven by one bundled helper, `scripts/jetty_simulate.py`, so
+the user sees clean Pelly-voiced progress — not curl, polling loops, or JSON.
+**Relay the helper's stdout to the user as-is; it's already formatted. Do not run
+your own curl, background poll, or `python3 -c` rendering.**
+
+### S1: Run the example
+
+Locate and run the helper in one shell (this resolves the script whether it's a
+plugin install or a project skill):
 
 ```bash
-curl -s -X POST "https://jetty.io/api/demo/run" \
-  -H "Content-Type: application/json" \
-  -H "X-Jetty-Client: jetty-setup-skill/1.8.0" \
-  -d '{}'
+SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
+  || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
+python3 "$SIM" run
 ```
 
-Expect `{"run_id": "...", "task": "conference-abstracts", "estimated_seconds": ~210, "success": true}`. Save `run_id`. On any non-2xx or `success:false`, fall through to the Build path (see the note above).
+It streams progress (`🐦 Step 3/6 — …`) and prints the report (`report.md` + the
+first rows of the roll-up CSV). The last line is `DEMO_STATUS=completed` or
+`DEMO_STATUS=failed`.
 
-Tell the user what's happening, in Pelly's voice — e.g. *"🐦 On it — kicking off the conference-abstracts example. Jetty's spinning up a fresh sandbox and pulling in a handful of PDFs with all different layouts. Give it a couple minutes."*
+- **`DEMO_STATUS=completed`** → go to S2.
+- **`DEMO_STATUS=failed`** (or the command errors) → the helper already printed a
+  friendly line; don't retry. Say *"Let's build your own instead"* and fall
+  through to the **Build path** (Step 1). The demo is a bonus, never a gate.
 
-### S2: Poll for progress
+Add one line of your own after the report: *"✅ Pelly Approved — that's a real
+run, every value traced back to its source PDF."*
 
-Every ~10 seconds (cap at ~6 minutes total), poll:
+### S2: One email — report + workspace
+
+> "The only thing I'll ask in return is an email. I'll send the report there and
+> set up your Jetty workspace from it — no sign-up form, no key to paste."
+
+Ask for the email (a normal question — the one **[HUMAN]** step). When they give
+it, run the helper's `claim` (same resolution one-liner):
 
 ```bash
-curl -s "https://jetty.io/api/demo/status/<run_id>" \
-  -H "X-Jetty-Client: jetty-setup-skill/1.8.0"
+SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
+  || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
+python3 "$SIM" claim --email "<their-email>"
 ```
 
-The response is `{"status": "...", "steps_completed": [...], "steps_total": [...]}`. Render progress lightly as it moves, e.g. `🐦 Step 3/6 — normalizing fields and checking provenance… ✅`. Keep it human; don't dump raw JSON.
+This mints the workspace, activates the trial, sends **one** email (the report +
+a link to claim the workspace in a browser), and stores the token at
+`~/.config/jetty/token` — printing only a redacted form. Relay its output.
 
-- `status: "completed"` → go to S3.
-- `status: "failed"` → tell them honestly it didn't finish, then fall through to the Build path.
-- Still `running`/`pending` after ~6 minutes → stop polling, say it's taking longer than expected, and offer to either keep waiting or build their own.
+- **`SIGNUP_STATUS=completed`** → the token is saved and the trial is active.
+  Go to S3.
+- **`SIGNUP_STATUS=failed`** → don't block; fall through to the **Build path**.
 
-### S3: Show the report
+If they'd rather not share an email, that's fine — skip `claim` and offer the
+Build path.
 
-```bash
-curl -s "https://jetty.io/api/demo/report/<run_id>" \
-  -H "X-Jetty-Client: jetty-setup-skill/1.8.0"
-```
+### S3: Stop here — this is the finish line
 
-Returns `{"files": [{"name": "report.md", "content": "..."}, ...], "trajectory_url": "https://jetty.io/..."}`. Show the user:
-- the `report.md` content (rendered), and
-- the first ~3 data rows of `abstracts_rollup.csv` so they can see the structured output and its provenance columns.
+**Do NOT automatically invoke `/create-runbook` or the Build path.** The demo is
+done and the user is set up. Offer the next step as an explicit choice via
+AskUserQuestion:
+- Header: "Next"
+- Question: "🐦 You're all set. Want to build a runbook for your own data now, or stop here?"
+- Options:
+  - "Build my own runbook" / "Start the runbook wizard"
+  - "I'm good for now" / "Stop here — I'll come back later"
 
-Then, in Pelly's voice: *"That's a real, working report — real sandbox, real extraction, every value linked back to where it came from in the source PDF. ✅ Pelly Approved. You can see the full run here: {trajectory_url}."*
+Only if they pick **Build my own runbook**, hand off to `/create-runbook` (skip
+Step 2 — keys/trial are already set up). Otherwise, end warmly and point them at
+`https://jetty.io` where their workspace and this run are waiting.
 
-### S4: Offer to send it — and turn that into their account
-
-> "The only thing I'll ask in return is an email to send the report to. We'll only use it for Jetty things — this report and the occasional product note, nothing else."
-
-Ask for the email (a normal question — this is the one **[HUMAN]** step). When they give it, do two things.
-
-**First, email the report:**
-
-```bash
-curl -s -X POST "https://jetty.io/api/demo/email-report" \
-  -H "Content-Type: application/json" \
-  -H "X-Jetty-Client: jetty-setup-skill/1.9.0" \
-  -d '{"run_id": "<run_id>", "email": "<their-email>"}'
-```
-
-On success: *"Sent — check your inbox. 🐦"*
-
-**Then mint their workspace from that same email — no separate sign-up needed.** This is the emulated `jetty init` (see `MACHINE_CONTEXT.md`). The response contains an API token; pipe it straight into the parser below so it's written to the token file and **never printed** — only a redacted form is shown:
-
-```bash
-mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
-curl -s -X POST "https://jetty.io/api/onboarding/email-signup" \
-  -H "Content-Type: application/json" \
-  -H "X-Jetty-Client: jetty-setup-skill/1.9.0" \
-  -d '{"email": "<their-email>", "source": "agent-onboarding", "demo_run_id": "<run_id>"}' \
-  | python3 -c "
-import sys, json, os
-d = json.load(sys.stdin)
-if d.get('success') and d.get('api_key'):
-    p = os.path.expanduser('~/.config/jetty/token')
-    with open(p, 'w') as f: f.write(d['api_key'])
-    os.chmod(p, 0o600)
-    k = d['api_key']
-    print('STORED', k[:4] + '...' + k[-4:], 'trial_runs=' + str(d.get('trial_runs', '')))
-else:
-    print('SIGNUP_FAILED', d.get('error', ''))
-"
-```
-
-- **On `STORED …`:** the token is saved (chmod 600) and the trial is already active. Tell the user (redacted): *"You're all set — workspace created and connected (`mlc_...{last 4}`), with {trial_runs} free runs on the house. 🐦 No sign-up form, no key to paste."* Then **skip Step 2 entirely** (keys/trial are done) and hand off to `/create-runbook`.
-- **On `SIGNUP_FAILED …`:** don't block. Fall back to the normal flow — *"Let's finish setting you up."* → proceed to the **Build path** (Step 1) to connect an account, then `/create-runbook`.
-
-If they'd rather not share an email, that's fine — skip both calls and offer the Build path anyway.
-
-> **Security:** the API token from `email-signup` is written to `~/.config/jetty/token` by the parser and only ever shown redacted. Never echo the raw response or the key.
+> **Security:** the helper writes the token to `~/.config/jetty/token` and only
+> ever prints a redacted form. Never echo a raw response or a full key yourself.
 
 ---
 
