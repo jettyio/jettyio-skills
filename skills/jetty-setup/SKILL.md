@@ -92,13 +92,21 @@ your own curl, background poll, or `python3 -c` rendering.**
 
 ### S1: Run the example
 
-Locate and run the helper in one shell (this resolves the script whether it's a
-plugin install or a project skill):
+First, offer to name the workspace (optional, low-friction). Use AskUserQuestion:
+- Header: "Workspace"
+- Question: "🐦 Before I run it — what should your workspace be called? You can pick a name or let me generate one (you can always rename later)."
+- Options:
+  - "Generate one for me" / "Auto-name my workspace"
+  - "Let me choose" / "I'll type a name"
+
+If they choose a name, pass it via `--name "<their-name>"`; otherwise run with no
+`--name`. Then locate and run the helper in one shell (this resolves the script
+whether it's a plugin install or a project skill):
 
 ```bash
 SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
   || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
-python3 "$SIM" run
+python3 "$SIM" run                       # or: python3 "$SIM" run --name "my-workspace"
 ```
 
 It streams progress (`🐦 Step 3/6 — …`) and prints the report (`report.md` + the
