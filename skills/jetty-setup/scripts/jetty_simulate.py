@@ -59,6 +59,12 @@ CLIENT = "jetty-setup-skill/1.10.0"
 RUN_ID_FILE = os.path.join(
     os.environ.get("TMPDIR", "/tmp"), "jetty_demo_run_id"
 )
+# The report is also written here so the skill can Read + render it in its own
+# message — Claude Code collapses long command output, so we don't rely on stdout
+# for the part the user actually wants to see.
+REPORT_FILE = os.path.join(
+    os.environ.get("TMPDIR", "/tmp"), "jetty_demo_report.md"
+)
 
 # Friendly labels for the runbook's steps, shown as progress ticks. The demo
 # runbook is a single "run" step internally, so we narrate the phases the agent
@@ -165,27 +171,36 @@ def cmd_run(args):
         _fail(f"the run finished but the report wouldn't load ({e}).")
     files = {f["name"]: f["content"] for f in rep.get("files", [])}
 
+    # Build the report as one markdown doc: report.md + a CSV preview.
+    report_md = files.get("report.md") or ""
+    csv = files.get("abstracts_rollup.csv") or ""
+    parts = []
+    if report_md:
+        parts.append(report_md.strip())
+    if csv:
+        rows = csv.splitlines()
+        preview = "\n".join(rows[:4])
+        parts.append(
+            "### First rows of `abstracts_rollup.csv`\n"
+            "One row per PDF; every value is provenance-checked.\n\n"
+            "```\n" + preview + "\n```"
+            + (f"\n_… {len(rows)-1} data rows total._" if len(rows) > 4 else "")
+        )
+    combined = "\n\n".join(parts)
+    try:
+        with open(REPORT_FILE, "w") as fh:
+            fh.write(combined)
+    except OSError:
+        pass
+
+    # Print a short confirmation to stdout (fine if it collapses); the full
+    # report lives in REPORT_FILE for the skill to render.
     print()
     print(f"{CHECK} Pelly Approved — real sandbox, real extraction, every value "
           f"traced back to its source PDF.")
     print()
-    report_md = files.get("report.md")
-    if report_md:
-        print("=== report.md " + "=" * 52)
-        print(report_md.strip())
-        print("=" * 66)
-    csv = files.get("abstracts_rollup.csv")
-    if csv:
-        rows = csv.splitlines()
-        print()
-        print("First rows of abstracts_rollup.csv (one per PDF, every value "
-              "provenance-checked):")
-        for line in rows[:4]:
-            print("  " + line[:140])
-        if len(rows) > 4:
-            print(f"  … {len(rows)-1} data rows total")
-    print()
     print("DEMO_STATUS=completed")
+    print(f"REPORT_FILE={REPORT_FILE}")
     print(f"RUN_ID_FILE={RUN_ID_FILE}")
 
 

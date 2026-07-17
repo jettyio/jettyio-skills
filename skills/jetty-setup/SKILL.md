@@ -87,8 +87,12 @@ This runs a real, pre-built runbook — `conference-abstracts` — on Jetty's ho
 
 The whole demo is driven by one bundled helper, `scripts/jetty_simulate.py`, so
 the user sees clean Pelly-voiced progress — not curl, polling loops, or JSON.
-**Relay the helper's stdout to the user as-is; it's already formatted. Do not run
-your own curl, background poll, or `python3 -c` rendering.**
+**Do not run your own curl, background poll, or `python3 -c` rendering.**
+
+> Claude Code collapses long command output, so the streamed progress and the
+> report can get hidden behind a "+N lines" fold. That's fine for the transient
+> progress — but the **report is the payoff, so present it in your OWN message**
+> (see S1), where it always renders in full.
 
 ### S1: Run the example
 
@@ -109,17 +113,21 @@ SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_
 python3 "$SIM" run                       # or: python3 "$SIM" run --name "my-workspace"
 ```
 
-It streams progress (`🐦 Step 3/6 — …`) and prints the report (`report.md` + the
-first rows of the roll-up CSV). The last line is `DEMO_STATUS=completed` or
-`DEMO_STATUS=failed`.
+It streams `🐦 Step 1/6 … 6/6` progress (this may collapse in the terminal —
+that's fine). Its last lines are:
+- `DEMO_STATUS=completed` (or `DEMO_STATUS=failed`)
+- `REPORT_FILE=<path>` — the full report, written to a file
+- `RUN_ID_FILE=<path>`
 
-- **`DEMO_STATUS=completed`** → go to S2.
+- **`DEMO_STATUS=completed`** → **`Read` the `REPORT_FILE` path and present its
+  full contents to the user as rendered markdown in your own message** — do not
+  summarize or truncate it. This is the wow moment and must be fully visible, not
+  hidden in the collapsed command output. Then add one line of your own:
+  *"✅ Pelly Approved — a real run, every value traced back to its source PDF."*
+  Go to S2.
 - **`DEMO_STATUS=failed`** (or the command errors) → the helper already printed a
   friendly line; don't retry. Say *"Let's build your own instead"* and fall
   through to the **Build path** (Step 1). The demo is a bonus, never a gate.
-
-Add one line of your own after the report: *"✅ Pelly Approved — that's a real
-run, every value traced back to its source PDF."*
 
 ### S2: One email — report + workspace
 
