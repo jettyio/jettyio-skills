@@ -115,17 +115,10 @@ def cmd_run(args):
     with open(RUN_ID_FILE, "w") as fh:
         fh.write(run_id)
 
-    # Surface the source PDFs so the user can open them and compare against the
-    # structured output while the run works.
-    pdfs = start.get("pdf_urls") or []
-    if pdfs:
-        print()
-        print(f"{PELLY} Here are the six source PDFs it's extracting from — each a "
-              f"different layout, all normalized into one schema. Open a couple and "
-              f"compare them to the output when it lands:")
-        for u in pdfs:
-            print(f"   • {u}")
-        print()
+    # (The skill presents the source PDFs + the structured-extraction explanation
+    # as its own rendered message before this run starts — see SKILL.md S1. We
+    # don't reprint the links here because long command output gets collapsed,
+    # which is exactly where they'd be lost.)
 
     # 2. Poll, showing synthetic phase progress.
     #

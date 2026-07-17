@@ -97,27 +97,31 @@ the user sees clean Pelly-voiced progress — not curl, polling loops, or JSON.
 > message** (see S1) as a clean summary, where it always renders in full rather
 > than being hidden behind a "+N lines" fold.
 
-### S1: Run the example
+### S1: Explain the example — then run it
 
-**First, teach them what they're about to watch** — this example is the whole
-point, so use it to explain what a runbook does. Show the user this (in your own
-voice):
+**Post the following to the user as your OWN message before doing anything else.**
+This is the teaching moment and the source PDFs — it must be visible, so write it
+out yourself (do NOT rely on the command output, which collapses, and do NOT skip
+it):
 
-> **What this example does — structured extraction.** Six conference-abstract PDFs,
-> each laid out completely differently (two-column vs. single-column, metadata in
-> the header vs. the footer, authors listed vs. buried in prose), go into a runbook
-> that pulls them all into **one clean JSON schema** — title, authors, affiliations,
-> conference, keywords. And every value carries a **provenance** pointer: the page
-> and the exact quote it came from, so nothing is a black box. You get one JSON file
-> per PDF plus a roll-up CSV to eyeball everything at once. That's the core Jetty
-> pattern — messy documents in, structured *and* verifiable data out — and it's
-> exactly what a runbook automates: the same reliable job, every time.
+> 🐦 **Here's what you're about to watch — structured extraction.**
 >
-> As it runs, I'll drop links to the six source PDFs so you can open a couple and
-> compare them against what Jetty extracts.
-
-(The helper prints those PDF links right as the run starts — make sure the user
-sees them.)
+> Six conference-abstract PDFs, each laid out completely differently — two-column
+> vs. single-column, metadata in the header vs. the footer, authors listed vs.
+> buried in prose — go into a runbook that pulls them all into **one clean JSON
+> schema**: title, authors, affiliations, conference, keywords. Every value carries
+> a **provenance** pointer — the page and the exact quote it came from — so nothing
+> is a black box. You get one JSON file per PDF plus a roll-up CSV to check
+> everything at a glance. That's the core Jetty pattern: **messy documents in,
+> structured *and verifiable* data out** — the same reliable job, every time.
+>
+> **Open the source PDFs and follow along** — compare them to what Jetty pulls out:
+> - [1 — Provenance-aware extraction (two-column)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/01_okonkwo_provenance_extraction.pdf)
+> - [2 — Judgment drift (labeled sections)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/02_whitfield_judge_drift.pdf)
+> - [3 — Sandbox isolation (metadata in a footer)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/03_ramanathan_sandbox_isolation.pdf)
+> - [4 — Eligibility normalization (authors in prose)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/04_kowalski_eligibility_normalization.pdf)
+> - [5 — Constrained decoding (labeled header block)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/05_vasquez_constrained_decoding.pdf)
+> - [6 — Verification loops (no keyword line)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/06_mbeki_verification_loops.pdf)
 
 Then, offer to name the workspace (optional, low-friction). Use AskUserQuestion:
 - Header: "Workspace"
