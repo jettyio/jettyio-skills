@@ -55,12 +55,12 @@ before stopping.
 Default `{{pdf_urls}}` (public, no credentials required):
 
 ```
-https://storage.googleapis.com/jetty-demo-fixtures/conference-abstracts/01_okonkwo_provenance_extraction.pdf
-https://storage.googleapis.com/jetty-demo-fixtures/conference-abstracts/02_whitfield_judge_drift.pdf
-https://storage.googleapis.com/jetty-demo-fixtures/conference-abstracts/03_ramanathan_sandbox_isolation.pdf
-https://storage.googleapis.com/jetty-demo-fixtures/conference-abstracts/04_kowalski_eligibility_normalization.pdf
-https://storage.googleapis.com/jetty-demo-fixtures/conference-abstracts/05_vasquez_constrained_decoding.pdf
-https://storage.googleapis.com/jetty-demo-fixtures/conference-abstracts/06_mbeki_verification_loops.pdf
+https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/01_okonkwo_provenance_extraction.pdf
+https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/02_whitfield_judge_drift.pdf
+https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/03_ramanathan_sandbox_isolation.pdf
+https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/04_kowalski_eligibility_normalization.pdf
+https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/05_vasquez_constrained_decoding.pdf
+https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/06_mbeki_verification_loops.pdf
 ```
 
 ---
@@ -127,7 +127,7 @@ minus `.pdf` is that document's `slug`.
 ```bash
 # Example for one URL — loop over all of them
 curl -sSL -o {{results_dir}}/_pdfs/01_okonkwo_provenance_extraction.pdf \
-  "https://storage.googleapis.com/jetty-demo-fixtures/conference-abstracts/01_okonkwo_provenance_extraction.pdf"
+  "https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/01_okonkwo_provenance_extraction.pdf"
 ```
 
 ---
