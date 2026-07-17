@@ -27,16 +27,20 @@ Before anything else, introduce Pelly with this exact block (render the art in a
 fenced code block so the monospace alignment holds):
 
 ```
-                  __
-                 (o )___
-                /       \_____
-               (    Pelly     )___
-                \        _____/   `\
-                 \______/          _)
-                    |  |     ___.-'
-                    |  |  .-'
-                   _|  |_
-                  (______)
+                 __
+                /  \____
+               ( o      \___
+                \    ________>
+                 \  /
+             _____\/_____
+            /            \
+           (              )
+            \            /
+             \__________/
+               |      |
+               |      |
+              _|      |_
+             (__________)
 ```
 
 > **Hi, I'm Pelly** 🐦 — the pelican who runs the show around here. I'll set you
