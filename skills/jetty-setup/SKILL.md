@@ -21,9 +21,33 @@ This skill uses `AskUserQuestion` for interactive choices. If you are running in
 
 ---
 
-## What's about to happen (show this first)
+## Meet Pelly (show this first)
 
-Before running any commands, orient the user with this message:
+Before anything else, introduce Pelly with this exact block (render the art in a
+fenced code block so the monospace alignment holds):
+
+```
+                  __
+                 (o )___
+                /       \_____
+               (    Pelly     )___
+                \        _____/   `\
+                 \______/          _)
+                    |  |     ___.-'
+                    |  |  .-'
+                   _|  |_
+                  (______)
+```
+
+> **Hi, I'm Pelly** 🐦 — the pelican who runs the show around here. I'll set you
+> up with Jetty in a few minutes: we'll either watch a quick example run
+> together, or jump straight into building your own. Ready when you are.
+
+Then continue with the orientation below.
+
+## What's about to happen
+
+Orient the user with this message (no need to repeat the Pelly intro):
 
 > **Welcome to Jetty.** 🐦 Jetty exists to run **runbooks** — plain-markdown files you write once that tell a coding agent how to do a long, multi-step job end-to-end. Think of a runbook like a recipe, except the agent (Claude Code, Codex, or Gemini CLI) is the cook, the kitchen is a fresh sandbox we spin up for every run, and Jetty (with Pelly keeping watch) captures every step it takes so you can replay or grade it later.
 >
