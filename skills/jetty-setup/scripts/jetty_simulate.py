@@ -171,7 +171,9 @@ def cmd_run(args):
         _fail(f"the run finished but the report wouldn't load ({e}).")
     files = {f["name"]: f["content"] for f in rep.get("files", [])}
 
-    # Build the report as one markdown doc: report.md + a CSV preview.
+    # Build the report as one markdown doc (report.md + a CSV preview): PRINT it
+    # so the skill can present the summary/explanation, and also write it to a
+    # file as a fallback in case the terminal collapses long output.
     report_md = files.get("report.md") or ""
     csv = files.get("abstracts_rollup.csv") or ""
     parts = []
@@ -193,15 +195,14 @@ def cmd_run(args):
     except OSError:
         pass
 
-    # Print a short confirmation to stdout (fine if it collapses); the full
-    # report lives in REPORT_FILE for the skill to render.
     print()
     print(f"{CHECK} Pelly Approved — real sandbox, real extraction, every value "
           f"traced back to its source PDF.")
     print()
+    print(combined)
+    print()
+    # Internal marker for the skill (not for the user).
     print("DEMO_STATUS=completed")
-    print(f"REPORT_FILE={REPORT_FILE}")
-    print(f"RUN_ID_FILE={RUN_ID_FILE}")
 
 
 def _redact(key):

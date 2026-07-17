@@ -92,10 +92,10 @@ The whole demo is driven by one bundled helper, `scripts/jetty_simulate.py`, so
 the user sees clean Pelly-voiced progress — not curl, polling loops, or JSON.
 **Do not run your own curl, background poll, or `python3 -c` rendering.**
 
-> Claude Code collapses long command output, so the streamed progress and the
-> report can get hidden behind a "+N lines" fold. That's fine for the transient
-> progress — but the **report is the payoff, so present it in your OWN message**
-> (see S1), where it always renders in full.
+> Claude Code collapses long command output. That's fine for the transient
+> progress ticks — but the **report is the payoff, so present it in your OWN
+> message** (see S1) as a clean summary, where it always renders in full rather
+> than being hidden behind a "+N lines" fold.
 
 ### S1: Run the example
 
@@ -117,17 +117,18 @@ python3 "$SIM" run                       # or: python3 "$SIM" run --name "my-wor
 ```
 
 It streams `🐦 Step 1/6 … 6/6` progress (this may collapse in the terminal —
-that's fine). Its last lines are:
-- `DEMO_STATUS=completed` (or `DEMO_STATUS=failed`)
-- `REPORT_FILE=<path>` — the full report, written to a file
-- `RUN_ID_FILE=<path>`
+that's fine), then prints the **report** (a summary + per-document results + a CSV
+preview), and ends with an internal `DEMO_STATUS=completed` / `DEMO_STATUS=failed`
+marker line.
 
-- **`DEMO_STATUS=completed`** → **`Read` the `REPORT_FILE` path and present its
-  full contents to the user as rendered markdown in your own message** — do not
-  summarize or truncate it. This is the wow moment and must be fully visible, not
-  hidden in the collapsed command output. Then add one line of your own:
-  *"✅ Pelly Approved — a real run, every value traced back to its source PDF."*
-  Go to S2.
+- **`DEMO_STATUS=completed`** → **present the report to the user as a clean
+  rendered summary in your OWN message** so it's fully visible (the command output
+  may be collapsed). Lead with the headline — e.g. *"✅ Pelly Approved — extracted
+  6 conference abstracts, every value traced to its source, 6/6 provenance-verified"*
+  — then show the per-document results and mention the roll-up CSV. The report text
+  is in the helper's output (also saved to the file the helper wrote, if you need
+  to re-read it). **Do NOT show the `DEMO_STATUS=` marker line to the user** — it's
+  only for you. Go to S2.
 - **`DEMO_STATUS=failed`** (or the command errors) → the helper already printed a
   friendly line; don't retry. Say *"Let's build your own instead"* and fall
   through to the **Build path** (Step 1). The demo is a bonus, never a gate.
