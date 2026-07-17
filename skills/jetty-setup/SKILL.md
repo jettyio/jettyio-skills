@@ -62,8 +62,11 @@ Then proceed to **Pick your path** below.
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token 2>/dev/null)"
-curl -s -H "Authorization: Bearer $TOKEN" "https://flows-api.jetty.io/api/v1/collections/" | head -c 200
+API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.io)"
+curl -s -H "Authorization: Bearer $TOKEN" "$API/api/v1/collections/" | head -c 200
 ```
+
+> **API base:** all Jetty API calls go to `https://flows-api.jetty.io` by default. For local/staging testing, put an override in `~/.config/jetty/api_base` (e.g. the local mise host) — every `$API` below reads it. A token minted against one backend is only valid against that same backend, so this must match where the token came from.
 
 If it returns collection data (a returning user), **skip the demo** and go straight to the **Build path** (Step 1 handles the already-connected case). Otherwise, offer the choice.
 
@@ -186,7 +189,8 @@ If a token exists, validate it:
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token 2>/dev/null)"
-curl -s -H "Authorization: Bearer $TOKEN" "https://flows-api.jetty.io/api/v1/collections/" | head -c 200
+API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.io)"
+curl -s -H "Authorization: Bearer $TOKEN" "$API/api/v1/collections/" | head -c 200
 ```
 
 If the response contains collection data (not an error), tell the user (redacted):
@@ -225,7 +229,8 @@ mkdir -p ~/.config/jetty && chmod 700 ~/.config/jetty
 echo "Paste your Jetty API token (starts with mlc_) and press Enter:"
 read -rs JETTY_TOKEN && printf '%s' "$JETTY_TOKEN" > ~/.config/jetty/token && unset JETTY_TOKEN
 chmod 600 ~/.config/jetty/token
-curl -s -H "Authorization: Bearer $(cat ~/.config/jetty/token)" "https://flows-api.jetty.io/api/v1/collections/"
+API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.io)"
+curl -s -H "Authorization: Bearer $(cat ~/.config/jetty/token)" "$API/api/v1/collections/"
 ```
 
 If validation fails (401 or error), let them retry up to 3 times. If still failing, point to https://jetty.io/settings.
@@ -245,8 +250,9 @@ Runbooks need API keys to reach AI providers (OpenAI, Anthropic, Gemini) and any
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
+API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.io)"
 curl -s -H "Authorization: Bearer $TOKEN" \
-  "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment" \
+  "$API/api/v1/collections/$COLLECTION/environment" \
   | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Configured keys:', list(evars.keys()) if evars else 'none')"
 ```
 
@@ -265,7 +271,8 @@ Use AskUserQuestion:
 
 ```bash
 TOKEN="$(cat ~/.config/jetty/token)"
-curl -s -X POST "https://flows-api.jetty.io/api/v1/trial/$COLLECTION/activate" \
+API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.io)"
+curl -s -X POST "$API/api/v1/trial/$COLLECTION/activate" \
   -H "Authorization: Bearer $TOKEN" \
   -H "Content-Type: application/json" | python3 -c "
 import sys, json
@@ -357,6 +364,6 @@ Then invoke `/create-runbook`. If the agent platform doesn't support skill invoc
 - **Never log credentials**: Don't echo, print, or include tokens/keys in output. Use redacted forms like `mlc_...xxxx`.
 - **Read secrets interactively via `read -rs`**: Never embed secrets in generated commands, heredocs, or temp files. Always `unset` after use.
 - **Provider keys go in the web app, not this skill.** The only secret this skill handles is the Jetty API token itself.
-- **URL disambiguation**: Use `flows-api.jetty.io` for all API calls. `jetty.io` is the web frontend.
+- **URL disambiguation**: API calls go to `flows-api.jetty.io` (overridable via `~/.config/jetty/api_base` for local/staging — resolved into `$API` in each block); `jetty.io` is the web frontend. A token is only valid against the backend that minted it, so `$API` must match where the token came from.
 - **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}`.
 - **Steps are objects, not arrays**: Trajectory steps are keyed by step name (e.g., `.steps.expand_prompt`), not by index.
