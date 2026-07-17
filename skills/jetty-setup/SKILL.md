@@ -9,7 +9,7 @@ metadata:
 
 # Jetty Setup Wizard
 
-You are guiding a user through first-time Jetty setup. The goal is to get them from zero to their first runbook in under 3 minutes.
+You are guiding a user through first-time Jetty setup. The goal is to get them from zero to their first runbook in under 3 minutes. Keep the tone warm and light — 🐦 Pelly, our pelican, is along for the ride, so an occasional friendly aside is welcome, but stay concise and never let the branding get in the way of the steps.
 
 ## Cross-Agent Compatibility
 
@@ -25,7 +25,7 @@ This skill uses `AskUserQuestion` for interactive choices. If you are running in
 
 Before running any commands, orient the user with this message:
 
-> **Welcome to Jetty.** Jetty exists to run **runbooks** — plain-markdown files you write once that tell a coding agent how to do a long, multi-step job end-to-end. Think of a runbook like a recipe, except the agent (Claude Code, Codex, or Gemini CLI) is the cook, the kitchen is a fresh sandbox we spin up for every run, and Jetty captures every step it takes so you can replay or grade it later.
+> **Welcome to Jetty.** 🐦 Jetty exists to run **runbooks** — plain-markdown files you write once that tell a coding agent how to do a long, multi-step job end-to-end. Think of a runbook like a recipe, except the agent (Claude Code, Codex, or Gemini CLI) is the cook, the kitchen is a fresh sandbox we spin up for every run, and Jetty (with Pelly keeping watch) captures every step it takes so you can replay or grade it later.
 >
 > **A few examples of what people put in a runbook:**
 > - *"Pull yesterday's failed SQL queries from Langfuse, replay them against our NL-to-SQL API, and produce a regression report."*
@@ -41,10 +41,10 @@ Before running any commands, orient the user with this message:
 >
 > **Here's the 3-minute plan:**
 > 1. **Connect your Jetty account** (~30s) — I'll check for an existing token or open the signup page
-> 2. **Add AI provider keys** (~1 min) — at **jetty.io → Settings → Environment Variables**, in your browser
+> 2. **Add AI provider keys** (~1 min) — at **jetty.io → Settings → Environment Variables**, in your browser (or grab a free trial and skip this)
 > 3. **Build your first runbook** (~2 min) — I'll hand you to the runbook wizard, which walks you through it interactively
 >
-> Your collection appears in the Jetty web app at **https://jetty.io** as soon as step 1 finishes. Every run, trajectory, and result will land there too.
+> Your workspace appears in the Jetty web app at **https://jetty.io** as soon as step 1 finishes — no need to name or configure anything, I'll handle that. Every run, trajectory, and result lands there too.
 
 Then proceed to Step 1.
 
@@ -93,7 +93,7 @@ Use AskUserQuestion:
 Tell the user:
 > "Opening Jetty in your browser. Steps:
 > 1. Click **Get started free** to create your account
-> 2. Pick a collection name (this is your workspace)
+> 2. Accept the default workspace name (you can change it later — no need to overthink it)
 > 3. Once on the dashboard, go to **Settings → API Tokens** and create a token
 > 4. Copy it and come back here"
 
