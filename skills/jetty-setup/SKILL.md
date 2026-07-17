@@ -99,7 +99,27 @@ the user sees clean Pelly-voiced progress — not curl, polling loops, or JSON.
 
 ### S1: Run the example
 
-First, offer to name the workspace (optional, low-friction). Use AskUserQuestion:
+**First, teach them what they're about to watch** — this example is the whole
+point, so use it to explain what a runbook does. Show the user this (in your own
+voice):
+
+> **What this example does — structured extraction.** Six conference-abstract PDFs,
+> each laid out completely differently (two-column vs. single-column, metadata in
+> the header vs. the footer, authors listed vs. buried in prose), go into a runbook
+> that pulls them all into **one clean JSON schema** — title, authors, affiliations,
+> conference, keywords. And every value carries a **provenance** pointer: the page
+> and the exact quote it came from, so nothing is a black box. You get one JSON file
+> per PDF plus a roll-up CSV to eyeball everything at once. That's the core Jetty
+> pattern — messy documents in, structured *and* verifiable data out — and it's
+> exactly what a runbook automates: the same reliable job, every time.
+>
+> As it runs, I'll drop links to the six source PDFs so you can open a couple and
+> compare them against what Jetty extracts.
+
+(The helper prints those PDF links right as the run starts — make sure the user
+sees them.)
+
+Then, offer to name the workspace (optional, low-friction). Use AskUserQuestion:
 - Header: "Workspace"
 - Question: "🐦 Before I run it — what should your workspace be called? You can pick a name or let me generate one (you can always rename later)."
 - Options:
