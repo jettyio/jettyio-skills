@@ -130,12 +130,14 @@ Then, offer to name the workspace (optional, low-friction). Use AskUserQuestion:
   - "Generate one for me" / "Auto-name my workspace"
   - "Let me choose" / "I'll type a name"
 
-If they choose a name, only pass it via `--name "<their-name>"` when it matches
-`^[a-zA-Z0-9_-]+$` (3–48 chars). If what they typed has spaces or other
-characters, tell them the rule and ask again — don't silently mangle it. If they
-pick "Generate one for me", run with no `--name`. Then locate and run the helper
-in one shell (this resolves the script whether it's a plugin install or a project
-skill):
+If they choose a name, pass it via `--name "<their-name>"`. The name is the
+workspace's permanent identifier, so it must be 3–48 characters of letters,
+numbers, hyphens, and underscores — no spaces, and no leading, trailing, or
+repeated separators. The helper validates this and exits with `DEMO_STATUS=invalid_name`
+if it doesn't fit; when that happens, relay its message and ask for a different
+name rather than retrying the same one. If they pick "Generate one for me", run
+with no `--name`. Then locate and run the helper in one shell (this resolves the
+script whether it's a plugin install or a project skill):
 
 ```bash
 SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \

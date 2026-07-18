@@ -91,18 +91,31 @@ def _fail(msg):
     sys.exit(1)
 
 
+def _clean_collection_name(raw):
+    """Mirror the server's cleanCollectionName so the helper validates identically
+    (the server hard-rejects any name it would have to alter). Returns the slug,
+    or "" if it can't be salvaged."""
+    s = (raw or "").strip().lower()
+    s = re.sub(r"[^a-z0-9_-]", "-", s)
+    s = re.sub(r"-+", "-", s)
+    s = s.strip("-_")
+    return s if 3 <= len(s) <= 48 else ""
+
+
 def cmd_run(args):
     # 1. Kick off the run (optionally with a user-chosen workspace name).
     body = {}
     name = getattr(args, "name", None)
     if name:
-        # The name becomes the workspace's URL/API identifier: enforce the same
-        # charset the web signup uses, so we never silently mangle it (the server
-        # would normalize invalid input and report it as "name was taken").
-        if not re.fullmatch(r"[a-zA-Z0-9_-]{3,48}", name):
-            print(f"{PELLY} “{name}” won't work as a workspace name — it's your "
-                  f"URL/API identifier, so use 3–48 characters, letters, numbers, "
-                  f"hyphens, and underscores only.")
+        # The name becomes the workspace's PERMANENT URL/API identifier. Reject
+        # anything the server would have to normalize (spaces, punctuation,
+        # repeated/edge separators, bad length) so it never silently hands back a
+        # workspace the user didn't choose. Case is folded, like the web signup.
+        if _clean_collection_name(name) != name.strip().lower():
+            print(f"{PELLY} “{name}” won't work as a workspace name — it becomes "
+                  f"your permanent URL/API identifier. Use 3–48 characters "
+                  f"(letters, numbers, hyphens, underscores), no spaces, and no "
+                  f"leading, trailing, or repeated separators.")
             print("DEMO_STATUS=invalid_name")
             sys.exit(2)
         body["collection_name"] = name
