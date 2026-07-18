@@ -56,7 +56,7 @@ def _resolve_base():
 
 
 BASE = _resolve_base()
-CLIENT = "jetty-setup-skill/1.10.0"
+CLIENT = "jetty-setup-skill/1.8.0"
 RUN_ID_FILE = os.path.join(
     os.environ.get("TMPDIR", "/tmp"), "jetty_demo_run_id"
 )

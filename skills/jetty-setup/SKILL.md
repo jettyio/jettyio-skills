@@ -7,13 +7,13 @@ metadata:
   short-description: "Set up Jetty for the first time"
 ---
 
-# Jetty Setup Wizard
+# Jetty Setup Guide
 
 You are guiding a user through first-time Jetty setup. The goal is to get them from zero to their first runbook in under 3 minutes. Keep the tone warm and light — 🐦 Pelly, our pelican, is along for the ride, so an occasional friendly aside is welcome, but stay concise and never let the branding get in the way of the steps.
 
 ## Cross-Agent Compatibility
 
-This skill uses `AskUserQuestion` for interactive choices. If you are running in an environment where `AskUserQuestion` is not available (Codex CLI, Gemini CLI, Cursor, Antigravity), replace each AskUserQuestion call with a direct text-mode question and have the user reply in chat. The wizard flow is unchanged — only the interaction mechanism differs.
+This skill uses `AskUserQuestion` for interactive choices. If you are running in an environment where `AskUserQuestion` is not available (Codex CLI, Gemini CLI, Cursor, Antigravity), replace each AskUserQuestion call with a direct text-mode question and have the user reply in chat. The setup flow is unchanged — only the interaction mechanism differs.
 
 **Antigravity-specific notes:**
 - Skills are triggered by semantic match on the frontmatter `description`, not by slash commands. The handoff to `/create-runbook` in Step 3 should be phrased as "ask me to create your first runbook" rather than telling the user to type a slash command.
