@@ -159,8 +159,13 @@ script whether it's a plugin install or a project skill):
 
 ```bash
 PY="$(command -v python3 || command -v python || true)"   # empty → no Python; use Build path
-SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
-  || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
+# Locate the bundled helper across runtimes: env-var fast path (whichever runtime
+# sets one), else search the known skill-install dirs for Claude Code, OpenCode,
+# Codex, and Antigravity, plus project-local .{claude,opencode,codex}.
+SIM="$(for r in "$CLAUDE_PLUGIN_ROOT" "$CODEX_PLUGIN_ROOT" "$OPENCODE_PLUGIN_ROOT"; do
+  f="$r/skills/jetty-setup/scripts/jetty_simulate.py"; [ -f "$f" ] && { echo "$f"; break; }
+done)"
+[ -n "$SIM" ] || SIM="$(find ~/.claude/plugins ~/.config/opencode ~/.codex ~/.gemini/antigravity .claude .opencode .codex -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
 "$PY" "$SIM" run                         # or: "$PY" "$SIM" run --name "my-workspace"
 ```
 
@@ -195,8 +200,13 @@ metacharacters can't run anything; the helper reads it from stdin and validates 
 
 ```bash
 PY="$(command -v python3 || command -v python || true)"
-SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
-  || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
+# Locate the bundled helper across runtimes: env-var fast path (whichever runtime
+# sets one), else search the known skill-install dirs for Claude Code, OpenCode,
+# Codex, and Antigravity, plus project-local .{claude,opencode,codex}.
+SIM="$(for r in "$CLAUDE_PLUGIN_ROOT" "$CODEX_PLUGIN_ROOT" "$OPENCODE_PLUGIN_ROOT"; do
+  f="$r/skills/jetty-setup/scripts/jetty_simulate.py"; [ -f "$f" ] && { echo "$f"; break; }
+done)"
+[ -n "$SIM" ] || SIM="$(find ~/.claude/plugins ~/.config/opencode ~/.codex ~/.gemini/antigravity .claude .opencode .codex -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
 "$PY" "$SIM" claim <<'JETTY_EMAIL'
 <their-email>
 JETTY_EMAIL
