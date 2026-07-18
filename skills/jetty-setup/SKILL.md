@@ -19,6 +19,24 @@ This skill uses `AskUserQuestion` for interactive choices. If you are running in
 - Skills are triggered by semantic match on the frontmatter `description`, not by slash commands. The handoff to `/create-runbook` in Step 3 should be phrased as "ask me to create your first runbook" rather than telling the user to type a slash command.
 - The token path `~/.config/jetty/token` works (Antigravity is a desktop app, not sandboxed). The MCP server runs from `~/.gemini/antigravity/mcp_config.json`, not the repo's `.mcp.json` — if the user's MCP tools aren't responding, point them at the README's Antigravity install section.
 
+## Prerequisite: Python 3
+
+This skill runs a small bundled helper and parses a few JSON responses with
+**Python 3.7+** (standard library only — nothing to install). The interpreter may
+be named `python3` OR `python` depending on the platform, so every bash block
+below resolves it into `$PY` first:
+
+```bash
+PY="$(command -v python3 || command -v python || true)"
+```
+
+Each block that needs Python includes this line and calls `"$PY"` (never a bare
+`python3`). **If `$PY` is empty** (no Python on the machine), don't fail cryptically:
+tell the user "the interactive demo needs Python 3 — I'll connect your account and
+build a runbook instead" and go straight to the **Build path** (Step 1). In the
+Build path, the `curl` calls still do the real work; only the parsed confirmation
+lines are skipped when Python is absent, so relay the raw JSON in that case.
+
 ---
 
 ## What's about to happen (show this first)
@@ -140,9 +158,10 @@ with no `--name`. Then locate and run the helper in one shell (this resolves the
 script whether it's a plugin install or a project skill):
 
 ```bash
+PY="$(command -v python3 || command -v python || true)"   # empty → no Python; use Build path
 SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
   || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
-python3 "$SIM" run                       # or: python3 "$SIM" run --name "my-workspace"
+"$PY" "$SIM" run                         # or: "$PY" "$SIM" run --name "my-workspace"
 ```
 
 It streams `🐦 Step 1/6 … 6/6` progress (this may collapse in the terminal —
@@ -175,9 +194,10 @@ means the shell does no expansion of the address, so an email containing shell
 metacharacters can't run anything; the helper reads it from stdin and validates it:
 
 ```bash
+PY="$(command -v python3 || command -v python || true)"
 SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
   || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
-python3 "$SIM" claim <<'JETTY_EMAIL'
+"$PY" "$SIM" claim <<'JETTY_EMAIL'
 <their-email>
 JETTY_EMAIL
 ```
@@ -285,11 +305,12 @@ Runbooks need API keys to reach AI providers (OpenAI, Anthropic, Gemini) and any
 ### 2a: Check What's Already Configured
 
 ```bash
+PY="$(command -v python3 || command -v python || true)"
 TOKEN="$(cat ~/.config/jetty/token)"
 API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.io)"
 curl -s -H "Authorization: Bearer $TOKEN" \
   "$API/api/v1/collections/$COLLECTION/environment" \
-  | python3 -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Configured keys:', list(evars.keys()) if evars else 'none')"
+  | "$PY" -c "import sys,json; d=json.load(sys.stdin); evars=d.get('environment_variables',{}); print('Configured keys:', list(evars.keys()) if evars else 'none')"
 ```
 
 ### 2b: If No Keys Are Configured, Offer the Trial
@@ -306,11 +327,12 @@ Use AskUserQuestion:
 **If "Try Jetty free":**
 
 ```bash
+PY="$(command -v python3 || command -v python || true)"
 TOKEN="$(cat ~/.config/jetty/token)"
 API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.io)"
 curl -s -X POST "$API/api/v1/trial/$COLLECTION/activate" \
   -H "Authorization: Bearer $TOKEN" \
-  -H "Content-Type: application/json" | python3 -c "
+  -H "Content-Type: application/json" | "$PY" -c "
 import sys, json
 d = json.load(sys.stdin)
 if d.get('active') or d.get('status') == 'active':
