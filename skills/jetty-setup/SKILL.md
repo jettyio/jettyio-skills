@@ -84,7 +84,7 @@ Use AskUserQuestion:
 
 ## Simulate path: watch Jetty run an example
 
-This runs a real, pre-built runbook — `conference-abstracts` — on Jetty's hosted demo, with **no account and no token**. It's the emulated `jetty simulate conference-abstracts` procedure (see `MACHINE_CONTEXT.md`). The whole thing talks to a public, rate-limited endpoint; you never handle a secret here.
+This runs a real, pre-built runbook — `conference-abstracts` — on Jetty's hosted demo, with **no account and no token**. It's the emulated `jetty simulate conference-abstracts` procedure (documented in `MACHINE_CONTEXT.md` at the repo root, if present). The whole thing talks to a public, rate-limited endpoint; you never handle a secret here.
 
 > **If anything in this path fails** — the request errors, the run doesn't finish in time, or the report can't be fetched — don't retry silently or block. Say something light ("🐦 Pelly's demo pond is busy right now — let's build your own instead") and fall through to the **Build path** (Step 1). The demo is a bonus, never a gate.
 
@@ -168,12 +168,18 @@ marker line.
 > set up your Jetty workspace from it — no sign-up form, no key to paste."
 
 Ask for the email (a normal question — the one **[HUMAN]** step). When they give
-it, run the helper's `claim` (same resolution one-liner):
+it, run the helper's `claim` (same resolution one-liner). **Pass the email via the
+quoted heredoc below exactly as written** — do NOT interpolate it into the command
+line (e.g. `--email "<their-email>"`). The single-quoted `'JETTY_EMAIL'` delimiter
+means the shell does no expansion of the address, so an email containing shell
+metacharacters can't run anything; the helper reads it from stdin and validates it:
 
 ```bash
 SIM="$(ls "${CLAUDE_PLUGIN_ROOT:-/nonexistent}/skills/jetty-setup/scripts/jetty_simulate.py" 2>/dev/null \
   || find ~/.claude/plugins .claude -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
-python3 "$SIM" claim --email "<their-email>"
+python3 "$SIM" claim <<'JETTY_EMAIL'
+<their-email>
+JETTY_EMAIL
 ```
 
 This mints the workspace, activates the trial, sends **one** email (the report +
