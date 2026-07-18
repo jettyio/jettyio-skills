@@ -93,7 +93,7 @@ Use AskUserQuestion:
 Tell the user:
 > "Opening Jetty in your browser. Steps:
 > 1. Click **Get started free** to create your account
-> 2. Accept the default workspace name (you can change it later — no need to overthink it)
+> 2. Accept the default workspace name, or set your own — no need to overthink it (it becomes your workspace URL)
 > 3. Once on the dashboard, go to **Settings → API Tokens** and create a token
 > 4. Copy it and come back here"
 
