@@ -117,10 +117,14 @@ the user sees clean Pelly-voiced progress — not curl, polling loops, or JSON.
 
 ### S1: Explain the example — then run it
 
-**Post the following to the user as your OWN message before doing anything else.**
-This is the teaching moment and the source PDFs — it must be visible, so write it
-out yourself (do NOT rely on the command output, which collapses, and do NOT skip
-it):
+Do these in order. **S1.1 is a plain chat message you MUST send FIRST — before you
+call AskUserQuestion, before any Bash. Do not call any tool until it's sent.**
+
+**S1.1 — Send the message below now (required, verbatim).** It teaches what the
+demo does and, critically, gives the **six source-PDF links** the user opens to
+follow along — that is the whole point of the demo. The helper does **not** print
+these links anywhere, so if you skip this message the user never sees the PDFs.
+This is the single most common mistake — don't make it:
 
 > 🐦 **Here's what you're about to watch — structured extraction.**
 >
@@ -141,7 +145,8 @@ it):
 > - [5 — Constrained decoding (labeled header block)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/05_vasquez_constrained_decoding.pdf)
 > - [6 — Verification loops (no keyword line)](https://storage.googleapis.com/jetty-demo-fixtures/structured-extraction/conference-abstracts/06_mbeki_verification_loops.pdf)
 
-Then, offer to name the workspace (optional, low-friction). Use AskUserQuestion:
+**S1.2 — Only after you have sent the S1.1 message**, offer to name the workspace
+(optional, low-friction). Use AskUserQuestion:
 - Header: "Workspace"
 - Question: "🐦 Before I run it — what should your workspace be called? Pick a name or let me generate one. It becomes your workspace's URL and API identifier, so **only letters, numbers, hyphens, and underscores** are allowed."
 - Options:
@@ -154,7 +159,9 @@ numbers, hyphens, and underscores — no spaces, and no leading, trailing, or
 repeated separators. The helper validates this and exits with `DEMO_STATUS=invalid_name`
 if it doesn't fit; when that happens, relay its message and ask for a different
 name rather than retrying the same one. If they pick "Generate one for me", run
-with no `--name`. Then locate and run the helper in one shell (this resolves the
+with no `--name`.
+
+**S1.3 — Run the demo.** Locate and run the helper in one shell (this resolves the
 script whether it's a plugin install or a project skill):
 
 ```bash
@@ -192,11 +199,12 @@ marker line.
 > set up your Jetty workspace from it — no sign-up form, no key to paste."
 
 Ask for the email (a normal question — the one **[HUMAN]** step). When they give
-it, run the helper's `claim` (same resolution one-liner). **Pass the email via the
-quoted heredoc below exactly as written** — do NOT interpolate it into the command
-line (e.g. `--email "<their-email>"`). The single-quoted `'JETTY_EMAIL'` delimiter
-means the shell does no expansion of the address, so an email containing shell
-metacharacters can't run anything; the helper reads it from stdin and validates it:
+it, run the helper's `claim` (same resolution one-liner). **Pass the email as a
+`--email` argument in SINGLE quotes** — `--email '<their-email>'`. Single quotes
+stop the shell from expanding anything inside the address (so an email containing
+`$(…)` or backticks can't run a command), and `--email` works with every helper
+version. Do **not** use double quotes (`--email "…"`) — inside those, `$(…)` and
+backticks still expand.
 
 ```bash
 PY="$(command -v python3 || command -v python || true)"
@@ -207,9 +215,7 @@ SIM="$(for r in "$CLAUDE_PLUGIN_ROOT" "$CODEX_PLUGIN_ROOT" "$OPENCODE_PLUGIN_ROO
   f="$r/skills/jetty-setup/scripts/jetty_simulate.py"; [ -f "$f" ] && { echo "$f"; break; }
 done)"
 [ -n "$SIM" ] || SIM="$(find ~/.claude/plugins ~/.config/opencode ~/.codex ~/.gemini/antigravity .claude .opencode .codex -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
-"$PY" "$SIM" claim <<'JETTY_EMAIL'
-<their-email>
-JETTY_EMAIL
+"$PY" "$SIM" claim --email '<their-email>'
 ```
 
 This mints the workspace, activates the trial, sends **one** email (the report +
