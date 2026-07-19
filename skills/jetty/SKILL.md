@@ -39,9 +39,10 @@ ground truth.
 For a compact orientation to the whole platform — the state model, the
 emulated CLI verbs (`jetty run`, `jetty status`, `jetty simulate`,
 `jetty init`), the runbook file format, and the anti-patterns that bite —
-see [`MACHINE_CONTEXT.md`](../../MACHINE_CONTEXT.md) at the repo root, and
-[`agent-instructions.md`](../../agent-instructions.md) for the pasteable
-onboarding trigger.
+see **`MACHINE_CONTEXT.md`** and **`agent-instructions.md`** (the pasteable
+onboarding trigger). They ship at the plugin/repo root; if this skill was
+installed detached (e.g. a single symlinked skill dir), fetch them from
+`https://jetty.io/MACHINE_CONTEXT.md` and `https://jetty.io/agent-instructions.md`.
 
 ### Frontend URLs for Users
 

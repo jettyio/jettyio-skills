@@ -117,7 +117,9 @@ install.** Send `X-Jetty-Client: <your-client>/<version>` on each call.
 
 **Procedure:**
 1. `POST https://jetty.io/api/demo/run` with body `{}` → `{ run_id, task,
-   estimated_seconds }`. The `run_id` is opaque and signed; keep it.
+   collection, pdf_urls, estimated_seconds }`. The `run_id` is opaque and signed;
+   keep it. `pdf_urls` are the source PDFs — surface them so the user can compare
+   the inputs against the structured output while it runs.
 2. Poll `GET https://jetty.io/api/demo/status/{run_id}` (~every 10s, cap ~6 min)
    → `{ status, steps_completed[], steps_total[], error }`.
 3. On `status: "completed"`, `GET https://jetty.io/api/demo/report/{run_id}` →
@@ -133,7 +135,8 @@ path. The demo is a bonus, never a gate.
 
 **Output contract:**
 ```json
-{ "run_id": "…", "task": "conference-abstracts",
+{ "run_id": "…", "task": "conference-abstracts", "collection": "demo-…",
+  "pdf_urls": ["https://…/01_…pdf", "…"],
   "status": "completed|failed|running|pending",
   "steps_completed": ["…"], "steps_total": ["…"],
   "report_files": ["report.md", "summary.md", "abstracts_rollup.csv"],
