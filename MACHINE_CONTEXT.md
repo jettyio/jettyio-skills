@@ -34,7 +34,7 @@ An agent's understanding of "where the user is" comes from three checks, in orde
 2. **Provider keys or trial?** `GET /api/v1/collections/{collection}/environment`
    lists configured env-var **names** (never values). If empty, the collection
    can still run via an activated **trial** (Jetty-provided keys, capped runs).
-3. **Runs so far?** `GET /api/v1/trajectories/{collection}/{task}` lists past
+3. **Runs so far?** `GET /api/v1/db/trajectories/{collection}/{task}` lists past
    trajectories for a task — this is the history the web app replays.
 
 There is no local session state beyond the token file. Everything else is a
@@ -95,9 +95,9 @@ JSON
 
 **Meaning:** report progress/outcome of a run.
 
-**Procedure:** `GET /api/v1/trajectories/{collection}/{task}` returns
+**Procedure:** `GET /api/v1/db/trajectories/{collection}/{task}` returns
 `{"trajectories":[…]}`; find the one whose id matches, or `GET
-/api/v1/trajectories/{collection}/{task}/{folder}/{trajectory_id}` for one run.
+/api/v1/db/trajectory/{collection}/{task}/{trajectory_id}` for one run.
 Trajectory **steps are objects keyed by step name** (e.g. `.steps.run`), not an
 array.
 
@@ -123,8 +123,10 @@ install.** Send `X-Jetty-Client: <your-client>/<version>` on each call.
 3. On `status: "completed"`, `GET https://jetty.io/api/demo/report/{run_id}` →
    `{ files: [{name, content}], trajectory_url }` (whitelisted artifacts only:
    `report.md`, `summary.md`, `abstracts_rollup.csv`).
-4. Optionally `POST https://jetty.io/api/demo/email-report` with
-   `{ run_id, email }` to email the report.
+
+To turn the run into a workspace and email the report + a claim link, hand the
+`run_id` to `jetty init` (below) as `demo_run_id` — there is no separate
+email-the-report endpoint.
 
 Any non-2xx or a `failed` status is not fatal — fall back to the connect-and-build
 path. The demo is a bonus, never a gate.
@@ -140,12 +142,15 @@ path. The demo is a bonus, never a gate.
 
 ### `jetty init --json`  — live (hosted onboarding)
 
-**Meaning:** create a workspace from just an email — no separate signup, no key to
-paste. The email doubles as the account; the workspace can be claimed later in the
-web app via `dashboard_url`.
+**Meaning:** turn the email captured after a `jetty simulate` run into a workspace
+— no separate signup, no key to paste. The email doubles as the account; the demo
+run is attached to it, and the workspace can be claimed later in the web app via
+`dashboard_url`.
 
 **Procedure:** `POST https://jetty.io/api/onboarding/email-signup` with
-`{ email, source?, demo_run_id? }`. Pipe the response through a parser that writes
+`{ email, demo_run_id, source? }`. A valid signed `demo_run_id` (from a completed
+`jetty simulate` run) is **required** — the endpoint 400s without one. Pipe the
+response through a parser that writes
 `api_key` to `~/.config/jetty/token` (chmod 600) and prints only a redacted form —
 **never echo the raw response or the key.** On success the trial is already
 active, so provider-key setup can be skipped.

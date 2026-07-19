@@ -28,8 +28,9 @@ shapes; look them up there.
    `https://jetty.io/sign-up`. Read the key **interactively** (`read -rs`), write
    it to `~/.config/jetty/token` (chmod 600), and validate as in step 1. Never
    embed the key in a command. Retry up to 3 times on failure.
-   *(A one-step, email-only signup — `jetty init` — is rolling out; until it's
-   live, use the sign-up page.)*
+   *(If you ran `jetty simulate` first, you can skip the sign-up page: `jetty init`
+   turns that run's email into the workspace — see `MACHINE_CONTEXT.md`. If the
+   hosted endpoint isn't reachable, fall back to the sign-up page as above.)*
 
 3. **Get the collection runnable.**
    `GET /api/v1/collections/{collection}/environment` lists configured key
@@ -45,8 +46,9 @@ shapes; look them up there.
    `RUNBOOK.md`, pre-registers the task, and gives a single command to run it on
    Jetty. To run an existing runbook yourself, use the `jetty run` procedure in
    `MACHINE_CONTEXT.md`; to check on a run, use `jetty status`.
-   *(A one-command hosted example — `jetty simulate conference-abstracts` — that
-   runs before any signup is rolling out; see `MACHINE_CONTEXT.md`.)*
+   *(To show real output before any signup, run the hosted example first —
+   `jetty simulate conference-abstracts` — see `MACHINE_CONTEXT.md`. It's a bonus,
+   never a gate: if it's unavailable, just continue with the steps above.)*
 
 Keep the person oriented with a light touch: tell them what you're about to do
 before each step, and that their collection is live at `https://jetty.io` the
