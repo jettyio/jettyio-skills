@@ -61,7 +61,7 @@ so with the actual error.
 
 When you're done, report back exactly this, filled in:
 
-```
+```text
 🐦 Jetty onboarding — done
 Connected:   yes | no
 Collection:  <name>            (read from API; don't ask the user)
