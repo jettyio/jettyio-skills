@@ -61,15 +61,21 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) "
     "Chrome/124.0 Safari/537.36"
 )
-RUN_ID_FILE = os.path.join(
-    os.environ.get("TMPDIR", "/tmp"), "jetty_demo_run_id"
-)
+# Keep run-state in the user's private config dir (0o700, same place as the
+# token) rather than a shared, predictable /tmp path: the run_id is a bearer
+# capability, and a world-writable temp dir invites symlink/TOCTOU races and a
+# brief world-readable window before the chmod below.
+CONFIG_DIR = os.path.expanduser("~/.config/jetty")
+RUN_ID_FILE = os.path.join(CONFIG_DIR, "demo_run_id")
 # The report is also written here so the skill can Read + render it in its own
 # message — Claude Code collapses long command output, so we don't rely on stdout
 # for the part the user actually wants to see.
-REPORT_FILE = os.path.join(
-    os.environ.get("TMPDIR", "/tmp"), "jetty_demo_report.md"
-)
+REPORT_FILE = os.path.join(CONFIG_DIR, "demo_report.md")
+
+
+def _ensure_config_dir():
+    """Create ~/.config/jetty owner-only (0o700) before writing run-state into it."""
+    os.makedirs(CONFIG_DIR, mode=0o700, exist_ok=True)
 
 # Friendly labels for the runbook's steps, shown as progress ticks. The demo
 # runbook is a single "run" step internally, so we narrate the phases the agent
@@ -155,8 +161,10 @@ def cmd_run(args):
     if not run_id:
         _fail("the run didn't return an id.")
     # The run_id is a signed bearer capability (whoever holds it can attach an
-    # email + mint a key on this collection), so keep the temp file owner-only —
-    # chmod after write in case a world-readable file lingered from a prior run.
+    # email + mint a key on this collection), so keep it in the private config
+    # dir and owner-only — chmod after write in case a world-readable file
+    # lingered from a prior run.
+    _ensure_config_dir()
     with open(RUN_ID_FILE, "w") as fh:
         fh.write(run_id)
     try:
@@ -247,6 +255,7 @@ def cmd_run(args):
         )
     combined = "\n\n".join(parts)
     try:
+        _ensure_config_dir()
         with open(REPORT_FILE, "w") as fh:
             fh.write(combined)
     except OSError:
