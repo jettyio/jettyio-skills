@@ -52,6 +52,15 @@ def _resolve_base():
 
 BASE = _resolve_base()
 CLIENT = "jetty-setup-skill/1.8.0"
+# The demo endpoints sit behind an edge/WAF that blocks default library
+# user-agents (e.g. Python-urllib/*) with a 403 before the request reaches the
+# app. Send a browser-like User-Agent so the run isn't rejected at the edge;
+# X-Jetty-Client (below) is what the app itself uses to identify this client.
+USER_AGENT = (
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+    "AppleWebKit/537.36 (KHTML, like Gecko) "
+    "Chrome/124.0 Safari/537.36"
+)
 RUN_ID_FILE = os.path.join(
     os.environ.get("TMPDIR", "/tmp"), "jetty_demo_run_id"
 )
@@ -72,7 +81,7 @@ CHECK = "✅"      # ✅
 def _req(method, path, body=None):
     url = f"{BASE}{path}"
     data = json.dumps(body).encode() if body is not None else None
-    headers = {"X-Jetty-Client": CLIENT}
+    headers = {"X-Jetty-Client": CLIENT, "User-Agent": USER_AGENT}
     if data is not None:
         headers["Content-Type"] = "application/json"
     req = urllib.request.Request(url, data=data, headers=headers, method=method)
