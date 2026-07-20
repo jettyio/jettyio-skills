@@ -84,7 +84,7 @@ API="$(cat ~/.config/jetty/api_base 2>/dev/null || echo https://flows-api.jetty.
 curl -s -H "Authorization: Bearer $TOKEN" "$API/api/v1/collections/" | head -c 200
 ```
 
-> **API base:** all Jetty API calls go to `https://flows-api.jetty.io` by default. For local/staging testing, put an override in `~/.config/jetty/api_base` (e.g. the local mise host) — every `$API` below reads it. A token minted against one backend is only valid against that same backend, so this must match where the token came from.
+> **API base:** all Jetty API calls go to `https://flows-api.jetty.io` by default. To point at a non-default Jetty backend, put its URL in `~/.config/jetty/api_base` — every `$API` below reads it. A token minted against one backend is only valid against that same backend, so this must match where the token came from.
 
 If it returns collection data (a returning user), **skip the demo** and go straight to the **Build path** (Step 1 handles the already-connected case). Otherwise, offer the choice.
 
@@ -438,6 +438,6 @@ Then invoke `/create-runbook`. If the agent platform doesn't support skill invoc
 - **Never log credentials**: Don't echo, print, or include tokens/keys in output. Use redacted forms like `mlc_...xxxx`.
 - **Read secrets interactively via `read -rs`**: Never embed secrets in generated commands, heredocs, or temp files. Always `unset` after use.
 - **Provider keys go in the web app, not this skill.** The only secret this skill handles is the Jetty API token itself.
-- **URL disambiguation**: API calls go to `flows-api.jetty.io` (overridable via `~/.config/jetty/api_base` for local/staging — resolved into `$API` in each block); `jetty.io` is the web frontend. A token is only valid against the backend that minted it, so `$API` must match where the token came from.
+- **URL disambiguation**: API calls go to `flows-api.jetty.io` (overridable via `~/.config/jetty/api_base` — resolved into `$API` in each block); `jetty.io` is the web frontend. A token is only valid against the backend that minted it, so `$API` must match where the token came from.
 - **Trajectories response shape**: The list endpoint returns `{"trajectories": [...]}`.
 - **Steps are objects, not arrays**: Trajectory steps are keyed by step name (e.g., `.steps.expand_prompt`), not by index.
