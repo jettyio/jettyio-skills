@@ -15,10 +15,9 @@ friendly, Pelly-voiced progress rather than plumbing. Two subcommands:
         send ONE email with the report + a claim link. Stores the returned token
         at ~/.config/jetty/token (chmod 600) and prints only a redacted form.
 
-Config (env):
-    JETTY_DEMO_BASE   Base URL for the demo/​signup endpoints.
-                      Defaults to https://jetty.io. Set to http://localhost:3000
-                      to run against a local stack — no need to edit the skill.
+Base URL: https://jetty.io by default. To run against a non-default Jetty
+backend, put its URL in ~/.config/jetty/demo_base (the same config dir as
+the token).
 
 Nothing here prints a token or any secret in full.
 """
@@ -40,19 +39,15 @@ except Exception:
     pass
 
 def _resolve_base():
-    """Base URL for the demo/signup endpoints. Precedence:
-      1. JETTY_DEMO_BASE env var
-      2. ~/.config/jetty/demo_base file (persists across the skill's separate
-         shell calls — set it once for local testing:
-             echo http://localhost:3000 > ~/.config/jetty/demo_base )
-      3. https://jetty.io (production default)"""
-    v = os.environ.get("JETTY_DEMO_BASE")
-    if not v:
-        f = os.path.expanduser("~/.config/jetty/demo_base")
-        if os.path.exists(f):
-            with open(f) as fh:
-                v = fh.read().strip()
-    return (v or "https://jetty.io").rstrip("/")
+    """Base URL for the demo/signup endpoints. Defaults to https://jetty.io; put a
+    URL in ~/.config/jetty/demo_base to point at a non-default Jetty backend."""
+    f = os.path.expanduser("~/.config/jetty/demo_base")
+    if os.path.exists(f):
+        with open(f) as fh:
+            v = fh.read().strip()
+        if v:
+            return v.rstrip("/")
+    return "https://jetty.io"
 
 
 BASE = _resolve_base()
