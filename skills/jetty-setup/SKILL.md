@@ -199,12 +199,14 @@ marker line.
 > set up your Jetty workspace from it — no sign-up form, no key to paste."
 
 Ask for the email (a normal question — the one **[HUMAN]** step). When they give
-it, run the helper's `claim` (same resolution one-liner). **Pass the email as a
-`--email` argument in SINGLE quotes** — `--email '<their-email>'`. Single quotes
-stop the shell from expanding anything inside the address (so an email containing
-`$(…)` or backticks can't run a command), and `--email` works with every helper
-version. Do **not** use double quotes (`--email "…"`) — inside those, `$(…)` and
-backticks still expand.
+it, run the helper's `claim` (same resolution one-liner). **Put the address on the
+`<their-email>` line of the quoted heredoc below** — and nowhere else. The quoted
+`'JETTY_EMAIL'` delimiter makes the heredoc body literal, so the shell never
+expands anything inside the address; command substitution captures that literal
+text and passes it as the `--email` value. An email containing `$(…)`, backticks,
+or a `'`/`"` can't run a command or break out. Do **not** instead interpolate the
+email into a quoted argument (`--email '…'` or `--email "…"`) — a `'` or `$(…)` in
+the address would break the quoting and could execute.
 
 ```bash
 PY="$(command -v python3 || command -v python || true)"
@@ -215,7 +217,10 @@ SIM="$(for r in "$CLAUDE_PLUGIN_ROOT" "$CODEX_PLUGIN_ROOT" "$OPENCODE_PLUGIN_ROO
   f="$r/skills/jetty-setup/scripts/jetty_simulate.py"; [ -f "$f" ] && { echo "$f"; break; }
 done)"
 [ -n "$SIM" ] || SIM="$(find ~/.claude/plugins ~/.config/opencode ~/.codex ~/.gemini/antigravity .claude .opencode .codex -path '*jetty-setup/scripts/jetty_simulate.py' 2>/dev/null | head -1)"
-"$PY" "$SIM" claim --email '<their-email>'
+"$PY" "$SIM" claim --email "$(cat <<'JETTY_EMAIL'
+<their-email>
+JETTY_EMAIL
+)"
 ```
 
 This mints the workspace, activates the trial, sends **one** email (the report +

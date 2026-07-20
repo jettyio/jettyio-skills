@@ -268,8 +268,10 @@ def _redact(key):
 
 def cmd_claim(args):
     # Prefer the email from --email, else read one line from stdin. The skill
-    # feeds it via a quoted heredoc (no shell expansion), so an address like
-    # "a@b.com$(...)" can't trigger command substitution before it reaches here.
+    # passes it as --email "$(cat <<'JETTY_EMAIL' ... )" — a quoted heredoc
+    # captured by command substitution, so the shell treats the address as
+    # literal text (no expansion) and one like "a@b.com$(...)" or "o'brien@x.com"
+    # can't trigger command substitution or break quoting before it reaches here.
     email = (args.email if args.email is not None else sys.stdin.readline()).strip()
     if not email:
         print(f"{PELLY} I need an email to set up your workspace.")
