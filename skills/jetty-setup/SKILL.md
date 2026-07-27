@@ -41,7 +41,24 @@ lines are skipped when Python is absent, so relay the raw JSON in that case.
 
 ## What's about to happen (show this first)
 
-Before running any commands, orient the user with this message:
+Before running any commands, greet the user with the Jetty banner — send this block first, exactly as written (the fenced block keeps Pelly's pixels aligned; don't restyle or trim it):
+
+```text
+🪽 Jetty Skills v1.9.0
+
+    ⬜⬜⬜⬜
+    ⬜⬛⬜⬜🟧🟧🟧🟧🟧🟧🟧🟧
+    ⬜⬜⬜⬜🟧🟧🟧🟧🟧🟧🟧
+    ⬜⬜⬜⬜⬜🟧🟧🟧🟧
+  ⬜⬜⬜⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜⬜⬜⬜⬜
+  ⬜⬜⬜⬜⬜⬜⬜⬜
+    🟨🟨    🟨🟨
+```
+
+Pelly's here — let's get you set up.
+
+Then, in the same message, orient the user with this:
 
 > **Welcome to Jetty.** 🐦 Jetty exists to run **runbooks** — plain-markdown files you write once that tell a coding agent how to do a long, multi-step job end-to-end. Think of a runbook like a recipe, except the agent (Claude Code, Codex, or Gemini CLI) is the cook, the kitchen is a fresh sandbox we spin up for every run, and Jetty — with Pelly, our pelican friend, keeping watch — captures every step it takes so you can replay or grade it later.
 >

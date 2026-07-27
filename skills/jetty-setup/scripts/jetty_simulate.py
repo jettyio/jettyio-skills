@@ -51,7 +51,7 @@ def _resolve_base():
 
 
 BASE = _resolve_base()
-CLIENT = "jetty-setup-skill/1.8.0"
+CLIENT = "jetty-setup-skill/1.9.0"
 # The demo endpoints sit behind an edge/WAF that blocks default library
 # user-agents (e.g. Python-urllib/*) with a 403 before the request reaches the
 # app. Send a browser-like User-Agent so the run isn't rejected at the edge;

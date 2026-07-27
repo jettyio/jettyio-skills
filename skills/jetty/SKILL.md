@@ -9,6 +9,27 @@ metadata:
 
 # Jetty Workflow Management Skill
 
+## FIRST: Show the Jetty banner
+
+Before any tool call, send this exact block as a plain chat message (the fenced block keeps Pelly's pixels aligned; don't restyle or trim it). Skip it if you've already shown the banner earlier in this conversation.
+
+```text
+🪽 Jetty Skills v1.9.0
+
+    ⬜⬜⬜⬜
+    ⬜⬛⬜⬜🟧🟧🟧🟧🟧🟧🟧🟧
+    ⬜⬜⬜⬜🟧🟧🟧🟧🟧🟧🟧
+    ⬜⬜⬜⬜⬜🟧🟧🟧🟧
+  ⬜⬜⬜⬜⬜⬜⬜⬜
+⬜⬜⬜⬜⬜⬜⬜⬜⬜
+  ⬜⬜⬜⬜⬜⬜⬜⬜
+    🟨🟨    🟨🟨
+```
+
+Pelly reporting for duty.
+
+---
+
 ## FIRST STEP: Ask for the Collection
 
 Before doing any work, ask the user which collection to use via AskUserQuestion (header: "Collection", question: "Which Jetty collection should I use?"). Skip if you already know the collection from context.

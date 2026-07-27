@@ -433,6 +433,19 @@ For agents without skill support, see [QUICKSTART.md](QUICKSTART.md).
 | Workflow fails | Use `get-trajectory` to inspect step-by-step outputs |
 | `/jetty-setup` not found | Claude Code only — reinstall: `claude plugin marketplace add jettyio/jettyio-skills && claude plugin install jetty@jetty` |
 
+## Releasing
+
+The version number is hardcoded in several places. When cutting a release, bump all of them together:
+
+- `.claude-plugin/plugin.json`
+- `.claude-plugin/marketplace.json`
+- `.codex-plugin/plugin.json`
+- `.opencode-plugin/plugin.json`
+- `gemini-extension.json`
+- `skills/jetty-setup/scripts/jetty_simulate.py` (`CLIENT` string)
+- `skills/jetty/SKILL.md` (launch banner)
+- `skills/jetty-setup/SKILL.md` (launch banner)
+
 ## License
 
 MIT — see [LICENSE](LICENSE) for details.
