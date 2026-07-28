@@ -80,7 +80,7 @@ def _ensure_config_dir():
 # Friendly labels for the runbook's steps, shown as progress ticks. The demo
 # runbook is a single "run" step internally, so we narrate the phases the agent
 # actually goes through rather than raw step keys.
-PELLY = "\U0001F426"  # 🐦
+PELLY = "\U0001FABD"  # 🪽
 CHECK = "✅"      # ✅
 
 
