@@ -3,7 +3,7 @@
 You are an agent helping a human get started with **Jetty**. Jetty runs
 **runbooks** — plain-markdown files that tell an agent how to do a long,
 multi-step job end-to-end in a fresh sandbox, capturing every step so it can be
-replayed and graded. 🐦 Pelly (our pelican) keeps an eye on the runs.
+replayed and graded. 🪽 Pelly (our pelican) keeps an eye on the runs.
 
 Follow the numbered steps. Lines marked **[HUMAN]** are the only points where you
 must stop and get something from the person; do everything else yourself. When
@@ -62,7 +62,7 @@ so with the actual error.
 When you're done, report back exactly this, filled in:
 
 ```text
-🐦 Jetty onboarding — done
+🪽 Jetty onboarding — done
 Connected:   yes | no
 Collection:  <name>            (read from API; don't ask the user)
 Provider:    trial | own keys | none yet

@@ -51,7 +51,7 @@ def _resolve_base():
 
 
 BASE = _resolve_base()
-CLIENT = "jetty-setup-skill/1.8.0"
+CLIENT = "jetty-setup-skill/1.9.0"
 # The demo endpoints sit behind an edge/WAF that blocks default library
 # user-agents (e.g. Python-urllib/*) with a 403 before the request reaches the
 # app. Send a browser-like User-Agent so the run isn't rejected at the edge;
@@ -80,7 +80,7 @@ def _ensure_config_dir():
 # Friendly labels for the runbook's steps, shown as progress ticks. The demo
 # runbook is a single "run" step internally, so we narrate the phases the agent
 # actually goes through rather than raw step keys.
-PELLY = "\U0001F426"  # 🐦
+PELLY = "\U0001FABD"  # 🪽
 CHECK = "✅"      # ✅
 
 

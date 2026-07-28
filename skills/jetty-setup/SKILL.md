@@ -9,7 +9,7 @@ metadata:
 
 # Jetty Setup Guide
 
-You are guiding a user through first-time Jetty setup. The goal is to get them from zero to their first runbook in under 3 minutes. Keep the tone warm and light — 🐦 Pelly, our pelican, is along for the ride, so an occasional friendly aside is welcome, but stay concise and never let the branding get in the way of the steps.
+You are guiding a user through first-time Jetty setup. The goal is to get them from zero to their first runbook in under 3 minutes. Keep the tone warm and light — 🪽 Pelly, our pelican, is along for the ride, so an occasional friendly aside is welcome, but stay concise and never let the branding get in the way of the steps.
 
 ## Cross-Agent Compatibility
 
@@ -41,9 +41,32 @@ lines are skipped when Python is absent, so relay the raw JSON in that case.
 
 ## What's about to happen (show this first)
 
-Before running any commands, orient the user with this message:
+Before running any commands, greet the user with the Jetty banner — send this block first, exactly as written (the fenced block keeps Pelly's pixels aligned; don't restyle or trim it):
 
-> **Welcome to Jetty.** 🐦 Jetty exists to run **runbooks** — plain-markdown files you write once that tell a coding agent how to do a long, multi-step job end-to-end. Think of a runbook like a recipe, except the agent (Claude Code, Codex, or Gemini CLI) is the cook, the kitchen is a fresh sandbox we spin up for every run, and Jetty — with Pelly, our pelican friend, keeping watch — captures every step it takes so you can replay or grade it later.
+```text
+🪽 Jetty Skills v1.9.0
+
+🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟦🟦🟦⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟦🟦⬜️⬜️⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦⬜️⬜️🟦🟦🟦
+🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦⬜️⬜️⬜️⬜️🟦🟦
+🟦🟦🟦🟦🟦🟦⬜️⬜️⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟦🟦🟦🟦🟦🟦⬜️⬛️⬜️⬜️🟧🟧🟧🟧🟧🟧🟧🟧🟦🟦🟦🟦🟦🟦
+🟦🟦🟦🟦🟦🟦⬜️⬜️⬜️⬜️🟧🟧🟧🟧🟧🟧🟧🟦🟦🟦🟦🟦🟦🟦
+🟦🟦🟦🟦🟦🟦⬜️⬜️⬜️⬜️⬜️🟧🟧🟧🟧🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟦🟦🟦🟦🟦⬜️⬜️⬜️⬜️⬜️⬜️⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟦🟦🟦🟦⬜️⬜️⬜️⬜️⬜️⬜️⬜️⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟦🟦🟦🟦🟦⬜️⬜️⬜️⬜️⬜️⬜️⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟦🟦🟦🟦🟦🟦🟨🟨🟦🟦🟨🟨🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
+🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
+🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩🟩
+```
+
+Pelly's here — let's get you set up.
+
+Then, in the same message, orient the user with this:
+
+> **Welcome to Jetty.** 🪽 Jetty exists to run **runbooks** — plain-markdown files you write once that tell a coding agent how to do a long, multi-step job end-to-end. Think of a runbook like a recipe, except the agent (Claude Code, Codex, or Gemini CLI) is the cook, the kitchen is a fresh sandbox we spin up for every run, and Jetty — with Pelly, our pelican friend, keeping watch — captures every step it takes so you can replay or grade it later.
 >
 > **A few examples of what people put in a runbook:**
 > - *"Pull yesterday's failed SQL queries from Langfuse, replay them against our NL-to-SQL API, and produce a regression report."*
@@ -58,7 +81,7 @@ Before running any commands, orient the user with this message:
 > - **Reach any system** whose keys live in your Jetty collection
 >
 > **Two ways to start — your call:**
-> - 🐦 **See Jetty run a quick example first** — I'll kick off a real runbook (extract structured data from a set of PDFs) and show you the report. No account, nothing to install, ~3 minutes.
+> - 🪽 **See Jetty run a quick example first** — I'll kick off a real runbook (extract structured data from a set of PDFs) and show you the report. No account, nothing to install, ~3 minutes.
 > - **Go straight to building your own** — I'll connect your account and hand you to the runbook wizard.
 
 Then proceed to **Pick your path** below.
@@ -90,7 +113,7 @@ If it returns collection data (a returning user), **skip the demo** and go strai
 
 Use AskUserQuestion:
 - Header: "Start"
-- Question: "🐦 Want to see Jetty run a quick example first, or go straight to building your own runbook?"
+- Question: "🪽 Want to see Jetty run a quick example first, or go straight to building your own runbook?"
 - Options:
   - "Run the demo" / "Watch Jetty extract structured data from a set of PDFs — no account needed"
   - "Build my own" / "Connect my account and build a runbook now"
@@ -104,7 +127,7 @@ Use AskUserQuestion:
 
 This runs a real, pre-built runbook — `conference-abstracts` — on Jetty's hosted demo, with **no account and no token**. It's the emulated `jetty simulate conference-abstracts` procedure (documented in `MACHINE_CONTEXT.md` at the repo root, if present). The whole thing talks to a public, rate-limited endpoint; you never handle a secret here.
 
-> **If anything in this path fails** — the request errors, the run doesn't finish in time, or the report can't be fetched — don't retry silently or block. Say something light ("🐦 Pelly's demo pond is busy right now — let's build your own instead") and fall through to the **Build path** (Step 1). The demo is a bonus, never a gate.
+> **If anything in this path fails** — the request errors, the run doesn't finish in time, or the report can't be fetched — don't retry silently or block. Say something light ("🪽 Pelly's demo pond is busy right now — let's build your own instead") and fall through to the **Build path** (Step 1). The demo is a bonus, never a gate.
 
 The whole demo is driven by one bundled helper, `scripts/jetty_simulate.py`, so
 the user sees clean Pelly-voiced progress — not curl, polling loops, or JSON.
@@ -126,7 +149,7 @@ follow along — that is the whole point of the demo. The helper does **not** pr
 these links anywhere, so if you skip this message the user never sees the PDFs.
 This is the single most common mistake — don't make it:
 
-> 🐦 **Here's what you're about to watch — structured extraction.**
+> 🪽 **Here's what you're about to watch — structured extraction.**
 >
 > Six conference-abstract PDFs, each laid out completely differently — two-column
 > vs. single-column, metadata in the header vs. the footer, authors listed vs.
@@ -148,7 +171,7 @@ This is the single most common mistake — don't make it:
 **S1.2 — Only after you have sent the S1.1 message**, offer to name the workspace
 (optional, low-friction). Use AskUserQuestion:
 - Header: "Workspace"
-- Question: "🐦 Before I run it — what should your workspace be called? Pick a name or let me generate one. It becomes your workspace's URL and API identifier, so **only letters, numbers, hyphens, and underscores** are allowed."
+- Question: "🪽 Before I run it — what should your workspace be called? Pick a name or let me generate one. It becomes your workspace's URL and API identifier, so **only letters, numbers, hyphens, and underscores** are allowed."
 - Options:
   - "Generate one for me" / "Auto-name my workspace"
   - "Let me choose" / "I'll type a name"
@@ -176,7 +199,7 @@ done)"
 "$PY" "$SIM" run                         # or: "$PY" "$SIM" run --name "my-workspace"
 ```
 
-It streams `🐦 Step 1/6 … 6/6` progress (this may collapse in the terminal —
+It streams `🪽 Step 1/6 … 6/6` progress (this may collapse in the terminal —
 that's fine), then prints the **report** (a summary + per-document results + a CSV
 preview), and ends with an internal `DEMO_STATUS=completed` / `DEMO_STATUS=failed`
 marker line.
@@ -240,7 +263,7 @@ Build path.
 done and the user is set up. Offer the next step as an explicit choice via
 AskUserQuestion:
 - Header: "Next"
-- Question: "🐦 You're all set. Want to build a runbook for your own data now, or stop here?"
+- Question: "🪽 You're all set. Want to build a runbook for your own data now, or stop here?"
 - Options:
   - "Build my own runbook" / "Start the runbook wizard"
   - "I'm good for now" / "Stop here — I'll come back later"
