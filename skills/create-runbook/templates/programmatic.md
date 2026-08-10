@@ -2,7 +2,7 @@
 version: "1.0.0"
 evaluation: programmatic
 agent: claude-code                    # Agent runtime: claude-code | opencode | codex | gemini-cli
-model: anthropic/claude-sonnet-4.6   # Model for the agent (see agents-and-models reference)
+model: anthropic/claude-sonnet-5   # Model for the agent (see agents-and-models reference)
 model_provider: openrouter           # Routes the model through OpenRouter (requires OPENROUTER_API_KEY)
 snapshot: python312-uv                # Sandbox: python312-uv | prism-playwright | custom image
 # Headline deliverable(s), relative to results_dir, in priority order. spot
