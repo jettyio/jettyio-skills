@@ -125,18 +125,15 @@ export class JettyClient {
     return this.api(`/api/v1/collections/${collection}/environment`);
   }
 
-  // Run workflows
+  // Run workflows. Trial keys are injected automatically server-side when
+  // the collection is eligible — there is no flag to send.
   async runWorkflow(
     collection: string,
     task: string,
-    initParams?: Record<string, unknown>,
-    useTrialKeys?: boolean
+    initParams?: Record<string, unknown>
   ) {
     const formData = new FormData();
     formData.append("init_params", JSON.stringify(initParams || {}));
-    if (useTrialKeys) {
-      formData.append("use_trial_keys", "true");
-    }
 
     return this.api(`/api/v1/run/${collection}/${task}`, {
       method: "POST",
@@ -147,14 +144,10 @@ export class JettyClient {
   async runWorkflowSync(
     collection: string,
     task: string,
-    initParams?: Record<string, unknown>,
-    useTrialKeys?: boolean
+    initParams?: Record<string, unknown>
   ) {
     const formData = new FormData();
     formData.append("init_params", JSON.stringify(initParams || {}));
-    if (useTrialKeys) {
-      formData.append("use_trial_keys", "true");
-    }
 
     return this.api(`/api/v1/run-sync/${collection}/${task}`, {
       method: "POST",

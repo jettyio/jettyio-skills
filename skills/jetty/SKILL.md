@@ -254,13 +254,12 @@ print(any(k in evars for k in keys))
 ")
 ```
 
-If the trial is active and no provider keys are configured (`HAS_KEYS` is `False`), include `use_trial_keys: true` in the run request body:
+If the trial is active and no provider keys are configured (`HAS_KEYS` is `False`), nothing extra is needed: **trial keys are injected automatically** for eligible runs. Use the check above only to explain to the user which credentials a run will use — there is no `use_trial_keys` flag to send.
 
 ```bash
-# Run with trial keys
+# Runs use trial keys automatically while the trial is active and no provider key is set
 curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   -F 'init_params={"key": "value"}' \
-  -F 'use_trial_keys=true' \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
 ```
 
@@ -473,8 +472,8 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
 1. Read the runbook file with the Read tool
 2. Parse the YAML frontmatter for `agent`, `model`, `model_provider`, `snapshot`, and `secrets`:
    - `agent` → use as `jetty.agent` (default: `claude-code`)
-   - `model` → use as `model` in the request (default: `claude-sonnet-4-6`)
-   - `model_provider` → use as `jetty.model_provider` (default: `anthropic`)
+   - `model` → use as `model` in the request (default: `anthropic/claude-sonnet-5`)
+   - `model_provider` → use as `jetty.model_provider` (default: `openrouter`)
    - `snapshot` → use as `jetty.snapshot` (default: `python312-uv`; use `prism-playwright` if the runbook needs a browser)
    - `secrets` → check that each required secret is configured as a collection env var:
    ```bash
@@ -483,7 +482,7 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
    ```
    If any required secrets are missing, prompt the user to set them (or pass via `secret_params`).
 3. Parse the Parameters section of the runbook. Identify all `{{template_variable}}` placeholders and their defaults. Ask the user for any required parameter values that are missing (use AskUserQuestion). These go in `jetty.template_variables`.
-4. **Check trial key eligibility** — use the same trial detection logic from [Trial Key Support](#trial-key-support) above. If the trial is active and no provider keys are configured, set `use_trial_keys: true` in the `jetty` block below.
+4. **Trial keys are automatic** — if the trial is active and no provider keys are configured, the run uses Jetty's trial keys without any flag. Optionally use the detection logic from [Trial Key Support](#trial-key-support) to tell the user which credentials the run will use.
 5. Ask the user for the collection and task name. Also ask for any file uploads.
 6. Build and send the request — the runbook content goes in the `system` message, and template variables go in `jetty.template_variables` (**not** in the user message):
 
@@ -515,7 +514,7 @@ cat <<PAYLOAD | curl -s -X POST \
   "https://flows-api.jetty.io/v1/chat/completions" \
   --data-binary @-
 {
-  "model": "claude-sonnet-4-6",
+  "model": "anthropic/claude-sonnet-5",
   "messages": [
     {"role": "system", "content": $(jq -Rs '.' <<< "$RUNBOOK_CONTENT")},
     {"role": "user", "content": "Execute the runbook."}
@@ -526,13 +525,12 @@ cat <<PAYLOAD | curl -s -X POST \
     "collection": "{COLLECTION}",
     "task": "{TASK}",
     "agent": "claude-code",
-    "model_provider": "anthropic",
+    "model_provider": "openrouter",
     "snapshot": "python312-uv",
     "template_variables": {
       "sample_size": "10",
       "results_dir": "/app/results"
-    },
-    "use_trial_keys": $USE_TRIAL
+    }
   }
 }
 PAYLOAD
@@ -569,7 +567,6 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
 | `jetty.file_paths` | string[] | No | **Storage paths** of input files to mount into the sandbox — e.g. the paths returned by `POST /api/v1/sandbox/upload`. These are raw storage keys, **not** OpenAI `file-…` ids (see warning below) |
 | `jetty.files` | string[] | No | OpenAI-style file ids (`file-…`) returned by `POST /api/v1/files`. Resolved server-side to their storage paths. Use this slot for `/api/v1/files` uploads — **not** `file_paths` |
-| `jetty.use_trial_keys` | boolean | No | Use Jetty trial keys (default: false). Set to true for trial users with no own provider keys |
 
 **File upload** (if the runbook needs input files):
 
@@ -612,7 +609,7 @@ with open("RUNBOOK.md") as f:
     runbook = f.read()
 
 response = client.chat.completions.create(
-    model="claude-sonnet-4-6",
+    model="anthropic/claude-sonnet-5",
     messages=[
         {"role": "system", "content": runbook},
         {"role": "user", "content": "Execute the runbook."}
@@ -624,7 +621,7 @@ response = client.chat.completions.create(
             "collection": "my-org",
             "task": "my-task",
             "agent": "claude-code",
-            "model_provider": "anthropic",
+            "model_provider": "openrouter",
             "snapshot": "python312-uv",  # or "prism-playwright" for browser
             "template_variables": {
                 "sample_size": "10",

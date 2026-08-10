@@ -8,60 +8,6 @@ function jsonResult(data: unknown) {
   };
 }
 
-const PROVIDER_KEYS = [
-  "OPENAI_API_KEY",
-  "ANTHROPIC_API_KEY",
-  "GEMINI_API_KEY",
-  "REPLICATE_API_TOKEN",
-];
-
-async function detectTrialEligibility(
-  client: JettyClient,
-  collection: string
-): Promise<{ useTrialKeys: boolean; trialInfo: Record<string, unknown> }> {
-  try {
-    const trialStatus = (await client.getTrialStatus(collection)) as Record<
-      string,
-      unknown
-    >;
-
-    if (!trialStatus.active) {
-      return {
-        useTrialKeys: false,
-        trialInfo: { trial_active: false },
-      };
-    }
-
-    const env = (await client.getCollectionEnvironment(collection)) as Record<
-      string,
-      unknown
-    >;
-    const envKeys = Object.keys(env);
-    const hasProviderKeys = PROVIDER_KEYS.some((k) => envKeys.includes(k));
-
-    if (hasProviderKeys) {
-      return {
-        useTrialKeys: false,
-        trialInfo: {
-          trial_active: true,
-          using_trial_keys: false,
-          reason: "Collection has its own provider keys",
-        },
-      };
-    }
-
-    return {
-      useTrialKeys: true,
-      trialInfo: {
-        trial_active: true,
-        using_trial_keys: true,
-      },
-    };
-  } catch {
-    return { useTrialKeys: false, trialInfo: {} };
-  }
-}
-
 export function registerTools(server: McpServer, client: JettyClient) {
   // ── Collections ──────────────────────────────────────────────
 
@@ -165,7 +111,7 @@ export function registerTools(server: McpServer, client: JettyClient) {
 
   server.tool(
     "run-workflow",
-    "Run a workflow asynchronously (returns immediately with workflow_id). Auto-detects trial key eligibility.",
+    "Run a workflow asynchronously (returns immediately with workflow_id). Trial keys are applied automatically server-side when the collection is eligible.",
     {
       collection: z.string().describe("Collection name"),
       task: z.string().describe("Task name"),
@@ -175,23 +121,18 @@ export function registerTools(server: McpServer, client: JettyClient) {
         .describe("Input parameters for the workflow"),
     },
     async ({ collection, task, init_params }) => {
-      const { useTrialKeys, trialInfo } = await detectTrialEligibility(
-        client,
-        collection
-      );
       const result = await client.runWorkflow(
         collection,
         task,
-        init_params as Record<string, unknown>,
-        useTrialKeys
+        init_params as Record<string, unknown>
       );
-      return jsonResult({ ...trialInfo, result });
+      return jsonResult(result);
     }
   );
 
   server.tool(
     "run-workflow-sync",
-    "Run a workflow synchronously (blocks until completion, may take 30-60s). Auto-detects trial key eligibility.",
+    "Run a workflow synchronously (blocks until completion, may take 30-60s). Trial keys are applied automatically server-side when the collection is eligible.",
     {
       collection: z.string().describe("Collection name"),
       task: z.string().describe("Task name"),
@@ -201,17 +142,12 @@ export function registerTools(server: McpServer, client: JettyClient) {
         .describe("Input parameters for the workflow"),
     },
     async ({ collection, task, init_params }) => {
-      const { useTrialKeys, trialInfo } = await detectTrialEligibility(
-        client,
-        collection
-      );
       const result = await client.runWorkflowSync(
         collection,
         task,
-        init_params as Record<string, unknown>,
-        useTrialKeys
+        init_params as Record<string, unknown>
       );
-      return jsonResult({ ...trialInfo, result });
+      return jsonResult(result);
     }
   );
 

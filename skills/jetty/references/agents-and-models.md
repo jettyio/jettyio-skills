@@ -6,19 +6,19 @@ Jetty runs agent code inside sandboxed environments. When running a runbook, you
 
 | Agent | Runtime ID | Default Model | API Key Env Var | Best For |
 |-------|-----------|--------------|-----------------|----------|
-| **Claude Code** ⭐ | `claude-code` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | **Recommended default** — strong reasoning, broad tool support, native MCP/tool-use ergonomics |
-| opencode | `opencode` | `anthropic/claude-sonnet-4.6` | `OPENROUTER_API_KEY` | Routes through OpenRouter for unified billing, provider failover, and one key for any catalog model |
+| **Claude Code** ⭐ | `claude-code` | `anthropic/claude-sonnet-5` (via OpenRouter) | `OPENROUTER_API_KEY` | **Recommended default** — strong reasoning, broad tool support, native MCP/tool-use ergonomics |
+| opencode | `opencode` | `anthropic/claude-sonnet-5` | `OPENROUTER_API_KEY` | Routes through OpenRouter for unified billing, provider failover, and one key for any catalog model |
 | Codex | `codex` | `gpt-5.5` | `OPENAI_API_KEY` | Code generation, OpenAI ecosystem |
 | Gemini CLI | `gemini-cli` | `gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | Google ecosystem, free tier available |
 
 ### Model Options
 
-**Anthropic (claude-code)** — recommended:
-- `claude-sonnet-4-6` — Fast, cost-effective, default
+**Anthropic (claude-code, direct)**:
+- `claude-sonnet-5` — Fast, cost-effective
 - `claude-opus-4-6` — Most capable, higher cost
 
-**OpenRouter (opencode)**:
-- `anthropic/claude-sonnet-4.6` — Default opencode model. Note the OpenRouter slug uses dot-versioning (`4.6`) and the `anthropic/` vendor prefix; the Anthropic-internal `claude-sonnet-4-6` spelling is *not* a valid OpenRouter model id.
+**OpenRouter (claude-code, opencode)** — recommended:
+- `anthropic/claude-sonnet-5` — The recommended default model. Note the OpenRouter slug uses the `anthropic/` vendor prefix; the bare Anthropic-internal `claude-sonnet-5` spelling is *not* a valid OpenRouter model id.
 - Any other OpenRouter-catalog id (e.g. `anthropic/claude-opus-4.6`, `openai/gpt-5.5`, `google/gemini-2.5-pro`) — opencode passes the model id straight through to OpenRouter.
 
 **OpenAI (codex)**:
@@ -40,7 +40,7 @@ If you don't specify an agent in your runbook frontmatter, Jetty infers it from 
 - `gpt-*`, `o1-*`, `o3-*`, `o4-*` → `codex`
 - `gemini-*` or `gemini/*` → `gemini-cli`
 
-> **Heads up:** the inference above will route `anthropic/claude-sonnet-4.6` to `claude-code`, not `opencode`. If you want opencode + OpenRouter, set `agent: opencode` and `model_provider: openrouter` explicitly in frontmatter — don't rely on inference.
+> **Heads up:** the inference above will route `anthropic/claude-sonnet-5` to `claude-code`, not `opencode`. If you want opencode + OpenRouter, set `agent: opencode` and `model_provider: openrouter` explicitly in frontmatter — don't rely on inference.
 
 ### Routing Through a Provider (`model_provider`)
 
@@ -58,7 +58,7 @@ If `model_provider` is omitted, Jetty auto-defaults in this order: `openrouter` 
 
 > **Trial runs route through OpenRouter.** Jetty trial keys include `OPENROUTER_API_KEY`, so a trial run with no explicit `model_provider` auto-defaults to `openrouter` — progress shows `Running agent: claude-code via openrouter`. That's Jetty's trial routing (same model), not your provider choice being ignored. To pin a provider, set `model_provider` in the runbook frontmatter, or pass `jetty.model_provider` on the chat-completions request (honored by current mise; older deployments only read the frontmatter).
 
-**Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-4.6` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-4-6` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
+**Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-5` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-5` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
 
 ## Sandbox Snapshots
 
@@ -89,7 +89,7 @@ Declare your agent, model, and snapshot in the runbook's YAML frontmatter:
 version: "1.0.0"
 evaluation: programmatic
 agent: claude-code
-model: anthropic/claude-sonnet-4.6
+model: anthropic/claude-sonnet-5
 model_provider: openrouter
 snapshot: python312-uv
 primary_outputs:          # optional — headline deliverable(s), relative to results_dir
@@ -97,7 +97,7 @@ primary_outputs:          # optional — headline deliverable(s), relative to re
 ---
 ```
 
-These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`. If you omit `model_provider` entirely, Jetty falls back to agent-based inference (`claude-code` → `anthropic`), so set it explicitly.
+These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-5` + `model_provider: openrouter`, which is also the platform default. If you omit `model_provider` entirely, Jetty auto-defaults to `openrouter` whenever an `OPENROUTER_API_KEY` is available, and falls back to agent-based inference (`claude-code` → `anthropic`) otherwise — set it explicitly to pin routing.
 
 ### `primary_outputs`
 
