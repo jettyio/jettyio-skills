@@ -1,6 +1,7 @@
 ---
 version: "1.0.0"
 evaluation: rubric
+strict_evaluation: false              # true: a Code Check or Checklist item the agent did not report fails the run
 agent: claude-code                    # Agent runtime: claude-code | opencode | codex | gemini-cli
 model: anthropic/claude-sonnet-4.6   # Model for the agent (see agents-and-models reference)
 model_provider: openrouter           # Routes the model through OpenRouter (requires OPENROUTER_API_KEY)
