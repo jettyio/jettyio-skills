@@ -422,9 +422,8 @@ else
   ERRORS=$((ERRORS+1))
 fi
 
-# Check required sections. Headings may carry a "Step N:" prefix — the
-# templates write "## Step 8: Final Checklist".
-for section in "Objective" "REQUIRED OUTPUT FILES" "Final Checklist"; do
+# Check required sections. Headings may carry a "Step N:" prefix.
+for section in "Objective" "REQUIRED OUTPUT FILES" "Code Checks" "Checklist" "Write Validation Report"; do
   if grep -qE "^## (Step [0-9]+: )?$section" "$FILE"; then
     echo "PASS: '$section' section found"
   else
@@ -473,11 +472,19 @@ else
   ERRORS=$((ERRORS+1))
 fi
 
-# Check for verification script
-if grep -q "FINAL OUTPUT VERIFICATION" "$FILE" || grep -q "Verification Script" "$FILE"; then
-  echo "PASS: Verification script found"
+# Check for the outputs-exist code check (replaces the old Final Checklist verification script)
+if grep -q "### outputs-exist" "$FILE" || grep -q "FINAL OUTPUT VERIFICATION" "$FILE"; then
+  echo "PASS: outputs-exist code check found"
 else
-  echo "ERROR: No verification script in Final Checklist"
+  echo "ERROR: No outputs-exist code check under ## Code Checks"
+  ERRORS=$((ERRORS+1))
+fi
+
+# Check the validation report is v2
+if grep -q '"version": "2.0.0"' "$FILE" && grep -q '"checks": \[' "$FILE"; then
+  echo "PASS: validation report v2 (checks[])"
+else
+  echo "ERROR: validation report example must be v2 with a checks[] array"
   ERRORS=$((ERRORS+1))
 fi
 
