@@ -8,10 +8,14 @@ must act as that user. This does the Clerk login (OAuth Authorization Code +
 PKCE, localhost loopback) and stores a refreshable user token separately from
 the ``mlc_`` key.
 
+The user token must name an **active organization**: pick one on the Clerk
+consent screen during ``login``. Jetty resolves a user token to that org
+(``org_…``); a token without one is rejected by the API (401).
+
 Commands:
   login            Browser login as your Clerk user; stores a refreshable token.
   logout           Forget the stored user token.
-  whoami           Show the logged-in user (sub / email).
+  whoami           Show the logged-in user (sub / email / org_id).
   token            Print a fresh access token (refreshing if near expiry).
   accounts         List your linked subscription accounts (mise Connected Accounts).
   connect <prov>   Link a subscription: `nous` (paste a Portal refresh token),
@@ -41,6 +45,9 @@ CLERK_ISSUER = os.getenv("JETTY_CLERK_ISSUER", "https://clerk.jetty.io").rstrip(
 CLERK_CLIENT_ID = os.getenv("JETTY_CLERK_CLIENT_ID", "rD7TOA4HrSWohlly")
 JETTY_API = os.getenv("JETTY_API", "https://flows-api.jetty.io").rstrip("/")
 # NOTE: keep this in sync with the scopes registered on the Clerk OAuth app.
+# `user:org:read` makes Clerk show an Organization selector on the consent
+# screen and put the chosen org in the access token as a flat `org_id` claim
+# (no role). Jetty requires it: without an org the API rejects the token.
 # `openid` is intentionally omitted — it is not registered on the provisioned
 # app, and requesting it returns `invalid_scope`. Re-add it (and bump to an
 # OIDC flow) only once the app registers it and issues JWT access tokens.
@@ -125,7 +132,10 @@ def _api(method: str, path: str, token: str, payload: dict | None = None) -> dic
             return json.loads(raw) if raw else {}
     except urllib.error.HTTPError as e:
         body = e.read().decode()
-        raise SystemExit(f"{method} {path} -> {e.code}: {body[:300]}")
+        msg = f"{method} {path} -> {e.code}: {body[:300]}"
+        if e.code == 401 and not _org_id(_decode_jwt_claims(token)):
+            msg += f"\n{NO_ORG_HINT}"
+        raise SystemExit(msg)
 
 
 def _save_tokens(tok: dict) -> None:
@@ -150,6 +160,24 @@ def _decode_jwt_claims(jwt: str | None) -> dict:
         return json.loads(base64.urlsafe_b64decode(seg))
     except Exception:
         return {}
+
+
+NO_ORG_HINT = (
+    "No organization is attached to this login. Jetty requires an active "
+    "organization: run `jetty login` again and pick your organization on the "
+    "Clerk consent screen."
+)
+
+
+def _org_id(claims: dict) -> str | None:
+    """Active org from a Clerk token: flat ``org_id`` (OAuth access tokens, JWT
+    templates) or the v2 session-token ``o.id`` shape."""
+    if claims.get("org_id"):
+        return claims["org_id"]
+    o = claims.get("o")
+    if isinstance(o, dict) and o.get("id"):
+        return o["id"]
+    return None
 
 
 # --- loopback one-shot server ----------------------------------------------
@@ -228,7 +256,14 @@ def cmd_login(_args):
     _save_tokens(tok)
     claims = _decode_jwt_claims(tok["access_token"])
     who = claims.get("email") or claims.get("sub") or "your account"
-    print(f"✓ Logged in as {who}. Token stored at {USER_TOKEN_PATH}")
+    org_id = _org_id(claims)
+    if org_id:
+        print(f"✓ Logged in as {who} (org {org_id}). Token stored at {USER_TOKEN_PATH}")
+    else:
+        print(f"✓ Logged in as {who}. Token stored at {USER_TOKEN_PATH}")
+        # TODO(mise#305): once the API rejects org-less JWTs in prod, make this
+        # a hard failure (SystemExit(1)) instead of a warning.
+        print(f"⚠ {NO_ORG_HINT}", file=sys.stderr)
 
 
 def _load_tokens() -> dict:
@@ -264,8 +299,14 @@ def cmd_token(_args):
 
 def cmd_whoami(_args):
     claims = _decode_jwt_claims(get_access_token())
-    print(json.dumps({"sub": claims.get("sub"), "email": claims.get("email"),
-                      "azp": claims.get("azp")}, indent=2))
+    print(json.dumps({
+        "sub": claims.get("sub"),
+        "email": claims.get("email"),
+        "org_id": _org_id(claims),
+        # OAuth access tokens identify the app via client_id; session tokens via azp.
+        "client_id": claims.get("client_id"),
+        "azp": claims.get("azp"),
+    }, indent=2))
 
 
 def cmd_logout(_args):
