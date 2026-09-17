@@ -7,7 +7,7 @@ import { registerTools } from "./tools.js";
 
 const server = new McpServer({
   name: "jetty",
-  version: "1.0.0",
+  version: "1.1.0",
 });
 
 const client = new JettyClient();
