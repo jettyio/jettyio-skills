@@ -87,6 +87,26 @@ test("an MCP callback and the WebMCP execute produce the same envelope for the s
   }
 });
 
+test("dynamic identifiers are percent-encoded in API paths so they cannot escape their segment", async () => {
+  const { calls, restore } = mockFetch({});
+  try {
+    const client = new JettyApiClient({ token: "t", apiUrl: "https://api.test" });
+    await client.getTask("acme/../other", "night ly?x=1");
+    await client.getTrajectory("acme", "nightly", "abc#1");
+    await client.listTrajectories("a b", "t", 5, 2);
+    assert.deepEqual(
+      calls.map((c) => c.url),
+      [
+        "https://api.test/api/v1/tasks/acme%2F..%2Fother/night%20ly%3Fx%3D1",
+        "https://api.test/api/v1/db/trajectory/acme/nightly/abc%231",
+        "https://api.test/api/v1/db/trajectories/a%20b/t?limit=5&page=2",
+      ]
+    );
+  } finally {
+    restore();
+  }
+});
+
 test("JettyClient takes explicit token and apiUrl over the environment", async () => {
   const saved = { token: process.env.JETTY_API_TOKEN, url: process.env.JETTY_API_URL };
   process.env.JETTY_API_TOKEN = "env-token";

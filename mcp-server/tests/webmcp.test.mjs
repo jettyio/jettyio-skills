@@ -6,7 +6,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { JettyApiClient } from "../dist/api-client.js";
-import { JETTY_TOOLS } from "../dist/tool-definitions.js";
+import { JETTY_TOOLS, JETTY_WEBMCP_TOOLS } from "../dist/tool-definitions.js";
 import {
   findModelContext,
   jettyWebMcpTools,
@@ -36,9 +36,10 @@ function mockFetch({ body = {}, ok = true, status = 200 } = {}) {
 
 const client = () => new JettyApiClient({ token: "static-token" });
 
-test("every catalog tool becomes a WebMCP descriptor with a JSON-Schema input", () => {
+test("every WebMCP-eligible catalog tool becomes a descriptor with a JSON-Schema input", () => {
   const tools = jettyWebMcpTools(client());
-  assert.equal(tools.length, JETTY_TOOLS.length);
+  assert.equal(tools.length, JETTY_WEBMCP_TOOLS.length);
+  assert.ok(JETTY_WEBMCP_TOOLS.length < JETTY_TOOLS.length);
   for (const tool of tools) {
     assert.equal(tool.inputSchema.type, "object");
     assert.equal(typeof tool.execute, "function");
@@ -140,9 +141,31 @@ test("registerJettyWebMcpTools falls back to provideContext and clears it on abo
   const controller = new AbortController();
   const result = registerJettyWebMcpTools(modelContext, client(), { signal: controller.signal });
   assert.equal(result.via, "provideContext");
-  assert.equal(provided.tools.length, JETTY_TOOLS.length);
+  assert.equal(provided.tools.length, JETTY_WEBMCP_TOOLS.length);
   controller.abort();
   assert.equal(cleared, 1);
+});
+
+test("trial-key tools stay MCP-only: never exposed over WebMCP, even when included", () => {
+  const names = (opts) => jettyWebMcpTools(client(), opts).map((t) => t.name);
+  for (const hidden of ["get-trial-status", "activate-trial"]) {
+    assert.ok(JETTY_TOOLS.some((t) => t.name === hidden), `${hidden} is still in the MCP catalog`);
+    assert.ok(!names().includes(hidden), `${hidden} exposed by default`);
+    assert.deepEqual(names({ include: [hidden, "list-tasks"] }), ["list-tasks"]);
+  }
+});
+
+test("registerJettyWebMcpTools registers nothing for a signal that is already aborted", () => {
+  const controller = new AbortController();
+  controller.abort();
+  let provided = 0;
+  let registered = 0;
+  const viaProvide = { provideContext: () => (provided += 1), clearContext: () => {} };
+  const viaRegister = { registerTool: () => (registered += 1) };
+  assert.deepEqual(registerJettyWebMcpTools(viaProvide, client(), { signal: controller.signal }), { via: null, tools: [] });
+  assert.deepEqual(registerJettyWebMcpTools(viaRegister, client(), { signal: controller.signal }), { via: null, tools: [] });
+  assert.equal(provided, 0);
+  assert.equal(registered, 0);
 });
 
 test("registerJettyWebMcpTools reports null when the context offers neither shape", () => {

@@ -7,7 +7,7 @@ export { JettyClient, resolveToken } from "./client.js";
 export { JettyApiClient, DEFAULT_API_URL } from "./api-client.js";
 export type { JettyApiClientOptions, TokenSource } from "./api-client.js";
 export { registerTools } from "./tools.js";
-export { JETTY_TOOLS, getJettyTool, jsonResult } from "./tool-definitions.js";
+export { JETTY_TOOLS, JETTY_WEBMCP_TOOLS, getJettyTool, jsonResult } from "./tool-definitions.js";
 export type { JettyToolDefinition, ToolAnnotations, ToolResult } from "./tool-definitions.js";
 export {
   findModelContext,

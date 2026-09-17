@@ -26,6 +26,12 @@ export interface JettyToolDefinition<Shape extends ZodRawShape = ZodRawShape> {
   /** zod raw shape — the MCP SDK's native input form. */
   inputSchema: Shape;
   annotations: ToolAnnotations;
+  /**
+   * Whether the WebMCP adapter may expose the tool. Defaults to true; the
+   * MCP server registers every tool regardless. Set false for account-level
+   * actions a page should not hand to an in-browser agent.
+   */
+  webmcp?: boolean;
   handler: (
     client: JettyApiClient,
     args: z.objectOutputType<Shape, ZodTypeAny>
@@ -161,12 +167,15 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
   }),
 
   // ── Trial keys ───────────────────────────────────────────────
+  // MCP only: trial keys are an account-level concern for the local agent
+  // that set the workspace up, not something a page hands to a browser agent.
   define({
     name: "get-trial-status",
     title: "Get trial status",
     description: "Get trial key status for a collection",
     inputSchema: { collection: collection() },
     annotations: READ,
+    webmcp: false,
     handler: (client, { collection }) => client.getTrialStatus(collection),
   }),
   define({
@@ -175,6 +184,7 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
     description: "Activate trial keys for a collection",
     inputSchema: { collection: collection() },
     annotations: WRITE,
+    webmcp: false,
     handler: (client, { collection }) => client.activateTrial(collection),
   }),
 
@@ -477,6 +487,11 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
       client.listRoutineRuns(collection, task, name, limit),
   }),
 ];
+
+/** The subset of the catalog the WebMCP adapter may expose. */
+export const JETTY_WEBMCP_TOOLS: readonly JettyToolDefinition[] = JETTY_TOOLS.filter(
+  (tool) => tool.webmcp !== false
+);
 
 export function getJettyTool(name: string): JettyToolDefinition | undefined {
   return JETTY_TOOLS.find((tool) => tool.name === name);

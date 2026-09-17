@@ -135,6 +135,11 @@ if (modelContext) {
 }
 ```
 
+Two tools stay MCP-only and are never exposed over WebMCP, even when `include` names
+them: `get-trial-status` and `activate-trial` (trial keys are an account-level concern
+for the local agent that set the workspace up, not something a page hands to a browser
+agent). `JETTY_WEBMCP_TOOLS` is the eligible subset.
+
 Each WebMCP tool carries the MCP tool's name, description, a JSON-Schema `inputSchema`
 derived from the zod shape, MCP-style `annotations` (`readOnlyHint`, `destructiveHint`),
 and an `execute` that validates input, calls the API, and returns the same

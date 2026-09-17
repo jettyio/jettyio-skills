@@ -6,7 +6,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import type { JettyApiClient } from "./api-client.js";
 import { JETTY_TOOLS, jsonResult } from "./tool-definitions.js";
 
-export { JETTY_TOOLS, getJettyTool, jsonResult } from "./tool-definitions.js";
+export { JETTY_TOOLS, JETTY_WEBMCP_TOOLS, getJettyTool, jsonResult } from "./tool-definitions.js";
 export type { JettyToolDefinition, ToolAnnotations, ToolResult } from "./tool-definitions.js";
 
 export function registerTools(server: McpServer, client: JettyApiClient) {

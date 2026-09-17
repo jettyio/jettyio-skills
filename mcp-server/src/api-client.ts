@@ -31,6 +31,9 @@ export interface JettyApiClientOptions {
   missingTokenMessage?: string;
 }
 
+/** A dynamic path segment, so reserved characters cannot alter the route. */
+const seg = (value: string | number): string => encodeURIComponent(String(value));
+
 const DEFAULT_MISSING_TOKEN =
   "No Jetty token available. Pass `token` (a string or a getter) to the client.";
 
@@ -93,16 +96,16 @@ export class JettyApiClient {
   }
 
   async getCollection(collection: string) {
-    return this.api(`/api/v1/collections/${collection}`);
+    return this.api(`/api/v1/collections/${seg(collection)}`);
   }
 
   // Tasks
   async listTasks(collection: string) {
-    return this.api(`/api/v1/tasks/${collection}/`);
+    return this.api(`/api/v1/tasks/${seg(collection)}/`);
   }
 
   async getTask(collection: string, task: string) {
-    return this.api(`/api/v1/tasks/${collection}/${task}`);
+    return this.api(`/api/v1/tasks/${seg(collection)}/${seg(task)}`);
   }
 
   async createTask(
@@ -111,7 +114,7 @@ export class JettyApiClient {
     workflow: unknown,
     description?: string
   ) {
-    return this.api(`/api/v1/tasks/${collection}`, {
+    return this.api(`/api/v1/tasks/${seg(collection)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, description: description || "", workflow }),
@@ -123,7 +126,7 @@ export class JettyApiClient {
     task: string,
     updates: { workflow?: unknown; description?: string }
   ) {
-    return this.api(`/api/v1/tasks/${collection}/${task}`, {
+    return this.api(`/api/v1/tasks/${seg(collection)}/${seg(task)}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(updates),
@@ -131,25 +134,25 @@ export class JettyApiClient {
   }
 
   async deleteTask(collection: string, task: string) {
-    return this.api(`/api/v1/tasks/${collection}/${task}`, {
+    return this.api(`/api/v1/tasks/${seg(collection)}/${seg(task)}`, {
       method: "DELETE",
     });
   }
 
   // Trial keys
   async getTrialStatus(collection: string) {
-    return this.api(`/api/v1/trial/${collection}`);
+    return this.api(`/api/v1/trial/${seg(collection)}`);
   }
 
   async activateTrial(collection: string) {
-    return this.api(`/api/v1/trial/${collection}/activate`, {
+    return this.api(`/api/v1/trial/${seg(collection)}/activate`, {
       method: "POST",
     });
   }
 
   // Collection environment
   async getCollectionEnvironment(collection: string) {
-    return this.api(`/api/v1/collections/${collection}/environment`);
+    return this.api(`/api/v1/collections/${seg(collection)}/environment`);
   }
 
   // Run workflows. Trial keys are injected automatically server-side when
@@ -162,7 +165,7 @@ export class JettyApiClient {
     const formData = new FormData();
     formData.append("init_params", JSON.stringify(initParams || {}));
 
-    return this.api(`/api/v1/run/${collection}/${task}`, {
+    return this.api(`/api/v1/run/${seg(collection)}/${seg(task)}`, {
       method: "POST",
       body: formData,
     });
@@ -176,7 +179,7 @@ export class JettyApiClient {
     const formData = new FormData();
     formData.append("init_params", JSON.stringify(initParams || {}));
 
-    return this.api(`/api/v1/run-sync/${collection}/${task}`, {
+    return this.api(`/api/v1/run-sync/${seg(collection)}/${seg(task)}`, {
       method: "POST",
       body: formData,
     });
@@ -190,7 +193,7 @@ export class JettyApiClient {
     page = 1
   ) {
     return this.api(
-      `/api/v1/db/trajectories/${collection}/${task}?limit=${limit}&page=${page}`
+      `/api/v1/db/trajectories/${seg(collection)}/${seg(task)}?limit=${seg(limit)}&page=${seg(page)}`
     );
   }
 
@@ -200,13 +203,13 @@ export class JettyApiClient {
     trajectoryId: string
   ) {
     return this.api(
-      `/api/v1/db/trajectory/${collection}/${task}/${trajectoryId}`
+      `/api/v1/db/trajectory/${seg(collection)}/${seg(task)}/${seg(trajectoryId)}`
     );
   }
 
   // Stats
   async getStats(collection: string, task: string) {
-    return this.api(`/api/v1/db/stats/${collection}/${task}`);
+    return this.api(`/api/v1/db/stats/${seg(collection)}/${seg(task)}`);
   }
 
   // Labels
@@ -219,7 +222,7 @@ export class JettyApiClient {
     author: string
   ) {
     return this.api(
-      `/api/v1/trajectory/${collection}/${task}/${trajectoryId}/labels`,
+      `/api/v1/trajectory/${seg(collection)}/${seg(task)}/${seg(trajectoryId)}/labels`,
       {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -230,7 +233,7 @@ export class JettyApiClient {
 
   // Workflow logs
   async getWorkflowLogs(workflowId: string) {
-    return this.api(`/api/v1/workflows-logs/${workflowId}`);
+    return this.api(`/api/v1/workflows-logs/${seg(workflowId)}`);
   }
 
   // Step templates
@@ -239,7 +242,7 @@ export class JettyApiClient {
   }
 
   async getStepTemplate(name: string) {
-    return this.request(`/api/v1/step-templates/${name}`);
+    return this.request(`/api/v1/step-templates/${seg(name)}`);
   }
 
   // Environment variables
@@ -247,7 +250,7 @@ export class JettyApiClient {
     collection: string,
     vars: Record<string, string>
   ) {
-    return this.api(`/api/v1/collections/${collection}/environment`, {
+    return this.api(`/api/v1/collections/${seg(collection)}/environment`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ environment_variables: vars }),
@@ -257,13 +260,13 @@ export class JettyApiClient {
   // Routines (scheduled runs)
   async listRoutines(collection: string, task?: string) {
     const path = task
-      ? `/api/v1/routines/${collection}/${task}`
-      : `/api/v1/routines/${collection}`;
+      ? `/api/v1/routines/${seg(collection)}/${seg(task)}`
+      : `/api/v1/routines/${seg(collection)}`;
     return this.api(path);
   }
 
   async getRoutine(collection: string, task: string, name: string) {
-    return this.api(`/api/v1/routines/${collection}/${task}/${name}`);
+    return this.api(`/api/v1/routines/${seg(collection)}/${seg(task)}/${seg(name)}`);
   }
 
   async createRoutine(
@@ -271,7 +274,7 @@ export class JettyApiClient {
     task: string,
     body: Record<string, unknown>
   ) {
-    return this.api(`/api/v1/routines/${collection}/${task}`, {
+    return this.api(`/api/v1/routines/${seg(collection)}/${seg(task)}`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
@@ -284,7 +287,7 @@ export class JettyApiClient {
     name: string,
     patch: Record<string, unknown>
   ) {
-    return this.api(`/api/v1/routines/${collection}/${task}/${name}`, {
+    return this.api(`/api/v1/routines/${seg(collection)}/${seg(task)}/${seg(name)}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(patch),
@@ -292,28 +295,28 @@ export class JettyApiClient {
   }
 
   async deleteRoutine(collection: string, task: string, name: string) {
-    return this.api(`/api/v1/routines/${collection}/${task}/${name}`, {
+    return this.api(`/api/v1/routines/${seg(collection)}/${seg(task)}/${seg(name)}`, {
       method: "DELETE",
     });
   }
 
   async pauseRoutine(collection: string, task: string, name: string) {
     return this.api(
-      `/api/v1/routines/${collection}/${task}/${name}/pause`,
+      `/api/v1/routines/${seg(collection)}/${seg(task)}/${seg(name)}/pause`,
       { method: "POST" }
     );
   }
 
   async resumeRoutine(collection: string, task: string, name: string) {
     return this.api(
-      `/api/v1/routines/${collection}/${task}/${name}/resume`,
+      `/api/v1/routines/${seg(collection)}/${seg(task)}/${seg(name)}/resume`,
       { method: "POST" }
     );
   }
 
   async runRoutineNow(collection: string, task: string, name: string) {
     return this.api(
-      `/api/v1/routines/${collection}/${task}/${name}/run-now`,
+      `/api/v1/routines/${seg(collection)}/${seg(task)}/${seg(name)}/run-now`,
       { method: "POST" }
     );
   }
@@ -324,9 +327,9 @@ export class JettyApiClient {
     name: string,
     limit?: number
   ) {
-    const qs = typeof limit === "number" ? `?limit=${limit}` : "";
+    const qs = typeof limit === "number" ? `?limit=${seg(limit)}` : "";
     return this.api(
-      `/api/v1/routines/${collection}/${task}/${name}/runs${qs}`
+      `/api/v1/routines/${seg(collection)}/${seg(task)}/${seg(name)}/runs${qs}`
     );
   }
 }

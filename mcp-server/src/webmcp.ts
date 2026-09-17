@@ -15,7 +15,7 @@ import { z } from "zod";
 import { zodToJsonSchema } from "zod-to-json-schema";
 import type { JettyApiClient } from "./api-client.js";
 import {
-  JETTY_TOOLS,
+  JETTY_WEBMCP_TOOLS,
   jsonResult,
   type JettyToolDefinition,
   type ToolAnnotations,
@@ -83,14 +83,18 @@ export function toWebMcpTool(
   };
 }
 
-/** The catalog as WebMCP tool descriptors, filtered per `options`. */
+/**
+ * The catalog as WebMCP tool descriptors, filtered per `options`. Tools the
+ * catalog marks `webmcp: false` (trial-key management) are never exposed,
+ * even when `include` names them.
+ */
 export function jettyWebMcpTools(
   client: JettyApiClient,
   options: JettyWebMcpOptions = {}
 ): WebMcpTool[] {
   const include = options.include ? new Set(options.include) : null;
   const exclude = new Set(options.exclude ?? []);
-  return JETTY_TOOLS.filter(
+  return JETTY_WEBMCP_TOOLS.filter(
     (tool) =>
       (!include || include.has(tool.name)) &&
       !exclude.has(tool.name) &&
@@ -128,13 +132,17 @@ export interface RegisterJettyWebMcpResult {
 /**
  * Register the (filtered) catalog on `modelContext`. With `registerTool`,
  * `signal` unregisters the tools when aborted; with `provideContext`, abort
- * calls `clearContext()` when the context has one.
+ * calls `clearContext()` when the context has one. A signal that is already
+ * aborted registers nothing (`via: null`).
  */
 export function registerJettyWebMcpTools(
   modelContext: ModelContextLike,
   client: JettyApiClient,
   options: JettyWebMcpOptions & { signal?: AbortSignal } = {}
 ): RegisterJettyWebMcpResult {
+  // An AbortSignal never replays an earlier abort, so a signal that is
+  // already aborted would register tools nothing ever unregisters.
+  if (options.signal?.aborted) return { via: null, tools: [] };
   const tools = jettyWebMcpTools(client, options);
   const names = tools.map((tool) => tool.name);
   if (typeof modelContext.registerTool === "function") {
