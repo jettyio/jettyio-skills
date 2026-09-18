@@ -481,10 +481,10 @@ else
 fi
 
 # Check the validation report is v2
-if grep -q '"version": "2.0.0"' "$FILE" && grep -q '"checks": \[' "$FILE"; then
+if grep -qE '"version": *2 *,? *$' "$FILE" && grep -q '"checks": \[' "$FILE"; then
   echo "PASS: validation report v2 (checks[])"
 else
-  echo "ERROR: validation report example must be v2 with a checks[] array"
+  echo "ERROR: validation report example must be v2 (\"version\": 2) with a checks[] array"
   ERRORS=$((ERRORS+1))
 fi
 

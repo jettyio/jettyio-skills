@@ -232,11 +232,11 @@ Observable conditions you confirm by inspection after the code checks. Record ea
 
 ## Write Validation Report
 
-Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per step (`kind: step`), per Code Check (`kind: code_check`, `id` = the heading id), per Checklist item (`kind: checklist`, `id` = the slugified item text) and per rubric criterion (`kind: judge`). Report every check you ran, including the ones that still fail — Jetty computes the verdict from `checks`; the `verdict` you write is a hint.
+Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per step (`kind: step`), per Code Check (`kind: code_check`, `id` = the heading id), per Checklist item (`kind: checklist`, `id` = the slugified item text) and per rubric criterion (`kind: judge`). Report every check you ran, including the ones that still fail — Jetty computes the verdict from `checks`; the `verdict` you write is a hint. `version` is the integer `2` (the report format), not a string.
 
 ```json
 {
-  "version": "2.0.0",
+  "version": 2,
   "run_date": "2026-01-01T00:00:00Z",
   "parameters": {
     "param_1": "value",
