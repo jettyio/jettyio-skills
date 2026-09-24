@@ -65,6 +65,13 @@ const collection = () => z.string().describe("Collection name");
 const task = () => z.string().describe("Task name");
 const routineName = () => z.string().describe("Routine name");
 
+const INIT_PARAMS_MERGE =
+  "Input parameters for the workflow, merged shallowly over the task's stored init_params (caller wins per top-level key). A nested object such as vars replaces the task's whole vars, so include every variable, not just the changed ones.";
+const WEBHOOK_URL_DESC =
+  "Optional URL POSTed the full trajectory JSON when each run completes or fails (best effort, up to 3 attempts).";
+const WEBHOOK_SECRET_DESC =
+  "Optional. When set, deliveries carry X-Mise-Signature = hex HMAC-SHA256(secret, '{timestamp}.{body}'); without it they are sent unsigned (no signature header).";
+
 const cadenceSchema = z
   .object({
     type: z
@@ -200,7 +207,7 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
       init_params: z
         .record(z.unknown())
         .optional()
-        .describe("Input parameters for the workflow"),
+        .describe(INIT_PARAMS_MERGE),
     },
     annotations: WRITE,
     handler: (client, { collection, task, init_params }) =>
@@ -217,7 +224,7 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
       init_params: z
         .record(z.unknown())
         .optional()
-        .describe("Input parameters for the workflow"),
+        .describe(INIT_PARAMS_MERGE),
     },
     annotations: WRITE,
     handler: (client, { collection, task, init_params }) =>
@@ -377,18 +384,15 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
         .record(z.unknown())
         .optional()
         .describe(
-          "Init param overrides. Keys must be a subset of task.workflow.init_params; unknown keys return 400."
+          "Init param overrides. Keys must be a subset of task.workflow.init_params; unknown keys return 400. Merged shallowly per top-level key: overriding vars replaces the task's whole vars object, so include every variable."
         ),
       secret_params: z
         .record(z.unknown())
         .optional()
         .describe("Secrets injected at fire time (encrypted at rest, never logged)."),
       paused: z.boolean().optional().describe("Create the routine in paused state"),
-      webhook_url: z.string().optional().describe("Optional webhook to notify on each run"),
-      webhook_secret: z
-        .string()
-        .optional()
-        .describe("Optional shared secret for webhook signing"),
+      webhook_url: z.string().optional().describe(WEBHOOK_URL_DESC),
+      webhook_secret: z.string().optional().describe(WEBHOOK_SECRET_DESC),
     },
     annotations: WRITE,
     handler: (
@@ -417,11 +421,13 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
       init_params_overrides: z
         .record(z.unknown())
         .optional()
-        .describe("Replace init param overrides"),
+        .describe(
+          "Replace init param overrides (the whole object; merged shallowly over the task's init_params at fire time)"
+        ),
       secret_params: z.record(z.unknown()).optional().describe("Replace secret params"),
       paused: z.boolean().optional().describe("Pause/resume the routine"),
-      webhook_url: z.string().optional().describe("Update webhook URL"),
-      webhook_secret: z.string().optional().describe("Update webhook signing secret"),
+      webhook_url: z.string().optional().describe(WEBHOOK_URL_DESC),
+      webhook_secret: z.string().optional().describe(WEBHOOK_SECRET_DESC),
     },
     annotations: WRITE,
     handler: (

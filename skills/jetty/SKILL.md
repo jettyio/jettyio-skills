@@ -231,6 +231,40 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
 ```
 
+**How `init_params` merge:** the run's `init_params` are merged over the task's stored `workflow.init_params` **shallowly, per top-level key** — caller wins. A nested object is replaced whole, not merged. For runbook tasks this matters for `vars`: sending `{"vars": {"url": "..."}}` replaces the task's entire `vars` object, so any variable you leave out is gone (its `{{placeholder}}` stays unsubstituted). Read the task first (`GET /api/v1/tasks/{COLLECTION}/{TASK}` → `.workflow.init_params.vars`) and send the full object with your changes applied. Routine `init_params_overrides` merge the same way.
+
+#### Completion webhooks
+
+Instead of polling, pass `webhook_url` on an async run and Jetty POSTs to it when the run finishes (completed **or** failed). There is no webhook registration endpoint — the URL rides on the request:
+
+- `POST /api/v1/run/{COLLECTION}/{TASK}` — `webhook_url` / `webhook_secret` as form fields (multipart) or top-level JSON fields
+- Chat-completions runbook mode — `jetty.webhook_url` / `jetty.webhook_secret`; with a webhook set (and `stream: false`) the call returns `202` immediately
+- Routines — `webhook_url` / `webhook_secret` on the routine, applied to every run it fires
+- **`/api/v1/run-sync` ignores both fields** and never sends a webhook (the response already carries the result). The MCP `run-workflow` tools don't expose webhook fields; use the REST API.
+
+```bash
+curl -s -X POST -H "Authorization: Bearer $TOKEN" \
+  -F 'init_params={"prompt": "analyze this"}' \
+  -F 'webhook_url=https://ops.example.com/jetty' \
+  -F "webhook_secret=$WEBHOOK_SECRET" \
+  "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
+```
+
+**Signed vs. unsigned — `webhook_secret` is optional:**
+
+| Header | With `webhook_secret` | Without |
+|---|---|---|
+| `Content-Type: application/json` | sent | sent |
+| `X-Mise-Timestamp` (Unix seconds) | sent | sent |
+| `X-Mise-Trajectory-Id` | sent | sent |
+| `X-Mise-Signature` | hex `HMAC-SHA256(secret, "{timestamp}.{raw body}")` | **absent** |
+
+A URL alone is enough to get deliveries; the secret only adds the signature. When the receiver acts on the payload, set a secret and have the receiver **fail closed**: reject requests with no `X-Mise-Signature`, recompute the HMAC over the timestamp header + `.` + the raw body bytes, compare in constant time, and reject stale timestamps.
+
+- **Body:** the full trajectory JSON (same as `GET /api/v1/trajectory/{COLLECTION}/{TASK}/{TRAJECTORY_ID}`); check `.status`. `webhook_secret` is never included.
+- **Delivery:** up to 3 attempts (1 s, 2 s backoff, 30 s timeout each); any status < 400 counts as delivered. Best effort — a failed delivery is logged on the run but never fails it.
+- Not to be confused with the `webhook` **step activity**, which makes an outbound HTTP call mid-workflow.
+
 #### Trial Key Support
 
 Before triggering a run, check if the collection is on an active trial with no provider keys configured:
@@ -538,7 +572,9 @@ cat <<PAYLOAD | curl -s -X POST \
 PAYLOAD
 ```
 
-**Important:** Template variables (`{{sample_size}}`, `{{results_dir}}`, etc.) must go in `jetty.template_variables`, NOT in the user message text. The backend substitutes `{{var}}` placeholders in the runbook instruction before the agent sees it. The user message is only used as a prompt/instruction to the agent.
+**Important:** Template variables (`{{sample_size}}`, `{{results_dir}}`, etc.) must go in `jetty.template_variables`, NOT in the user message text. The backend substitutes `{{var}}` placeholders in the runbook instruction before the agent sees it. The user message is only used as a prompt/instruction to the agent (it's also exposed as `{{prompt}}`).
+
+**Send every variable.** In this mode the run's `vars` are built from `jetty.template_variables` plus `prompt` and `results_dir`, and they **replace** the task's stored `vars` wholesale — defaults saved on the task are not merged in. Include every parameter the runbook uses, with its default if the user didn't override it.
 
 7. Extract the trajectory ID from the response
 8. Monitor the trajectory using the standard trajectory inspection commands:
@@ -569,6 +605,9 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
 | `jetty.file_paths` | string[] | No | **Storage paths** of input files to mount into the sandbox — e.g. the paths returned by `POST /api/v1/sandbox/upload`. These are raw storage keys, **not** OpenAI `file-…` ids (see warning below) |
 | `jetty.files` | string[] | No | OpenAI-style file ids (`file-…`) returned by `POST /api/v1/files`. Resolved server-side to their storage paths. Use this slot for `/api/v1/files` uploads — **not** `file_paths` |
+| `jetty.webhook_url` | string | No | POSTed the trajectory JSON when the run completes or fails. With `stream: false`, the call returns `202` immediately instead of waiting. See [Completion webhooks](#completion-webhooks) |
+| `jetty.webhook_secret` | string | No | Optional. When set, deliveries are signed (`X-Mise-Signature`); without it they're sent unsigned |
+| `jetty.timeout_hint` | integer | No | Sync wait in seconds (default 1200); past it the call returns `202` with `jetty_metadata.poll_url` |
 | `jetty.use_trial_keys` | boolean | No | Use Jetty trial keys (default: false). Set to true for trial users with no own provider keys |
 
 **File upload** (if the runbook needs input files):
@@ -644,7 +683,7 @@ response = client.chat.completions.create(
 
 ### Scheduling routines
 
-A **routine** is a saved schedule that fires an existing task on a recurring cadence. Routines build on the same `FlowWorkflow.run` pipeline as one-shot runs, with optional `init_params_overrides` merged on top of the task's defaults. Trajectories produced by a routine are tagged with `triggered_by_routine_id` for easy filtering.
+A **routine** is a saved schedule that fires an existing task on a recurring cadence. Routines build on the same `FlowWorkflow.run` pipeline as one-shot runs, with optional `init_params_overrides` merged on top of the task's defaults (shallow, per top-level key — an override of `vars` replaces the whole `vars` object, so include every variable). A routine can also carry `webhook_url` / `webhook_secret`, applied to every run it fires (see [Completion webhooks](#completion-webhooks)). Trajectories produced by a routine are tagged with `triggered_by_routine_id` for easy filtering.
 
 Use the MCP tools (preferred) or hit the REST API directly:
 
