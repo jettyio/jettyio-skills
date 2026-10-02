@@ -199,7 +199,7 @@ Now customize the template using the task description from Step 2a:
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
 5. **Agent/model/model_provider/snapshot**: Write the choices from Step 2c into the frontmatter fields. Include `model_provider` so routing is explicit (claude-code → `openrouter` by default, or `anthropic` for direct routing; codex → `openai`; gemini-cli → `google`).
 6. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
-7. **Code Checks and Checklist**: keep the `outputs-exist` check and make its file list match the REQUIRED OUTPUT FILES table (minus `validation_report.json`). Leave the `{TODO: ...}` line under Code Checks for Step 4h; it is prose, not a check, so it never runs.
+7. **Code Checks and Checklist**: keep the `outputs-exist` check and make its file list match the REQUIRED OUTPUT FILES table (minus `validation_report.json`). Leave the `{TODO: ...}` line under Code Checks for Step 4h; it is prose before the first `###` heading, which Jetty's parser ignores, so it never runs.
 
 Leave `{TODO: ...}` markers, `{How to fix it}`, and similar placeholders in sections that require detailed domain input from the user (evaluation criteria, common fixes, tips, dependencies).
 
@@ -365,15 +365,15 @@ Update the rubric table via Edit.
 
 ### 4h: Code Checks & Checklist
 
-Code Checks run exactly as written and a failing one fails the run, so the runbook must not ship with a placeholder check. Show the user the `outputs-exist` check and the `{TODO: ...}` line under `## Code Checks`, then use AskUserQuestion:
+Code Checks are run by Jetty after the agent finishes (command checks) or by the agent (agent checks), exactly as written, and a failing one fails the run, so the runbook must not ship with a placeholder check. Show the user the `outputs-exist` check and the `{TODO: ...}` line under `## Code Checks`, then use AskUserQuestion:
 - Header: "Code Checks"
-- Question: "Which properties of `{primary_output}` can a script verify? Each becomes a `### <id> — <name>` heading with one fenced command that exits non-zero on failure (schema validation, row counts, link checks, a test suite). Scripts you already have can be cloned into `/app/checks/` via `code_checks.sources` in the frontmatter."
+- Question: "Which properties of `{primary_output}` can be verified? Each becomes a `### <id> — <name>` heading with one fenced block: a `bash` command that exits non-zero on failure (schema validation, row counts, a test suite), a `yaml` built-in (`use: file_exists | min_size | json_valid | regex_present | regex_absent | markdown_relative_links_resolve`), or an `agent` instruction for something only the agent can check (an MCP server, its live state). Scripts you already have can be cloned from a git repo via `code_checks.sources` in the frontmatter."
 - Options:
   - "I'll describe them" / "Let me list what to check" (user types)
   - "Draft them" / "Propose 1-3 checks from the output format and I'll review"
   - "Only outputs-exist" / "Keep just the file-existence check for now"
 
-Via Edit: add each check after `outputs-exist` (kebab-case id, one sentence name, one fenced command), then delete the `{TODO: ...}` line. If the user chose "Only outputs-exist", delete the line anyway. If a check needs a script from a git repo, uncomment `code_checks.sources` in the frontmatter, fill in `name`/`url`/`ref`, and declare its `secret` under `secrets:` too.
+Via Edit: add each check after `outputs-exist` (id of letters, digits, `.`, `_`, `-`; a one-sentence name; one fenced block whose language is `bash`, `yaml` or `agent`), then delete the `{TODO: ...}` line. If the user chose "Only outputs-exist", delete the line anyway. Prefer a built-in or a `bash` fence: Jetty runs those itself, so the agent cannot skip or misreport them. A `bash` fence runs under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; the per-check timeout is `code_checks.timeout_sec` (default 120 s). If a check needs a script from a git repo, uncomment `code_checks.sources` in the frontmatter, fill in `name`/`url`/`ref`, declare its `secret` under `secrets:` too, and reference the clone as `{{checks_dir}}/<name>/...`; an agent check must not reference it (the clone happens after the agent exits unless `code_checks.executor: agent`).
 
 Then review the `## Checklist` items with the user: 3-6 `- [ ]` conditions a reviewer confirms by inspection, each a short phrase (its slug becomes the report `id`), no `{...}` placeholders. A failed item fails the run, so keep only conditions the agent can actually verify from the outputs.
 
@@ -510,6 +510,15 @@ if printf '%s\n' "$CHECK_BODY" | grep '^### ' | grep -qE '(^|[^{$])\{[^{]'; then
   ERRORS=$((ERRORS+1))
 elif printf '%s\n' "$CHECK_BODY" | grep -v '^### ' | grep -qE '(^|[^{$])\{[^{]'; then
   echo "WARN: A Code Check command contains a '{' outside {{var}} / \${var} — make sure it is not an unfilled placeholder"
+  WARNINGS=$((WARNINGS+1))
+fi
+# Jetty reads a check heading as '### <id> <dash> <name>' (id: letters, digits, . _ -) and the first fence's language as its kind
+if printf '%s\n' "$CHECK_BODY" | grep '^### ' | grep -vqE '^### [A-Za-z0-9][A-Za-z0-9._-]*[[:space:]]+(—|–|-)[[:space:]]+.+'; then
+  echo "ERROR: A Code Check heading is not '### <id> — <name>' (id: letters, digits, . _ -)"
+  ERRORS=$((ERRORS+1))
+fi
+if printf '%s\n' "$CHECK_BODY" | grep -E '^```[A-Za-z]' | grep -vqE '^```(bash|sh|shell|yaml|check|agent)[[:space:]]*$'; then
+  echo "WARN: A fence under ## Code Checks is not bash/sh (command), yaml (built-in) or agent (agent check) — Jetty reports such a check as error"
   WARNINGS=$((WARNINGS+1))
 fi
 if [ "${CHECK_COUNT:-0}" -lt 2 ]; then

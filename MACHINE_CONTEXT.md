@@ -94,7 +94,8 @@ A runbook is YAML frontmatter + a body of numbered steps. Frontmatter declares
 order: **Objective → required output files** (always incl. `validation_report.json`
 + `summary.md`) **→ parameters → dependencies → numbered steps → evaluation →
 bounded iteration → code checks → checklist → validation report** (v2, typed
-`checks[]`; Jetty computes the verdict from it).
+`checks[]`; Jetty runs the command checks itself after the agent exits, merges
+their entries in and computes the verdict).
 
 The **authoritative frontmatter schema, section templates, and structural validator
 ship in the `create-runbook` skill** — scaffold and validate with it rather than

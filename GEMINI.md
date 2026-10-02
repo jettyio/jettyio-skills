@@ -60,7 +60,7 @@ A **runbook** is a structured markdown document that tells a coding agent how to
 - **Rubric** (`evaluation: rubric`) — score against multi-criteria rubric (1-5 scale)
 
 ### Runbook structure
-Every runbook includes: YAML frontmatter (version + evaluation type), Objective, REQUIRED OUTPUT FILES manifest, Parameters, Dependencies, processing steps, evaluation step, iteration loop (max 3 rounds), Code Checks, Checklist, and a summary + `validation_report.json` v2 report (typed `checks[]`; Jetty computes the verdict).
+Every runbook includes: YAML frontmatter (version + evaluation type), Objective, REQUIRED OUTPUT FILES manifest, Parameters, Dependencies, processing steps, evaluation step, iteration loop (max 3 rounds), Code Checks (command checks Jetty runs after the agent exits, agent checks the agent runs), Checklist, and a summary + `validation_report.json` v2 report (typed `checks[]`; Jetty merges its check entries in and computes the verdict).
 
 ### Creating a runbook
 Use the starter templates in the `skills/create-runbook/templates/` directory:

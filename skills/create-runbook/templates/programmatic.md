@@ -1,7 +1,7 @@
 ---
 version: "1.0.0"
 evaluation: programmatic
-strict_evaluation: false              # true: a declared Code Check or Checklist item the agent did not report counts as failed, not skipped
+strict_evaluation: false              # true: an agent check the agent did not report is recorded as error (fails the run) instead of skipped
 agent: claude-code                    # Agent runtime: claude-code | opencode | codex | gemini-cli
 model: anthropic/claude-sonnet-4.6   # Model for the agent (see agents-and-models reference)
 model_provider: openrouter           # Routes the model through OpenRouter (requires OPENROUTER_API_KEY)
@@ -11,18 +11,22 @@ snapshot: python312-uv                # Sandbox: python312-uv | prism-playwright
 # omitted it falls back to the first file written.
 primary_outputs:
   - "{primary_output}"
-secrets:                              # Optional — declare sensitive params here
+secrets:                              # Optional — declare sensitive params here (names only, never values)
   # EXAMPLE_API_KEY:
   #   env: EXAMPLE_API_KEY            # Collection env var name on Jetty / OS env var locally
   #   description: "API key for ..."
   #   required: true
-code_checks:                          # Optional — resources the Code Checks section needs
-  # sources:                          # cloned to /app/checks/<name> before the agent starts
+  #   expose_to_agent: false          # optional — withhold from the agent's environment (default: forwarded, unless a source or MCP server consumes it)
+  #   expose_to_checks: true          # optional — give a withheld secret to the code checks Jetty runs
+code_checks:                          # Optional — how the Code Checks run and what they need (a task default a run may override)
+  # executor: jetty                   # jetty (default): Jetty runs command checks after the agent exits | agent: the agent runs them too
+  # timeout_sec: 120                  # per check, max 900
+  # sources:                          # cloned to {{checks_dir}}/<name> (/app/checks/<name>) after the agent exits
   #   - name: checks
   #     type: git
   #     url: https://github.com/acme/output-checks
-  #     ref: main
-  #     secret: GITHUB_TOKEN          # must also be declared under secrets:
+  #     ref: main                     # branch, tag or commit SHA
+  #     secret: GITHUB_TOKEN          # must also be declared under secrets:; consumed by Jetty, withheld from the agent
   # mcp_servers: {}                   # merged into the run's MCP servers
   # references: []                    # URLs the agent may read while checking
 ---
@@ -207,9 +211,14 @@ Write `{{results_dir}}/summary.md` with the following structure:
 
 ## Code Checks
 
-Deterministic commands run against `{{results_dir}}` after Step 6 and before the Checklist. One `### <id> — <name>` heading per check, followed by exactly one fenced command; exit code 0 means pass. Every check runs exactly as written and is recorded in the validation report. **A failing code check fails the run's verdict.**
+One `### <id> — <name>` heading per check (id: letters, digits, `.`, `_`, `-`), followed by exactly one fenced block. The fence's language is the check's kind:
 
-Keep `outputs-exist`; its file list must match the REQUIRED OUTPUT FILES table minus `validation_report.json`, which is written after the checks run. {TODO: add 1-3 checks specific to {primary_output} after outputs-exist, one `### <id> — <name>` heading and one fenced command each, e.g. `python /app/checks/validate_schema.py {{results_dir}}/{primary_output}` (scripts under /app/checks come from code_checks.sources in the frontmatter). Delete this line when done.}
+- **Command check**, `bash` fence: a shell command run with `bash -e -o pipefail` (every line must succeed; exit 0 is pass, any other exit fails) with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` in its environment and `{{results_dir}}`, `{{checks_dir}}`, `{{assets_dir}}` substituted. A `yaml` fence instead names a built-in: `use:` one of `file_exists`, `min_size`, `json_valid`, `regex_present`, `regex_absent`, `markdown_relative_links_resolve`, with paths relative to the results directory.
+- **Agent check**, `agent` fence: an instruction only you can carry out (one that needs an MCP server or your live state): what to do, with which tools, and what passing means.
+
+**On Jetty, command checks are run by Jetty itself after you finish, in this sandbox; you do not run them and you write no report entries for them.** A note appended to this runbook at run time names the ids you run (agent checks) and the ids Jetty runs; follow it. Without such a note (running locally), run every check yourself and record each. Scripts a check needs come from `code_checks.sources` in the frontmatter, cloned to `{{checks_dir}}/<name>`. **A failing check fails the run's verdict.**
+
+Keep `outputs-exist`; its file list must match the REQUIRED OUTPUT FILES table minus `validation_report.json`, which is written after the steps. {TODO: add 1-3 checks specific to {primary_output} after outputs-exist, e.g. a yaml fence with `use: json_valid` and `path: {primary_output}`, or a bash fence running `python {{checks_dir}}/checks/validate_schema.py {{results_dir}}/{primary_output}` from a declared source. Delete this line when done.}
 
 ### outputs-exist — Every required output file exists and is non-empty
 
@@ -221,7 +230,7 @@ test -s {{results_dir}}/{primary_output} && test -s {{results_dir}}/summary.md
 
 ## Checklist
 
-Observable conditions you confirm by inspection after the code checks. Placeholder text means `{...}` or `TODO` left in any output file. Record each item in the validation report as `kind: checklist`. **A failed item fails the run's verdict.**
+Observable conditions you confirm by inspection before writing the report. Placeholder text means `{...}` or `TODO` left in any output file. Record each item in the validation report as `kind: checklist`. **A failed item fails the run's verdict.**
 
 - [ ] `{primary_output}` meets the format in the REQUIRED OUTPUT FILES table and the PASS criteria in Step 4
 - [ ] summary.md has the required sections
@@ -231,7 +240,7 @@ Observable conditions you confirm by inspection after the code checks. Placehold
 
 ## Write Validation Report
 
-Write `{{results_dir}}/validation_report.json` **last**; it is the one required file the code checks do not test. One entry in `checks` per step (`kind: step`), per Code Check (`kind: code_check`, `id` = the heading id, `details.command` = the command exactly as you ran it), per Checklist item (`kind: checklist`) and, only when the runbook grades against a rubric, per criterion (`kind: judge`). Report every check you ran, including the ones that still fail: Jetty computes the verdict from `checks`, and the `verdict` you write is a hint.
+Write `{{results_dir}}/validation_report.json` **last**. One entry in `checks` per step (`kind: step`), per Checklist item (`kind: checklist`), per agent check you ran (`kind: code_check`, `id` exactly as its heading) and, only when the runbook grades against a rubric, per criterion (`kind: judge`). Write no entries for the command checks Jetty runs: Jetty appends those after you finish (each with `details.runner: "jetty"`), drops any `code_check` entry whose id it does not expect, and computes the verdict from the merged `checks`; the `verdict` you write is a hint. Report every check you ran, including the ones that still fail.
 
 A checklist `id` is the item text lower-cased with every run of non-alphanumeric characters replaced by `-` (`summary.md has the required sections` → `summary-md-has-the-required-sections`); `name` is the item text verbatim.
 
@@ -260,32 +269,6 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
       "name": "Processing",
       "status": "pass",
       "message": "Processed 12 items"
-    },
-    {
-      "kind": "code_check",
-      "id": "outputs-exist",
-      "name": "Every required output file exists and is non-empty",
-      "status": "pass",
-      "message": "2 files present",
-      "details": {
-        "command": "test -s {{results_dir}}/{primary_output} && test -s {{results_dir}}/summary.md",
-        "exit_code": 0,
-        "stdout_tail": "",
-        "duration_seconds": 0.1
-      }
-    },
-    {
-      "kind": "code_check",
-      "id": "schema-valid",
-      "name": "Output JSON validates against the declared schema",
-      "status": "fail",
-      "message": "2 errors",
-      "details": {
-        "command": "python /app/checks/validate_schema.py {{results_dir}}/{primary_output}",
-        "exit_code": 1,
-        "stdout_tail": "items[3].date: not a date\nitems[7].url: missing\n",
-        "duration_seconds": 0.8
-      }
     },
     {
       "kind": "checklist",
@@ -344,9 +327,9 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
 }
 ```
 
-`version` is the integer `2`. `kind` is one of `step | code_check | checklist | judge`; `status` is one of `pass | fail | skipped | error`. `stages`, `results` and `rubric_scores` are v1 mirrors kept for the existing report panel: derive `stages` from the `step` entries, `results` from the Step 4 status tally and `rubric_scores` from the `judge` entries (`{}` when there are none). Never edit a mirror separately from `checks`.
+`version` is the integer `2`. `kind` is one of `step | code_check | checklist | judge`; `status` is one of `pass | fail | skipped | error`. An agent check you ran is one entry, `{"kind": "code_check", "id": "<heading id>", "name": "<heading name>", "status": "pass|fail", "message": "<one line>"}`; an agent check you did not report is recorded by Jetty as `skipped`, or as `error` (failing the run) when `strict_evaluation` is on. When you ran a command check yourself (locally, or under `code_checks.executor: agent`), record it the same way with `details.command`, `details.exit_code` and `details.stdout_tail`. `stages`, `results` and `rubric_scores` are v1 mirrors kept for the existing report panel: derive `stages` from the `step` entries, `results` from the Step 4 status tally and `rubric_scores` from the `judge` entries (`{}` when there are none). Never edit a mirror separately from `checks`.
 
-**If a code check or checklist item fails, go back and fix the output (within the iteration cap), re-run the checks, then rewrite the report. Do NOT finish before the report is written.**
+**If a checklist item or a check you ran fails, go back and fix the output (within the iteration cap), re-check, then rewrite the report. Do NOT finish before the report is written.**
 
 ---
 

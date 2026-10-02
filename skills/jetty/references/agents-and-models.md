@@ -95,15 +95,19 @@ model_provider: openrouter
 snapshot: python312-uv
 primary_outputs:          # optional — headline deliverable(s), relative to results_dir
   - report.html
-code_checks:              # optional — resources the ## Code Checks section needs
+code_checks:              # optional — how the ## Code Checks run and what they need
+  executor: jetty         # jetty (default) runs command checks after the agent exits; agent hands them to the agent
+  timeout_sec: 120        # per check, max 900
   sources:
     - name: checks
       type: git
       url: https://github.com/acme/output-checks
-      ref: main
+      ref: main             # branch, tag or commit SHA
       secret: GITHUB_TOKEN  # must also be declared under secrets:
 ---
 ```
+
+`agent`, `model`, `model_provider`, `snapshot`, `mcp_servers`, `code_checks` and `strict_evaluation` are **task defaults**: mise copies them into the task's `init_params` when the task is created, and a run may override any of them per top-level key. `secrets:` is a declaration the run must satisfy (names only, never values) and is never copied.
 
 These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`. If you omit `model_provider` entirely, Jetty falls back to agent-based inference (`claude-code` → `anthropic`), so set it explicitly.
 
@@ -113,15 +117,21 @@ Optional. An ordered list of the runbook's headline deliverable(s), each given a
 
 ### `strict_evaluation`
 
-Optional, default `false`. The runbook's `## Code Checks` and `## Checklist` sections declare the checks the agent must run and report in `validation_report.json`. With `strict_evaluation: true`, a declared check the agent did not report counts as `failed` instead of `skipped`, so an omitted check fails the run. Mise reconciles declared against reported checks in a later phase; until then the key is carried through unchanged.
+Optional, default `false`. A `## Code Checks` entry with an `agent` fence is the agent's to run and report. One the agent did not report is written into `validation_report.json` by Jetty as `skipped`; with `strict_evaluation: true` it is written as `error`, which fails the run. Command checks are unaffected: Jetty runs those itself.
 
 ### `code_checks`
 
-Optional. Resources the `## Code Checks` section needs at run time, modelled on `secrets:`.
+Optional. How the `## Code Checks` run and what they need. Under v2 each `### <id> — <name>` heading is followed by one fenced block whose language is the check's kind: a `bash` fence is a command run under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; a `yaml` fence is a built-in (`use:` one of `file_exists`, `min_size`, `json_valid`, `regex_present`, `regex_absent`, `markdown_relative_links_resolve`, paths relative to the results directory); an `agent` fence is an instruction only the agent can carry out. Exit 0 is `pass`; a timeout, a built-in with a bad spec, a command the shell cannot run or a heading with no usable fence is `error`; any other exit is `fail`. Every entry Jetty writes carries `details.runner: "jetty"`.
 
-- `sources` — repositories cloned to `/app/checks/<name>` before the agent starts (`type: git`, `url`, optional `ref`, optional `secret` naming an entry in `secrets:` that is injected as the clone credential and never logged). A clone failure fails the run rather than silently skipping the check.
+- `executor` — `jetty` (default): Jetty runs the command checks in the run's sandbox after the agent process has exited, and its entries replace any the agent wrote for them. `agent`: the agent runs the command checks too and its entries stand. Malformed and unreported checks are recorded by Jetty either way.
+- `timeout_sec` — per check, default 120, max 900.
+- `sources` — repositories cloned to `/app/checks/<name>` (`type: git`, `https://` `url`, optional `ref` as a branch, tag or commit SHA, optional `secret` naming an entry in `secrets:`). Each source is probed from the worker before the sandbox exists, so a bad URL, dead token or missing ref fails the run before anything is paid for. Under the `jetty` executor the clone happens after the agent exits, so the agent never sees the check code and an agent check must not reference `/app/checks`; under `executor: agent` it is cloned before the agent. A source's `secret` is consumed by Jetty and withheld from the agent's environment.
 - `mcp_servers` — merged into the run's MCP servers.
 - `references` — URLs the agent may read while checking; not provisioned.
+
+### Secret exposure
+
+A `secrets:` entry (`NAME: {env: VAR}`) is forwarded to the agent's environment unless a `code_checks.sources[]` entry or an MCP server names it with `secret:`, in which case Jetty consumes it and withholds it from the agent. `expose_to_agent: true|false` overrides either default. The code checks Jetty runs receive the secrets the agent itself received and no other; `expose_to_checks: true` opts a withheld secret in. Declared secret values are scrubbed from check output before it is recorded.
 
 ## API Key Storage
 
