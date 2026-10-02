@@ -501,8 +501,15 @@ else
   ERRORS=$((ERRORS+1))
 fi
 
+# The template's {TODO:} line under ## Code Checks (before the first ### heading) marks checks not yet chosen; Step 4h deletes it.
+CHECK_INTRO=$(sed -n '/^## Code Checks/,/^## /p' "$FILE" | grep -v '^## ' | sed '/^### /,$d')
+if printf '%s\n' "$CHECK_INTRO" | grep -q '{TODO:'; then
+  echo "ERROR: The {TODO:} line under ## Code Checks is still there — add the output-specific checks (Step 4h) and delete it"
+  ERRORS=$((ERRORS+1))
+fi
+
 # Code Checks run exactly as written: a placeholder heading or command fails every run.
-# Only the checks themselves are inspected (from the first ### heading on); intro prose may keep a {TODO:} line.
+# The checks themselves are inspected from the first ### heading on.
 CHECK_BODY=$(sed -n '/^## Code Checks/,/^## /p' "$FILE" | grep -v '^## ' | sed -n '/^### /,$p')
 CHECK_COUNT=$(printf '%s\n' "$CHECK_BODY" | grep -c '^### ')
 if printf '%s\n' "$CHECK_BODY" | grep '^### ' | grep -qE '(^|[^{$])\{[^{]'; then
