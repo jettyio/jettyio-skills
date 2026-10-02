@@ -524,9 +524,19 @@ if printf '%s\n' "$CHECK_BODY" | grep '^### ' | grep -vqE '^### [A-Za-z0-9][A-Za
   echo "ERROR: A Code Check heading is not '### <id> — <name>' (id: letters, digits, . _ -)"
   ERRORS=$((ERRORS+1))
 fi
-if printf '%s\n' "$CHECK_BODY" | grep -E '^```[A-Za-z]' | grep -vqE '^```(bash|sh|shell|yaml|check|agent)[[:space:]]*$'; then
-  echo "WARN: A fence under ## Code Checks is not bash/sh (command), yaml (built-in) or agent (agent check) — Jetty reports such a check as error"
-  WARNINGS=$((WARNINGS+1))
+# Each heading is read from the FIRST fence after it: none, or one whose language is not bash/sh (command), yaml (built-in) or agent (agent check), is reported by Jetty as error
+UNFENCED=$(printf '%s\n' "$CHECK_BODY" | awk '
+  /^### / { if (id != "" && !ok) print id; id = $2; ok = 0; seen = 0; infence = 0; next }
+  /^(```|~~~)/ {
+    if (!infence) { infence = 1
+      if (!seen) { seen = 1; lang = substr($0, 4); sub(/[[:space:]].*$/, "", lang)
+        if (lang == "" || lang ~ /^(bash|sh|shell|yaml|check|agent)$/) ok = 1 } }
+    else infence = 0
+    next }
+  END { if (id != "" && !ok) print id }')
+if [ -n "$UNFENCED" ]; then
+  echo "ERROR: Code Check(s) without a usable fence (bash/sh, yaml or agent) right after the heading: $(printf '%s' "$UNFENCED" | tr '\n' ' ')"
+  ERRORS=$((ERRORS+1))
 fi
 if [ "${CHECK_COUNT:-0}" -lt 2 ]; then
   echo "WARN: Only outputs-exist under ## Code Checks — add at least one check specific to the output"
