@@ -282,16 +282,6 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
       "name": "summary.md has the required sections",
       "status": "fail",
       "message": "Recommendations section missing"
-    },
-    {
-      "kind": "judge",
-      "id": "clarity",
-      "name": "Clarity",
-      "status": "pass",
-      "score": 4,
-      "max_score": 5,
-      "threshold": 3,
-      "message": "Clear and well organised"
     }
   ],
   "overall_score": 4.0,
@@ -318,12 +308,7 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
     "partial": 1,
     "fail": 1
   },
-  "rubric_scores": {
-    "clarity": {
-      "score": 4,
-      "notes": "Clear and well organised"
-    }
-  }
+  "rubric_scores": {}
 }
 ```
 
