@@ -242,7 +242,7 @@ Observable conditions you confirm by inspection before writing the report. Place
 
 Write `{{results_dir}}/validation_report.json` **last**. One entry in `checks` per step (`kind: step`), per Checklist item (`kind: checklist`), per agent check you ran (`kind: code_check`, `id` exactly as its heading) and, only when the runbook grades against a rubric, per criterion (`kind: judge`). Write no entries for the command checks Jetty runs: Jetty appends those after you finish (each with `details.runner: "jetty"`), drops any `code_check` entry whose id it does not expect, and computes the verdict from the merged `checks`; the `verdict` you write is a hint. Report every check you ran, including the ones that still fail.
 
-A checklist `id` is the item text lower-cased with every run of non-alphanumeric characters replaced by `-` (`summary.md has the required sections` → `summary-md-has-the-required-sections`); `name` is the item text verbatim.
+A checklist `id` is the item text lower-cased with every run of non-alphanumeric characters replaced by `-` and leading or trailing `-` trimmed (`summary.md has the required sections` → `summary-md-has-the-required-sections`); `name` is the item text verbatim.
 
 ```json
 {
@@ -284,8 +284,6 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
       "message": "Recommendations section missing"
     }
   ],
-  "overall_score": 4.0,
-  "pass_threshold": 4.0,
   "output_files": [
     "{{results_dir}}/{primary_output}",
     "{{results_dir}}/summary.md",
@@ -312,7 +310,7 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
 }
 ```
 
-`version` is the integer `2`. `kind` is one of `step | code_check | checklist | judge`; `status` is one of `pass | fail | skipped | error`. An agent check you ran is one entry, `{"kind": "code_check", "id": "<heading id>", "name": "<heading name>", "status": "pass|fail", "message": "<one line>"}`; an agent check you did not report is recorded by Jetty as `skipped`, or as `error` (failing the run) when `strict_evaluation` is on. When you ran a command check yourself (locally, or under `code_checks.executor: agent`), record it the same way with `details.command`, `details.exit_code` and `details.stdout_tail`. `stages`, `results` and `rubric_scores` are v1 mirrors kept for the existing report panel: derive `stages` from the `step` entries, `results` from the Step 4 status tally and `rubric_scores` from the `judge` entries (`{}` when there are none). Never edit a mirror separately from `checks`.
+`version` is the integer `2`. `kind` is one of `step | code_check | checklist | judge`; `status` is one of `pass | fail | skipped | error`. `overall_score` and `pass_threshold` belong to rubric reports and are omitted here. An agent check you ran is one entry, `{"kind": "code_check", "id": "<heading id>", "name": "<heading name>", "status": "pass|fail", "message": "<one line>"}`; an agent check you did not report is recorded by Jetty as `skipped`, or as `error` (failing the run) when `strict_evaluation` is on. When you ran a command check yourself (locally, or under `code_checks.executor: agent`), record it the same way with `details.command`, `details.exit_code` and `details.stdout_tail`. `stages`, `results` and `rubric_scores` are v1 mirrors kept for the existing report panel: derive `stages` from the `step` entries, `results` from the Step 4 status tally and `rubric_scores` from the `judge` entries (`{}` when there are none). Never edit a mirror separately from `checks`.
 
 **If a checklist item or a check you ran fails, go back and fix the output (within the iteration cap), re-check, then rewrite the report. Do NOT finish before the report is written.**
 

@@ -235,7 +235,7 @@ Observable conditions you confirm by inspection before writing the report. Place
 
 Write `{{results_dir}}/validation_report.json` **last**. One entry in `checks` per step (`kind: step`), per Checklist item (`kind: checklist`), per agent check you ran (`kind: code_check`, `id` exactly as its heading) and per rubric criterion (`kind: judge`, `id` = the slugified criterion name, `score` 1-5, `max_score: 5`, `threshold: 3`). Write no entries for the command checks Jetty runs: Jetty appends those after you finish (each with `details.runner: "jetty"`), drops any `code_check` entry whose id it does not expect, and computes the verdict from the merged `checks`; the `verdict` you write is a hint. Report every check you ran, including the ones that still fail.
 
-A checklist `id` is the item text lower-cased with every run of non-alphanumeric characters replaced by `-` (`summary.md has the required sections` → `summary-md-has-the-required-sections`); `name` is the item text verbatim.
+A checklist `id` is the item text lower-cased with every run of non-alphanumeric characters replaced by `-` and leading or trailing `-` trimmed (`Overall rubric average is at least 4.0` → `overall-rubric-average-is-at-least-4-0`); `name` is the item text verbatim.
 
 ```json
 {
@@ -265,16 +265,22 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
     },
     {
       "kind": "checklist",
-      "id": "no-placeholder-text-remains",
-      "name": "No placeholder text remains",
+      "id": "overall-rubric-average-is-at-least-4-0",
+      "name": "Overall rubric average is at least 4.0",
       "status": "pass"
     },
     {
       "kind": "checklist",
-      "id": "summary-md-has-the-required-sections",
-      "name": "summary.md has the required sections",
+      "id": "summary-md-has-the-rubric-scores-and-the-iteration-history",
+      "name": "summary.md has the rubric scores and the iteration history",
       "status": "fail",
-      "message": "Recommendations section missing"
+      "message": "Iteration history missing"
+    },
+    {
+      "kind": "checklist",
+      "id": "no-placeholder-text-remains",
+      "name": "No placeholder text remains",
+      "status": "pass"
     },
     {
       "kind": "judge",
@@ -307,9 +313,9 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
     }
   ],
   "results": {
-    "pass": 10,
-    "partial": 1,
-    "fail": 1
+    "pass": 0,
+    "partial": 0,
+    "fail": 0
   },
   "rubric_scores": {
     "clarity": {

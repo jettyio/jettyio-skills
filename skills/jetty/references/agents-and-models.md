@@ -95,6 +95,9 @@ model_provider: openrouter
 snapshot: python312-uv
 primary_outputs:          # optional — headline deliverable(s), relative to results_dir
   - report.html
+secrets:
+  GITHUB_TOKEN:           # consumed by the source below: withheld from the agent
+    env: GITHUB_TOKEN
 code_checks:              # optional — how the ## Code Checks run and what they need
   executor: jetty         # jetty (default) runs command checks after the agent exits; agent hands them to the agent
   timeout_sec: 120        # per check, max 900
@@ -121,7 +124,7 @@ Optional, default `false`. A `## Code Checks` entry with an `agent` fence is the
 
 ### `code_checks`
 
-Optional. How the `## Code Checks` run and what they need. Under v2 each `### <id> — <name>` heading is followed by one fenced block whose language is the check's kind: a `bash` fence is a command run under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; a `yaml` fence is a built-in (`use:` one of `file_exists`, `min_size`, `json_valid`, `regex_present`, `regex_absent`, `markdown_relative_links_resolve`, paths relative to the results directory); an `agent` fence is an instruction only the agent can carry out. Exit 0 is `pass`; a timeout, a built-in with a bad spec, a command the shell cannot run or a heading with no usable fence is `error`; any other exit is `fail`. Every entry Jetty writes carries `details.runner: "jetty"`.
+Optional. How the `## Code Checks` run and what they need. Under v2 each `### <id> — <name>` heading is followed by one fenced block whose language is the check's kind: a `bash` fence (also `sh`, `shell` or no language) is a command run under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; a `yaml` (or `check`) fence is a built-in (`use:` one of `file_exists`, `min_size`, `json_valid`, `regex_present`, `regex_absent`, `markdown_relative_links_resolve`, paths relative to the results directory); an `agent` fence is an instruction only the agent can carry out. Exit 0 is `pass`; a timeout, a built-in with a bad spec, a command the shell cannot run or a heading with no usable fence is `error`; any other exit is `fail`. Every entry Jetty writes carries `details.runner: "jetty"`.
 
 - `executor` — `jetty` (default): Jetty runs the command checks in the run's sandbox after the agent process has exited, and its entries replace any the agent wrote for them. `agent`: the agent runs the command checks too and its entries stand. Malformed and unreported checks are recorded by Jetty either way.
 - `timeout_sec` — per check, default 120, max 900.

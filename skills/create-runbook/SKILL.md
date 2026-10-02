@@ -501,38 +501,52 @@ else
   ERRORS=$((ERRORS+1))
 fi
 
+# Fence-aware section reader: the lines of '## [Step N: ]<name>' up to the next '## ' outside a fence, each
+# prefixed T (text), O (fence opener), F (inside a fence) or C (fence closer). A '## ' or '### ' inside a fence is text.
+section_lines() {
+  awk -v name="$1" '
+    function fence_len(s, ch,   n) { n = 0; while (substr(s, n + 1, 1) == ch) n++; return n }
+    /^(```|~~~)/ {
+      ch = substr($0, 1, 1); len = fence_len($0, ch); info = substr($0, len + 1); gsub(/[[:space:]]/, "", info)
+      if (!infence) { infence = 1; fch = ch; flen = len; if (on) print "O " $0; next }
+      if (ch == fch && len >= flen && info == "") { infence = 0; if (on) print "C " $0; next }
+    }
+    infence { if (on) print "F " $0; next }
+    /^## / { if (on) exit; on = ($0 ~ ("^## (Step [0-9]+: )?" name "([[:space:]]|$)")); next }
+    on { print "T " $0 }
+  ' "$FILE"
+}
+CC=$(section_lines "Code Checks")
+CHECK_INTRO=$(printf '%s\n' "$CC" | awk '/^T ### /{exit} /^T /{print substr($0, 3)}')
+CHECK_HEADINGS=$(printf '%s\n' "$CC" | grep '^T ### ' | cut -c3-)
+CHECK_COUNT=$(printf '%s\n' "$CHECK_HEADINGS" | grep -c '^### ')
+CHECK_CMDS=$(printf '%s\n' "$CC" | awk '/^T ### /{f=1} f && /^F /{print substr($0, 3)}')
+
 # The template's {TODO:} line under ## Code Checks (before the first ### heading) marks checks not yet chosen; Step 4h deletes it.
-CHECK_INTRO=$(sed -n '/^## Code Checks/,/^## /p' "$FILE" | grep -v '^## ' | sed '/^### /,$d')
 if printf '%s\n' "$CHECK_INTRO" | grep -q '{TODO:'; then
   echo "ERROR: The {TODO:} line under ## Code Checks is still there — add the output-specific checks (Step 4h) and delete it"
   ERRORS=$((ERRORS+1))
 fi
 
 # Code Checks run exactly as written: a placeholder heading or command fails every run.
-# The checks themselves are inspected from the first ### heading on.
-CHECK_BODY=$(sed -n '/^## Code Checks/,/^## /p' "$FILE" | grep -v '^## ' | sed -n '/^### /,$p')
-CHECK_COUNT=$(printf '%s\n' "$CHECK_BODY" | grep -c '^### ')
-if printf '%s\n' "$CHECK_BODY" | grep '^### ' | grep -qE '(^|[^{$])\{[^{]'; then
+if printf '%s\n' "$CHECK_HEADINGS" | grep -qE '(^|[^{$])\{[^{]'; then
   echo "ERROR: A Code Check heading still contains a {placeholder} — replace it with a real '### <id> — <name>' or delete the check"
   ERRORS=$((ERRORS+1))
-elif printf '%s\n' "$CHECK_BODY" | grep -v '^### ' | grep -qE '(^|[^{$])\{[^{]'; then
+elif printf '%s\n' "$CHECK_CMDS" | grep -qE '(^|[^{$])\{[^{]'; then
   echo "WARN: A Code Check command contains a '{' outside {{var}} / \${var} — make sure it is not an unfilled placeholder"
   WARNINGS=$((WARNINGS+1))
 fi
 # Jetty reads a check heading as '### <id> <dash> <name>' (id: letters, digits, . _ -) and the first fence's language as its kind
-if printf '%s\n' "$CHECK_BODY" | grep '^### ' | grep -vqE '^### [A-Za-z0-9][A-Za-z0-9._-]*[[:space:]]+(—|–|-)[[:space:]]+.+'; then
+if [ "${CHECK_COUNT:-0}" -gt 0 ] && printf '%s\n' "$CHECK_HEADINGS" | grep -vqE '^### [A-Za-z0-9][A-Za-z0-9._-]*[[:space:]]+(—|–|-)[[:space:]]+.+'; then
   echo "ERROR: A Code Check heading is not '### <id> — <name>' (id: letters, digits, . _ -)"
   ERRORS=$((ERRORS+1))
 fi
-# Each heading is read from the FIRST fence after it: none, or one whose language is not bash/sh (command), yaml (built-in) or agent (agent check), is reported by Jetty as error
-UNFENCED=$(printf '%s\n' "$CHECK_BODY" | awk '
-  /^### / { if (id != "" && !ok) print id; id = $2; ok = 0; seen = 0; infence = 0; next }
-  /^(```|~~~)/ {
-    if (!infence) { infence = 1
-      if (!seen) { seen = 1; lang = substr($0, 4); sub(/[[:space:]].*$/, "", lang)
-        if (lang == "" || lang ~ /^(bash|sh|shell|yaml|check|agent)$/) ok = 1 } }
-    else infence = 0
-    next }
+# Each heading is read from the FIRST fence after it. Usable kinds: bare/bash/sh/shell (command), yaml/check (built-in), agent.
+# None, or any other language, is reported by Jetty as error.
+UNFENCED=$(printf '%s\n' "$CC" | awk '
+  /^T ### / { if (id != "" && !ok) print id; id = $3; ok = 0; seen = 0; next }
+  /^O / { if (id != "" && !seen) { seen = 1; lang = substr($0, 3); sub(/^[`~]+/, "", lang); sub(/[[:space:]].*$/, "", lang)
+          if (lang == "" || lang ~ /^(bash|sh|shell|yaml|check|agent)$/) ok = 1 } }
   END { if (id != "" && !ok) print id }')
 if [ -n "$UNFENCED" ]; then
   echo "ERROR: Code Check(s) without a usable fence (bash/sh, yaml or agent) right after the heading: $(printf '%s' "$UNFENCED" | tr '\n' ' ')"
@@ -544,7 +558,7 @@ if [ "${CHECK_COUNT:-0}" -lt 2 ]; then
 fi
 
 # Checklist items: at least one '- [ ]' bullet, none still a placeholder (a failed item fails the run)
-CHECKLIST_ITEMS=$(sed -n '/^## Checklist/,/^## /p' "$FILE" | grep -E '^[[:space:]]*[-*+][[:space:]]*\[( |x|X)\]')
+CHECKLIST_ITEMS=$(section_lines "Checklist" | grep '^T ' | cut -c3- | grep -E '^[[:space:]]*[-*+][[:space:]]*\[( |x|X)\]')
 ITEM_COUNT=$(printf '%s\n' "$CHECKLIST_ITEMS" | grep -c '\[')
 if [ "${ITEM_COUNT:-0}" -ge 1 ]; then
   echo "PASS: Checklist has $ITEM_COUNT item(s)"
