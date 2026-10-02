@@ -195,7 +195,7 @@ Now customize the template using the task description from Step 2a:
 
 1. **Title**: Replace `{Task Name}` with a concise name derived from the task description
 2. **Objective**: Write a 2-5 sentence objective based on what the user described — input, processing, output
-3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.). Replacing `{primary_output}` updates both the REQUIRED OUTPUT FILES table and the `primary_outputs:` frontmatter list at once — keep them in sync. `primary_outputs` is what lets spot surface the right file as the "Main output" when a run completes; list only headline deliverables (never `summary.md` or `validation_report.json`), most important first.
+3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.). Replace it **everywhere it appears** (use replace_all): the REQUIRED OUTPUT FILES table, the `primary_outputs:` frontmatter list, the `outputs-exist` check, the Code Checks `{TODO:}` line and the report example. A `{primary_output}` left in a check is a validation error, because the check would look for a file literally named that. `primary_outputs` is what lets spot surface the right file as the "Main output" when a run completes; list only headline deliverables (never `summary.md` or `validation_report.json`), most important first.
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
 5. **Agent/model/model_provider/snapshot**: Write the choices from Step 2c into the frontmatter fields. Include `model_provider` so routing is explicit (claude-code → `openrouter` by default, or `anthropic` for direct routing; codex → `openai`; gemini-cli → `google`).
 6. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
@@ -514,9 +514,16 @@ section_lines() {
     infence { if (on) print "F " $0; next }
     /^## / { if (on) exit; on = ($0 ~ ("^## (Step [0-9]+: )?" name "([[:space:]]|$)")); next }
     on { print "T " $0 }
+    END { if (on && infence) print "U unterminated fence" }
   ' "$FILE"
 }
 CC=$(section_lines "Code Checks")
+CL=$(section_lines "Checklist")
+# A fence that never closes swallows every later section as fence content; say so instead of reporting the sections missing.
+if printf '%s\n' "$CC" "$CL" | grep -q '^U '; then
+  echo "ERROR: An unterminated fence under ## Code Checks / ## Checklist — every fenced block needs a closing \`\`\` at column 0"
+  ERRORS=$((ERRORS+1))
+fi
 CHECK_INTRO=$(printf '%s\n' "$CC" | awk '/^T ### /{exit} /^T /{print substr($0, 3)}')
 CHECK_HEADINGS=$(printf '%s\n' "$CC" | grep '^T ### ' | cut -c3-)
 CHECK_COUNT=$(printf '%s\n' "$CHECK_HEADINGS" | grep -c '^### ')
@@ -529,11 +536,17 @@ if printf '%s\n' "$CHECK_INTRO" | grep -q '{TODO:'; then
 fi
 
 # Code Checks run exactly as written: a placeholder heading or command fails every run.
-if printf '%s\n' "$CHECK_HEADINGS" | grep -qE '(^|[^{$])\{[^{]'; then
+# A template placeholder is {Words like this} or {TODO: ...}; {{var}}, ${var} and JSON-looking braces ({"k": ...}) are not.
+PLACEHOLDER='(^|[^{$])\{(TODO:[^}]*|[A-Za-z_][^{}"'"'"':]*)\}'
+if printf '%s\n' "$CHECK_HEADINGS" | grep -qE "$PLACEHOLDER"; then
   echo "ERROR: A Code Check heading still contains a {placeholder} — replace it with a real '### <id> — <name>' or delete the check"
   ERRORS=$((ERRORS+1))
-elif printf '%s\n' "$CHECK_CMDS" | grep -qE '(^|[^{$])\{[^{]'; then
-  echo "WARN: A Code Check command contains a '{' outside {{var}} / \${var} — make sure it is not an unfilled placeholder"
+fi
+if printf '%s\n' "$CHECK_CMDS" | grep -qE '\{primary_output\}|\{TODO:'; then
+  echo "ERROR: A Code Check command still contains {primary_output} or a {TODO:} marker — the check would fail every run"
+  ERRORS=$((ERRORS+1))
+elif printf '%s\n' "$CHECK_CMDS" | grep -qE "$PLACEHOLDER"; then
+  echo "WARN: A Code Check command contains {text like this} — make sure it is not an unfilled placeholder"
   WARNINGS=$((WARNINGS+1))
 fi
 # Jetty reads a check heading as '### <id> <dash> <name>' (id: letters, digits, . _ -) and the first fence's language as its kind
@@ -549,7 +562,7 @@ UNFENCED=$(printf '%s\n' "$CC" | awk '
           if (lang == "" || lang ~ /^(bash|sh|shell|yaml|check|agent)$/) ok = 1 } }
   END { if (id != "" && !ok) print id }')
 if [ -n "$UNFENCED" ]; then
-  echo "ERROR: Code Check(s) without a usable fence (bash/sh, yaml or agent) right after the heading: $(printf '%s' "$UNFENCED" | tr '\n' ' ')"
+  echo "ERROR: Code Check(s) without a usable fence (bash/sh, yaml or agent, starting at column 0) right after the heading: $(printf '%s' "$UNFENCED" | tr '\n' ' ')"
   ERRORS=$((ERRORS+1))
 fi
 if [ "${CHECK_COUNT:-0}" -lt 2 ]; then
@@ -558,7 +571,7 @@ if [ "${CHECK_COUNT:-0}" -lt 2 ]; then
 fi
 
 # Checklist items: at least one '- [ ]' bullet, none still a placeholder (a failed item fails the run)
-CHECKLIST_ITEMS=$(section_lines "Checklist" | grep '^T ' | cut -c3- | grep -E '^[[:space:]]*[-*+][[:space:]]*\[( |x|X)\]')
+CHECKLIST_ITEMS=$(printf '%s\n' "$CL" | grep '^T ' | cut -c3- | grep -E '^[[:space:]]*[-*+][[:space:]]*\[( |x|X)\]')
 ITEM_COUNT=$(printf '%s\n' "$CHECKLIST_ITEMS" | grep -c '\[')
 if [ "${ITEM_COUNT:-0}" -ge 1 ]; then
   echo "PASS: Checklist has $ITEM_COUNT item(s)"
@@ -566,13 +579,13 @@ else
   echo "ERROR: ## Checklist has no '- [ ]' items"
   ERRORS=$((ERRORS+1))
 fi
-if printf '%s\n' "$CHECKLIST_ITEMS" | grep -qE '(^|[^{$])\{[^{]'; then
+if printf '%s\n' "$CHECKLIST_ITEMS" | grep -qE "$PLACEHOLDER"; then
   echo "ERROR: A Checklist item still contains a {placeholder}"
   ERRORS=$((ERRORS+1))
 fi
 
 # Check the validation report is v2: integer version 2 and a checks[] array
-if grep -qE '"version": 2(,|$)' "$FILE" && grep -q '"checks": \[' "$FILE"; then
+if grep -qE '"version"[[:space:]]*:[[:space:]]*2([^0-9.]|$)' "$FILE" && grep -qE '"checks"[[:space:]]*:[[:space:]]*\[' "$FILE"; then
   echo "PASS: validation report v2 (checks[])"
 else
   echo "ERROR: validation report example must be v2 (\"version\": 2, an integer) with a checks[] array"
@@ -584,10 +597,12 @@ VARS=$(grep -oE '\{\{[a-z_]+\}\}' "$FILE" | sort -u | tr -d '{}')
 if [ -n "$VARS" ]; then
   if grep -q "## Parameters" "$FILE"; then
     echo "PASS: Parameters section found"
-    # Check each template var is declared
+    # Each template variable needs a row in the Parameters table (checks_dir / assets_dir are run-time substitutions, not parameters)
     for var in $VARS; do
-      if grep -q "$var" "$FILE" | grep -cq "Template Variable\|Parameter"; then
-        true  # declared
+      case $var in checks_dir|assets_dir) continue;; esac
+      if ! grep -qE "^\|.*\{\{$var\}\}" "$FILE"; then
+        echo "WARN: Template variable {{$var}} has no row in the Parameters table"
+        WARNINGS=$((WARNINGS+1))
       fi
     done
   else

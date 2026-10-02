@@ -21,7 +21,7 @@ secrets:                              # Optional — declare sensitive params he
 code_checks:                          # Optional — how the Code Checks run and what they need (a task default a run may override)
   # executor: jetty                   # jetty (default): Jetty runs command checks after the agent exits | agent: the agent runs them too
   # timeout_sec: 120                  # per check, max 900
-  # sources:                          # cloned to {{checks_dir}}/<name> (/app/checks/<name>) after the agent exits
+  # sources:                          # cloned to {{checks_dir}}/<name> (/app/checks/<name>) after the agent exits (before it, under executor: agent)
   #   - name: checks
   #     type: git
   #     url: https://github.com/acme/output-checks

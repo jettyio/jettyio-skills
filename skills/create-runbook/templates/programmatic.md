@@ -21,7 +21,7 @@ secrets:                              # Optional — declare sensitive params he
 code_checks:                          # Optional — how the Code Checks run and what they need (a task default a run may override)
   # executor: jetty                   # jetty (default): Jetty runs command checks after the agent exits | agent: the agent runs them too
   # timeout_sec: 120                  # per check, max 900
-  # sources:                          # cloned to {{checks_dir}}/<name> (/app/checks/<name>) after the agent exits
+  # sources:                          # cloned to {{checks_dir}}/<name> (/app/checks/<name>) after the agent exits (before it, under executor: agent)
   #   - name: checks
   #     type: git
   #     url: https://github.com/acme/output-checks
@@ -232,7 +232,7 @@ test -s {{results_dir}}/{primary_output} && test -s {{results_dir}}/summary.md
 
 Observable conditions you confirm by inspection before writing the report. Placeholder text means `{...}` or `TODO` left in any output file. Record each item in the validation report as `kind: checklist`. **A failed item fails the run's verdict.**
 
-- [ ] `{primary_output}` meets the format in the REQUIRED OUTPUT FILES table and the PASS criteria in Step 4
+- [ ] Primary output meets the format in the REQUIRED OUTPUT FILES table and the Step 4 PASS criteria
 - [ ] summary.md has the required sections
 - [ ] No placeholder text remains
 
@@ -269,6 +269,12 @@ A checklist `id` is the item text lower-cased with every run of non-alphanumeric
       "name": "Processing",
       "status": "pass",
       "message": "Processed 12 items"
+    },
+    {
+      "kind": "checklist",
+      "id": "primary-output-meets-the-format-in-the-required-output-files-table-and-the-step-4-pass-criteria",
+      "name": "Primary output meets the format in the REQUIRED OUTPUT FILES table and the Step 4 PASS criteria",
+      "status": "pass"
     },
     {
       "kind": "checklist",
