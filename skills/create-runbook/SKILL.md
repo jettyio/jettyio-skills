@@ -519,8 +519,9 @@ section_lines() {
 }
 CC=$(section_lines "Code Checks")
 CL=$(section_lines "Checklist")
-# A fence that never closes swallows every later section as fence content; say so instead of reporting the sections missing.
-if printf '%s\n' "$CC" "$CL" | grep -q '^U '; then
+# A fence that never closes swallows the later sections as fence content (up to the next bare closing fence, or the end of the
+# file); a '## ' heading inside a fence is the symptom. Say so instead of reporting the sections missing.
+if printf '%s\n' "$CC" "$CL" | grep -qE '^U |^F ## '; then
   echo "ERROR: An unterminated fence under ## Code Checks / ## Checklist — every fenced block needs a closing \`\`\` at column 0"
   ERRORS=$((ERRORS+1))
 fi
