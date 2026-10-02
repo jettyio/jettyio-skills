@@ -89,11 +89,12 @@ back to the connect-and-build path. The demo is a bonus, never a gate.
 ## Runbook file format
 
 A runbook is YAML frontmatter + a body of numbered steps. Frontmatter declares
-`version`, `evaluation` (`programmatic` | `rubric`), `agent`, `model` +
-`model_provider`, `snapshot`, `primary_outputs`, and `secrets`. The body runs, in
+`version`, `evaluation` (`programmatic` | `rubric`), `strict_evaluation`, `agent`,
+`model` + `model_provider`, `snapshot`, `primary_outputs`, `secrets`, and `code_checks`. The body runs, in
 order: **Objective → required output files** (always incl. `validation_report.json`
 + `summary.md`) **→ parameters → dependencies → numbered steps → evaluation →
-bounded iteration → validation report → final checklist**.
+bounded iteration → code checks → checklist → validation report** (v2, typed
+`checks[]`; Jetty computes the verdict from it).
 
 The **authoritative frontmatter schema, section templates, and structural validator
 ship in the `create-runbook` skill** — scaffold and validate with it rather than

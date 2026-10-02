@@ -1,7 +1,7 @@
 ---
 version: "1.0.0"
 evaluation: rubric
-strict_evaluation: false              # true: a Code Check or Checklist item the agent did not report fails the run
+strict_evaluation: false              # true: a declared Code Check or Checklist item the agent did not report counts as failed, not skipped
 agent: claude-code                    # Agent runtime: claude-code | opencode | codex | gemini-cli
 model: anthropic/claude-sonnet-4.6   # Model for the agent (see agents-and-models reference)
 model_provider: openrouter           # Routes the model through OpenRouter (requires OPENROUTER_API_KEY)
@@ -128,7 +128,7 @@ Score the output against each criterion on a 1-5 scale:
 | 4 | {Criterion 4} | {What excellent looks like} | {What acceptable looks like} | {What poor looks like} |
 | 5 | {Criterion 5} | {What excellent looks like} | {What acceptable looks like} | {What poor looks like} |
 
-**Pass threshold: overall average >= 4.0, no individual criterion below 3.**
+**Pass threshold: overall average >= 4.0, no individual criterion below 3.** Each criterion becomes a `judge` entry in the validation report with `threshold: 3`; the average is checked by the first Checklist item.
 
 Record your scores and reasoning for each criterion.
 
@@ -200,39 +200,33 @@ Write `{{results_dir}}/summary.md` with the following structure:
 
 ## Code Checks
 
-Deterministic scripts run against `{{results_dir}}` after the steps finish. One `### <id> — <name>` heading per check, followed by exactly one fenced command; exit code 0 means pass. **A failing code check fails the run's verdict.**
+Deterministic commands run against `{{results_dir}}` after Step 6 and before the Checklist. One `### <id> — <name>` heading per check, followed by exactly one fenced command; exit code 0 means pass. Every check runs exactly as written and is recorded in the validation report. **A failing code check fails the run's verdict.**
+
+Keep `outputs-exist`; its file list must match the REQUIRED OUTPUT FILES table minus `validation_report.json`, which is written after the checks run. {TODO: add 1-3 checks specific to {primary_output} after outputs-exist, one `### <id> — <name>` heading and one fenced command each, e.g. `python /app/checks/check_format.py {{results_dir}}/{primary_output}` (scripts under /app/checks come from code_checks.sources in the frontmatter). Delete this line when done.}
 
 ### outputs-exist — Every required output file exists and is non-empty
 
 ```bash
-RESULTS_DIR="{{results_dir}}"
-for f in "$RESULTS_DIR/{primary_output}" "$RESULTS_DIR/summary.md" "$RESULTS_DIR/validation_report.json"; do
-  if [ ! -s "$f" ]; then echo "FAIL: $f is missing or empty"; exit 1; fi
-  echo "PASS: $f ($(wc -c < "$f") bytes)"
-done
-```
-
-### {check_id} — {What it verifies, in one sentence}
-
-```bash
-{command that exits non-zero on failure, e.g. python /app/checks/check_format.py {{results_dir}}/{primary_output}}
+test -s {{results_dir}}/{primary_output} && test -s {{results_dir}}/summary.md
 ```
 
 ---
 
 ## Checklist
 
-Observable conditions you confirm by inspection after the code checks. Record each as `pass` or `fail` in the validation report. **A failed item fails the run's verdict.**
+Observable conditions you confirm by inspection after the code checks. Placeholder text means `{...}` or `TODO` left in any output file. Record each item in the validation report as `kind: checklist`. The per-criterion floor of 3 is enforced by the `judge` entries; the first item below enforces the average. **A failed item fails the run's verdict.**
 
-- [ ] `{primary_output}` meets the quality bar (rubric >= 4.0, no criterion below 3)
-- [ ] `summary.md` has rubric scores and the iteration history
-- [ ] No placeholder text (`{...}`, `TODO`) remains in any output
+- [ ] Overall rubric average is at least 4.0
+- [ ] summary.md has the rubric scores and the iteration history
+- [ ] No placeholder text remains
 
 ---
 
 ## Write Validation Report
 
-Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per step (`kind: step`), per Code Check (`kind: code_check`, `id` = the heading id), per Checklist item (`kind: checklist`, `id` = the slugified item text) and per rubric criterion (`kind: judge`). Report every check you ran, including the ones that still fail — Jetty computes the verdict from `checks`; the `verdict` you write is a hint. `version` is the integer `2` (the report format), not a string.
+Write `{{results_dir}}/validation_report.json` **last**; it is the one required file the code checks do not test. One entry in `checks` per step (`kind: step`), per Code Check (`kind: code_check`, `id` = the heading id, `details.command` = the command exactly as you ran it), per Checklist item (`kind: checklist`) and per rubric criterion (`kind: judge`, `id` = the slugified criterion name, `score` 1-5, `max_score: 5`, `threshold: 3`). Report every check you ran, including the ones that still fail: Jetty computes the verdict from `checks`, and the `verdict` you write is a hint.
+
+A checklist `id` is the item text lower-cased with every run of non-alphanumeric characters replaced by `-` (`summary.md has the required sections` → `summary-md-has-the-required-sections`); `name` is the item text verbatim.
 
 ```json
 {
@@ -258,18 +252,18 @@ Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per s
       "id": "processing",
       "name": "Processing",
       "status": "pass",
-      "message": "Processed N items"
+      "message": "Processed 12 items"
     },
     {
       "kind": "code_check",
       "id": "outputs-exist",
       "name": "Every required output file exists and is non-empty",
       "status": "pass",
-      "message": "3 files present",
+      "message": "2 files present",
       "details": {
-        "command": "bash /app/checks/outputs_exist.sh {{results_dir}}",
+        "command": "test -s {{results_dir}}/{primary_output} && test -s {{results_dir}}/summary.md",
         "exit_code": 0,
-        "stdout_tail": "PASS: 3 files\n",
+        "stdout_tail": "",
         "duration_seconds": 0.1
       }
     },
@@ -294,7 +288,7 @@ Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per s
     },
     {
       "kind": "checklist",
-      "id": "summary-has-required-sections",
+      "id": "summary-md-has-the-required-sections",
       "name": "summary.md has the required sections",
       "status": "fail",
       "message": "Recommendations section missing"
@@ -306,7 +300,7 @@ Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per s
       "status": "pass",
       "score": 4,
       "max_score": 5,
-      "threshold": 4,
+      "threshold": 3,
       "message": "Clear and well organised"
     }
   ],
@@ -326,13 +320,13 @@ Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per s
     {
       "name": "processing",
       "passed": true,
-      "message": "Processed N items"
+      "message": "Processed 12 items"
     }
   ],
   "results": {
-    "pass": 0,
-    "partial": 0,
-    "fail": 0
+    "pass": 10,
+    "partial": 1,
+    "fail": 1
   },
   "rubric_scores": {
     "clarity": {
@@ -343,9 +337,9 @@ Write `{{results_dir}}/validation_report.json` last. One entry in `checks` per s
 }
 ```
 
-`kind` is one of `step | code_check | checklist | judge`; `status` is one of `pass | fail | skipped | error`. One `judge` entry per rubric criterion, with `score`, `max_score` and `threshold` (= `pass_threshold`). `stages`, `results` and `rubric_scores` mirror the checks for older readers; keep them in sync.
+`version` is the integer `2`. `kind` is one of `step | code_check | checklist | judge`; `status` is one of `pass | fail | skipped | error`. A `judge` entry fails when `score < threshold`; `overall_score` is the average of the judge scores and `pass_threshold` is `4.0`. `stages`, `results` and `rubric_scores` are v1 mirrors kept for the existing report panel: derive `stages` from the `step` entries and `rubric_scores` from the `judge` entries; `results` is the Step 4 status tally in a programmatic runbook and stays at zeros here. Never edit a mirror separately from `checks`.
 
-**If a code check or checklist item fails, go back and fix the output (within the iteration cap), re-run the checks, then rewrite the report. Do NOT finish before the report is written.**
+**If a code check, checklist item or judge fails, go back and fix the output (within the iteration cap), re-run the checks, then rewrite the report. Do NOT finish before the report is written.**
 
 ---
 

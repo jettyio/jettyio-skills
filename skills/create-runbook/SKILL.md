@@ -199,6 +199,7 @@ Now customize the template using the task description from Step 2a:
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
 5. **Agent/model/model_provider/snapshot**: Write the choices from Step 2c into the frontmatter fields. Include `model_provider` so routing is explicit (claude-code → `openrouter` by default, or `anthropic` for direct routing; codex → `openai`; gemini-cli → `google`).
 6. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
+7. **Code Checks and Checklist**: keep the `outputs-exist` check and make its file list match the REQUIRED OUTPUT FILES table (minus `validation_report.json`). Leave the `{TODO: ...}` line under Code Checks for Step 4h; it is prose, not a check, so it never runs.
 
 Leave `{TODO: ...}` markers, `{How to fix it}`, and similar placeholders in sections that require detailed domain input from the user (evaluation criteria, common fixes, tips, dependencies).
 
@@ -216,7 +217,7 @@ Walk through each section that needs user input. For each, show the user what's 
 
 ### Authoring sandbox shortcut
 
-If you are running inside a Jetty authoring sandbox — detected by either `AUTHORING_MISSION` being set in the environment or `/app/MISSION.md` existing on disk — **skip sub-steps 4d (Dependencies), 4h (Common Fixes), and 4i (Tips)**. These three sections are best filled in *after* the runbook has been executed at least once, when real failure modes, real dependencies, and real gotchas are known. Leave the placeholder rows in `RUNBOOK.md` as-is; they signal "fill in after first run". Walk through 4a, 4b, 4c, 4e, 4f, 4g only.
+If you are running inside a Jetty authoring sandbox — detected by either `AUTHORING_MISSION` being set in the environment or `/app/MISSION.md` existing on disk — **skip sub-steps 4d (Dependencies), 4i (Common Fixes), and 4j (Tips)**. These three sections are best filled in *after* the runbook has been executed at least once, when real failure modes, real dependencies, and real gotchas are known. Leave the placeholder rows in `RUNBOOK.md` as-is; they signal "fill in after first run". Walk through 4a, 4b, 4c, 4e, 4f, 4g, 4h only.
 
 ```bash
 if [ -n "${AUTHORING_MISSION:-}" ] || [ -f /app/MISSION.md ]; then
@@ -362,7 +363,21 @@ If they provide criteria, build the rubric table with rows for each. For each cr
 
 Update the rubric table via Edit.
 
-### 4h: Common Fixes (optional)
+### 4h: Code Checks & Checklist
+
+Code Checks run exactly as written and a failing one fails the run, so the runbook must not ship with a placeholder check. Show the user the `outputs-exist` check and the `{TODO: ...}` line under `## Code Checks`, then use AskUserQuestion:
+- Header: "Code Checks"
+- Question: "Which properties of `{primary_output}` can a script verify? Each becomes a `### <id> — <name>` heading with one fenced command that exits non-zero on failure (schema validation, row counts, link checks, a test suite). Scripts you already have can be cloned into `/app/checks/` via `code_checks.sources` in the frontmatter."
+- Options:
+  - "I'll describe them" / "Let me list what to check" (user types)
+  - "Draft them" / "Propose 1-3 checks from the output format and I'll review"
+  - "Only outputs-exist" / "Keep just the file-existence check for now"
+
+Via Edit: add each check after `outputs-exist` (kebab-case id, one sentence name, one fenced command), then delete the `{TODO: ...}` line. If the user chose "Only outputs-exist", delete the line anyway. If a check needs a script from a git repo, uncomment `code_checks.sources` in the frontmatter, fill in `name`/`url`/`ref`, and declare its `secret` under `secrets:` too.
+
+Then review the `## Checklist` items with the user: 3-6 `- [ ]` conditions a reviewer confirms by inspection, each a short phrase (its slug becomes the report `id`), no `{...}` placeholders. A failed item fails the run, so keep only conditions the agent can actually verify from the outputs.
+
+### 4i: Common Fixes (optional)
 
 **Skip this sub-step entirely if `AUTHORING_SANDBOX=1` (see Step 4 shortcut).** Leave the Common Fixes table placeholder rows intact — they get filled in after the first real run surfaces actual failure modes.
 
@@ -375,7 +390,7 @@ Use AskUserQuestion:
 
 If they provide issues, populate the Common Fixes table via Edit. If skipped, leave the placeholder rows.
 
-### 4i: Tips (optional)
+### 4j: Tips (optional)
 
 **Skip this sub-step entirely if `AUTHORING_SANDBOX=1` (see Step 4 shortcut).** Leave the Tips section's placeholder bullets intact — they get filled in after the first run reveals real gotchas.
 
@@ -419,6 +434,12 @@ if head -5 "$FILE" | grep -q "^---"; then
   fi
 else
   echo "ERROR: No YAML frontmatter found"
+  ERRORS=$((ERRORS+1))
+fi
+
+# v1 runbooks (Final Checklist + stages report) do not validate as v2. Say so once, up front.
+if grep -qE "FINAL OUTPUT VERIFICATION|^## (Step [0-9]+: )?Final Checklist" "$FILE"; then
+  echo "ERROR: v1 runbook — replace the Final Checklist / verification script with '## Code Checks' + '## Checklist' and the stages report with the v2 checks[] report (see the create-runbook templates)"
   ERRORS=$((ERRORS+1))
 fi
 
@@ -472,19 +493,49 @@ else
   ERRORS=$((ERRORS+1))
 fi
 
-# Check for the outputs-exist code check (replaces the old Final Checklist verification script)
-if grep -q "### outputs-exist" "$FILE" || grep -q "FINAL OUTPUT VERIFICATION" "$FILE"; then
+# Check for the outputs-exist code check
+if grep -q "^### outputs-exist" "$FILE"; then
   echo "PASS: outputs-exist code check found"
 else
   echo "ERROR: No outputs-exist code check under ## Code Checks"
   ERRORS=$((ERRORS+1))
 fi
 
-# Check the validation report is v2
-if grep -qE '"version": *2 *,? *$' "$FILE" && grep -q '"checks": \[' "$FILE"; then
+# Code Checks run exactly as written: a placeholder heading or command fails every run.
+# Only the checks themselves are inspected (from the first ### heading on); intro prose may keep a {TODO:} line.
+CHECK_BODY=$(sed -n '/^## Code Checks/,/^## /p' "$FILE" | grep -v '^## ' | sed -n '/^### /,$p')
+CHECK_COUNT=$(printf '%s\n' "$CHECK_BODY" | grep -c '^### ')
+if printf '%s\n' "$CHECK_BODY" | grep '^### ' | grep -qE '(^|[^{$])\{[^{]'; then
+  echo "ERROR: A Code Check heading still contains a {placeholder} — replace it with a real '### <id> — <name>' or delete the check"
+  ERRORS=$((ERRORS+1))
+elif printf '%s\n' "$CHECK_BODY" | grep -v '^### ' | grep -qE '(^|[^{$])\{[^{]'; then
+  echo "WARN: A Code Check command contains a '{' outside {{var}} / \${var} — make sure it is not an unfilled placeholder"
+  WARNINGS=$((WARNINGS+1))
+fi
+if [ "${CHECK_COUNT:-0}" -lt 2 ]; then
+  echo "WARN: Only outputs-exist under ## Code Checks — add at least one check specific to the output"
+  WARNINGS=$((WARNINGS+1))
+fi
+
+# Checklist items: at least one '- [ ]' bullet, none still a placeholder (a failed item fails the run)
+CHECKLIST_ITEMS=$(sed -n '/^## Checklist/,/^## /p' "$FILE" | grep -E '^[[:space:]]*[-*+][[:space:]]*\[( |x|X)\]')
+ITEM_COUNT=$(printf '%s\n' "$CHECKLIST_ITEMS" | grep -c '\[')
+if [ "${ITEM_COUNT:-0}" -ge 1 ]; then
+  echo "PASS: Checklist has $ITEM_COUNT item(s)"
+else
+  echo "ERROR: ## Checklist has no '- [ ]' items"
+  ERRORS=$((ERRORS+1))
+fi
+if printf '%s\n' "$CHECKLIST_ITEMS" | grep -qE '(^|[^{$])\{[^{]'; then
+  echo "ERROR: A Checklist item still contains a {placeholder}"
+  ERRORS=$((ERRORS+1))
+fi
+
+# Check the validation report is v2: integer version 2 and a checks[] array
+if grep -qE '"version": 2(,|$)' "$FILE" && grep -q '"checks": \[' "$FILE"; then
   echo "PASS: validation report v2 (checks[])"
 else
-  echo "ERROR: validation report example must be v2 (\"version\": 2) with a checks[] array"
+  echo "ERROR: validation report example must be v2 (\"version\": 2, an integer) with a checks[] array"
   ERRORS=$((ERRORS+1))
 fi
 
@@ -628,7 +679,7 @@ Save `TASK_NAME` and `COLLECTION` for use in Step 7.
 
 ## Step 6: Deploy to Jetty (skip the dry run)
 
-**Don't gate the runbook behind a dry run — go straight to deploying it on Jetty (Step 7).** The fastest way to learn what a runbook actually does is to run it for real on the encouraged config (`claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`). A live run surfaces the real failure modes, dependencies, and gotchas — exactly what Steps 4d/4h/4i want filled in afterward — which a hypothetical walkthrough can only guess at. Encourage the user to trigger the first run and watch the trajectory at https://jetty.io.
+**Don't gate the runbook behind a dry run — go straight to deploying it on Jetty (Step 7).** The fastest way to learn what a runbook actually does is to run it for real on the encouraged config (`claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`). A live run surfaces the real failure modes, dependencies, and gotchas — exactly what Steps 4d/4i/4j want filled in afterward — which a hypothetical walkthrough can only guess at. Encourage the user to trigger the first run and watch the trajectory at https://jetty.io.
 
 Only produce a dry run if the user explicitly asks for one ("walk me through it first", "dry run before we deploy"). If they do, read the completed runbook with the Read tool and produce a walkthrough:
 
@@ -727,6 +778,6 @@ Tell the user:
 - **Declare `primary_outputs` in the frontmatter.** List the headline deliverable(s) relative to `results_dir`, most important first. This is how the web app picks which file to surface as the "Main output" when a run finishes; without it, the choice falls back to arbitrary filesystem walk order. Keep the first entry aligned with the first row of the REQUIRED OUTPUT FILES table, and never list `summary.md` or `validation_report.json` here.
 - **The `{{results_dir}}` parameter** defaults to `/app/results` when running on Jetty and `./results` when running locally.
 - **Bound iteration.** Every iteration loop must specify a maximum round count (typically 3). Without bounds, the agent may loop indefinitely.
-- **Use imperative language** in the output manifest and final checklist. Agents tend to wrap up early when they encounter errors — strong language like "Do NOT finish until all items pass" overrides this.
+- **Use imperative language** in the output manifest, Code Checks and Checklist. Agents tend to wrap up early when they encounter errors — strong language like "Do NOT finish until all items pass" overrides this.
 - **Don't over-specify intermediate steps.** The agent should have room to adapt. Specify *what* each step must produce, not every line of code.
 - **Don't mix evaluation patterns.** Programmatic validation for structured output, rubric scoring for creative output. Don't rubric-score a JSON file or schema-validate a social graphic.

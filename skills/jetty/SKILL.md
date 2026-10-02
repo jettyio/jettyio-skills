@@ -455,7 +455,7 @@ The agent becomes the executor. Read the RUNBOOK.md and follow it step by step.
 4. Ask the user for any required parameter values that are missing (use AskUserQuestion)
 5. For each secret declared in frontmatter, check if the env var is set: `echo "${SECRET_NAME:+SET}"`. If missing, prompt the user.
 6. Create the results directory: `mkdir -p {{results_dir}}`
-7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Report, Final Checklist
+7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Summary, Code Checks, Checklist, Write Validation Report
 8. Write all output files to `{{results_dir}}` (defaults to `./results` locally)
 
 ```bash

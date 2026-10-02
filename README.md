@@ -288,8 +288,9 @@ Every runbook follows a mandatory structure:
 6. **Steps** — sequential processing (API calls, transformations, etc.)
 7. **Evaluation** — status table (programmatic) or rubric scoring
 8. **Iteration** — up to 3 refinement rounds with common-fix guidance
-9. **Validation Report** — standardized `validation_report.json`
-10. **Final Checklist** — verification script and exit gate
+9. **Code Checks** — deterministic commands, one `### <id> — <name>` heading plus one fenced command each; a failure fails the run
+10. **Checklist** — `- [ ]` conditions confirmed by inspection; a failed item fails the run
+11. **Validation Report** — `validation_report.json` v2: one typed `checks[]` entry per step, code check, checklist item and judge; Jetty computes the verdict
 
 ### Getting Started with Runbooks
 
