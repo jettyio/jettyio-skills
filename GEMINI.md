@@ -47,7 +47,7 @@ Workflows are JSON pipelines with three sections:
 
 ## Creating Runbooks
 
-A **runbook** is a structured markdown document that tells a coding agent how to accomplish a complex, multi-step task with built-in evaluation loops and quality gates. Unlike a simple prompt, a runbook includes iteration (evaluate → refine → re-evaluate), a defined output manifest, and a verification checklist.
+A **runbook** is a structured markdown document that tells a coding agent how to accomplish a complex, multi-step task with built-in evaluation loops and quality gates. Unlike a simple prompt, a runbook includes iteration (evaluate → refine → re-evaluate), a defined output manifest, code checks, and a checklist.
 
 ### When to use a runbook
 - The task requires **iteration** (first attempt is rarely sufficient)
@@ -60,7 +60,7 @@ A **runbook** is a structured markdown document that tells a coding agent how to
 - **Rubric** (`evaluation: rubric`) — score against multi-criteria rubric (1-5 scale)
 
 ### Runbook structure
-Every runbook includes: YAML frontmatter (version + evaluation type), Objective, REQUIRED OUTPUT FILES manifest, Parameters, Dependencies, processing steps, evaluation step, iteration loop (max 3 rounds), summary + `validation_report.json` output, and a final verification checklist.
+Every runbook includes: YAML frontmatter (version + evaluation type), Objective, REQUIRED OUTPUT FILES manifest, Parameters, Dependencies, processing steps, evaluation step, iteration loop (max 3 rounds), Code Checks (command checks Jetty runs after the agent exits, agent checks the agent runs), Checklist, and a summary + `validation_report.json` v2 report (typed `checks[]`; Jetty merges its check entries in and computes the verdict). Runbooks written before Code Checks existed (a validation report with `stages` and `overall_passed` but no `checks`, and a Final Checklist step) still run unchanged: Jetty reads their report as v1 and takes its own `overall_passed` as the verdict. Running `/create-runbook` on one offers a migration.
 
 ### Creating a runbook
 Use the starter templates in the `skills/create-runbook/templates/` directory:
