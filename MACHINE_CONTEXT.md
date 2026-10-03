@@ -95,7 +95,7 @@ order: **Objective → required output files** (always incl. `validation_report.
 + `summary.md`) **→ parameters → dependencies → numbered steps → evaluation →
 bounded iteration → code checks → checklist → validation report** (v2, typed
 `checks[]`; Jetty runs the command checks itself after the agent exits, merges
-their entries in and computes the verdict).
+their entries in and computes the verdict). Runbooks written before Code Checks existed (a validation report with `stages` and `overall_passed` but no `checks`, and a Final Checklist step) still run unchanged: Jetty reads their report as v1 and takes its own `overall_passed` as the verdict. Running `/create-runbook` on one offers a migration.
 
 The **authoritative frontmatter schema, section templates, and structural validator
 ship in the `create-runbook` skill** — scaffold and validate with it rather than

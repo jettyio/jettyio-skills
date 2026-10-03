@@ -661,6 +661,16 @@ Replace `THE_RUNBOOK_PATH` with `./RUNBOOK.md`. The script exits 1 when the resu
 
 **If there are errors**, tell the user what needs to be fixed and guide them through the fixes using Edit. Re-run validation after fixes.
 
+### Migrating a v1 runbook
+
+The first error reads `v1 runbook — replace the Final Checklist / verification script ...` when the runbook was written from an earlier version of this skill: a "Write Validation Report" step whose JSON has `stages` and `overall_passed` but no `checks`, followed by a "Final Checklist" step with a `FINAL OUTPUT VERIFICATION` script. Such a runbook **still runs on Jetty unchanged**: its report is read as v1 and its own `overall_passed` is the verdict. Migrate it to get Jetty-run checks and a computed verdict. Tell the user that, then, if they want the migration, apply these Edits (read the matching template first):
+
+1. **Code Checks.** Replace the Final Checklist step with the template's `## Code Checks` section. The verification script's file loop becomes the `outputs-exist` check: its file list minus `validation_report.json`. Every other line in that script that tests output content (a `python` schema check, a row count, a link check) becomes its own `### <id> — <name>` heading with one `bash` fence. Delete the script.
+2. **Checklist.** Add the template's `## Checklist` section with the old checklist's `- [ ]` items, minus "exists" items (that is `outputs-exist` now) and the item about `stages` / `overall_passed`. Keep 3-6 items, no `{...}` placeholders. A rubric runbook gets `- [ ] Overall rubric average is at least 4.0`.
+3. **Write Validation Report.** Replace the old step's JSON and prose with the template's `## Write Validation Report` section, keeping the runbook's own `parameters` keys in the example. Drop the `Step N:` prefixes from these three headings.
+4. **Frontmatter.** Add `strict_evaluation: false` after `evaluation:` and the commented `code_checks:` block from the template. The old `version` and `secrets` stay as they are.
+5. Re-run the validator, then walk sub-step 4h to add output-specific checks.
+
 **If valid**, tell the user:
 
 > "Your runbook passes structural validation! {N warnings if any — mention them briefly.}"
@@ -833,7 +843,7 @@ Tell the user:
 > - Bump the **version** when you make structural changes
 >
 > **Re-validate after changes:**
-> Run `/create-runbook` again on an existing RUNBOOK.md to re-validate it, or run the validation script from Step 5 manually.
+> Run `/create-runbook` again on an existing RUNBOOK.md to re-validate it, or run the validation script from Step 5 manually. A runbook written before Code Checks existed keeps running as is; re-validating it offers the migration in Step 5.
 
 ---
 

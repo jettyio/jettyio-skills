@@ -292,6 +292,8 @@ Every runbook follows a mandatory structure:
 10. **Checklist** — `- [ ]` conditions confirmed by inspection; a failed item fails the run
 11. **Validation Report** — `validation_report.json` v2: one typed `checks[]` entry per step, checklist item, agent check and judge; Jetty appends its own command-check entries and computes the verdict
 
+Runbooks written before Code Checks existed (a validation report with `stages` and `overall_passed` but no `checks`, and a Final Checklist step) still run unchanged: Jetty reads their report as v1 and takes its own `overall_passed` as the verdict. Running `/create-runbook` on one offers a migration.
+
 ### Getting Started with Runbooks
 
 **Claude Code users:** Run `/jetty create-runbook` for a guided wizard that generates a complete runbook from starter templates.
