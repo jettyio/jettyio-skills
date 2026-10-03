@@ -56,7 +56,7 @@ If you don't specify an agent in your runbook frontmatter, Jetty infers it from 
 
 If `model_provider` is omitted, Jetty auto-defaults in this order: `openrouter` when `OPENROUTER_API_KEY` is available and the agent supports it → `bedrock` when `AWS_BEARER_TOKEN_BEDROCK` is set → legacy inference from `agent` (`claude-code` → `anthropic`, `opencode` → `openrouter`, `codex` → `openai`, `gemini-cli` → `google`). Always set it explicitly in frontmatter to avoid surprises.
 
-> **Trial runs route through OpenRouter.** Jetty trial keys include `OPENROUTER_API_KEY`, so a trial run with no explicit `model_provider` auto-defaults to `openrouter` — progress shows `Running agent: claude-code via openrouter`. That's Jetty's trial routing (same model), not your provider choice being ignored. To pin a provider, set `model_provider` in the runbook frontmatter, or pass `jetty.model_provider` on the chat-completions request (honored by current mise; older deployments only read the frontmatter).
+> **Trial runs route through OpenRouter.** Jetty trial keys include `OPENROUTER_API_KEY`, so a trial run with no explicit `model_provider` auto-defaults to `openrouter` — progress shows `Running agent: claude-code via openrouter`. That's Jetty's trial routing (same model), not your provider choice being ignored. To pin a provider, set `model_provider` in the runbook frontmatter, or pass `jetty.model_provider` on the chat-completions request (honored by current Jetty; older deployments only read the frontmatter).
 
 **Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-4.6` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-4-6` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
 
@@ -110,13 +110,13 @@ code_checks:              # optional — how the ## Code Checks run and what the
 ---
 ```
 
-`agent`, `model`, `model_provider`, `snapshot`, `mcp_servers`, `code_checks` and `strict_evaluation` are **task defaults**: mise copies them into the task's `init_params` when the task is created, and a run may override any of them per top-level key. `secrets:` is a declaration the run must satisfy (names only, never values) and is never copied.
+`agent`, `model`, `model_provider`, `snapshot`, `mcp_servers`, `code_checks` and `strict_evaluation` are **task defaults**: Jetty copies them into the task's `init_params` when the task is created, and a run may override any of them per top-level key. `secrets:` is a declaration the run must satisfy (names only, never values) and is never copied.
 
 These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`. If you omit `model_provider` entirely, Jetty falls back to agent-based inference (`claude-code` → `anthropic`), so set it explicitly.
 
 ### `primary_outputs`
 
-Optional. An ordered list of the runbook's headline deliverable(s), each given as a path **relative to `results_dir`** (e.g. `report.html` or `images/final.png`) — a single string is also accepted. After a run completes, mise resolves these declarations to their stored artifacts and emits them as `primary_files` on the `run` step output, in declaration order. The web app (spot) surfaces the **first** resolved entry as the run's "Main output" instead of guessing from filesystem walk order. When `primary_outputs` is omitted, behavior is unchanged: the first non-special results file is used. Keep the first entry in sync with the first row of the **REQUIRED OUTPUT FILES** table. Do not list `summary.md` or `validation_report.json` here — those are surfaced in their own dedicated panels.
+Optional. An ordered list of the runbook's headline deliverable(s), each given as a path **relative to `results_dir`** (e.g. `report.html` or `images/final.png`) — a single string is also accepted. After a run completes, Jetty resolves these declarations to their stored artifacts and emits them as `primary_files` on the `run` step output, in declaration order. The web app (spot) surfaces the **first** resolved entry as the run's "Main output" instead of guessing from filesystem walk order. When `primary_outputs` is omitted, behavior is unchanged: the first non-special results file is used. Keep the first entry in sync with the first row of the **REQUIRED OUTPUT FILES** table. Do not list `summary.md` or `validation_report.json` here — those are surfaced in their own dedicated panels.
 
 ### `strict_evaluation`
 
@@ -148,7 +148,7 @@ Use the MCP tools `check-secrets` and `set-environment-vars`, or the `/jetty` sk
 
 ## Multimodal Generation in the Sandbox
 
-When an agent runs inside a runbook sandbox, mise auto-forwards a curated set of multimodal-generation keys from the trajectory environment into the agent's process env. Any of these keys, when present on the collection (user-supplied) or available via the Jetty trial fallback, will be readable from the agent's code as a normal env var:
+When an agent runs inside a runbook sandbox, Jetty auto-forwards a curated set of multimodal-generation keys from the trajectory environment into the agent's process env. Any of these keys, when present on the collection (user-supplied) or available via the Jetty trial fallback, will be readable from the agent's code as a normal env var:
 
 | Key | Typical use |
 |---|---|

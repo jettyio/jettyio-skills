@@ -142,7 +142,7 @@ curl -s -X POST -H "Authorization: Bearer $TOK" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}"
 ```
 
-Requires the Clerk "Jetty CLI" OAuth app (provisioned) and mise accepting its
+Requires the Clerk "Jetty CLI" OAuth app (provisioned) and Jetty accepting its
 `azp`. Config is env-overridable (`JETTY_CLERK_CLIENT_ID`, `JETTY_CLERK_ISSUER`,
 `JETTY_API`). See the "CLI login via Clerk OAuth" design doc on the Subscription
 Credential Forwarding project for the full architecture.

@@ -311,7 +311,7 @@ Also add a verification block in Step 1 (Environment Setup) that checks each req
 - `GEMINI_API_KEY` — Imagen image generation, Gemini vision inputs.
 - `OPENAI_API_KEY` — DALL·E, gpt-image-1, GPT-4 vision.
 
-You only need to declare the ones the task actually uses (e.g., a "generate product hero images" task gets `REPLICATE_API_TOKEN` alone; "describe what's in this PDF" gets `GEMINI_API_KEY` or `OPENAI_API_KEY`). These three keys are also **auto-forwarded by mise** when present on the trajectory, so a trial-eligible collection will get usable tokens even without the explicit declaration — but declaring them keeps the runbook self-documenting and makes the verification block in Step 1 catch missing setup early.
+You only need to declare the ones the task actually uses (e.g., a "generate product hero images" task gets `REPLICATE_API_TOKEN` alone; "describe what's in this PDF" gets `GEMINI_API_KEY` or `OPENAI_API_KEY`). These three keys are also **auto-forwarded by Jetty** when present on the trajectory, so a trial-eligible collection will get usable tokens even without the explicit declaration — but declaring them keeps the runbook self-documenting and makes the verification block in Step 1 catch missing setup early.
 
 ### 4f: Processing Steps
 
@@ -697,7 +697,7 @@ If multiple collections are returned, ask the user which one with AskUserQuestio
 
 Now upsert the Task row with `has_file_uploads=true` and `is_chat_flow=true`. Try `PUT` first (updates an existing row); if that returns 404, fall back to `POST`.
 
-⚠️ **The pre-registered workflow must be a real runbook workflow** (`steps: ["run"]` with the `runbook` activity) — the same shape mise auto-creates on first run. Do NOT use a `completion`/`passthrough` stub: the engine executes the stored workflow on runbook runs, `passthrough` is not a runnable step, and the first run dies with `No step registered for 'completion'` before the sandbox boots.
+⚠️ **The pre-registered workflow must be a real runbook workflow** (`steps: ["run"]` with the `runbook` activity) — the same shape Jetty auto-creates on first run. Do NOT use a `completion`/`passthrough` stub: the engine executes the stored workflow on runbook runs, `passthrough` is not a runnable step, and the first run dies with `No step registered for 'completion'` before the sandbox boots.
 
 ```bash
 TASK_NAME="REPLACE_WITH_KEBAB_TASK_NAME"
