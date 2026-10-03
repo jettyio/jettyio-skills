@@ -189,7 +189,7 @@ If not found there, also check the working directory:
 find . -path "*/create-runbook/templates/programmatic.md" 2>/dev/null | head -1
 ```
 
-Read the template using the Read tool.
+Read the template using the Read tool. **If the template cannot be read** (not found, or the Read is denied because the skill directory is outside the allowed paths), stop and tell the user: the runbook structure comes from the template and from nowhere else, so do not improvise one. They can re-run with the skill directory allowed (for example `--add-dir`) or copy the templates next to the working directory.
 
 Now customize the template using the task description from Step 2a:
 
@@ -418,6 +418,13 @@ WARNINGS=0
 
 echo "=== RUNBOOK VALIDATION: $FILE ==="
 
+if [ ! -r "$FILE" ]; then
+  echo "ERROR: $FILE not found or not readable"
+  echo ""
+  echo "Result: INVALID (1 error(s), 0 warning(s))"
+  exit 1
+fi
+
 # Check frontmatter
 if head -5 "$FILE" | grep -q "^---"; then
   VERSION=$(grep "^version:" "$FILE" | head -1 | sed 's/version: *//' | tr -d '"')
@@ -546,7 +553,8 @@ fi
 if printf '%s\n' "$CHECK_CMDS" | grep -qE '\{primary_output\}|\{TODO:'; then
   echo "ERROR: A Code Check command still contains {primary_output} or a {TODO:} marker — the check would fail every run"
   ERRORS=$((ERRORS+1))
-elif printf '%s\n' "$CHECK_CMDS" | grep -qE "$PLACEHOLDER"; then
+elif printf '%s\n' "$CHECK_CMDS" | grep -vE "f\\\\?[\"']" | grep -qE "$PLACEHOLDER"; then
+  # (a line holding a Python f-string is skipped: its {name} braces are code)
   echo "WARN: A Code Check command contains {text like this} — make sure it is not an unfilled placeholder"
   WARNINGS=$((WARNINGS+1))
 fi
@@ -642,13 +650,14 @@ if [ $ERRORS -eq 0 ]; then
   echo "Result: VALID ($WARNINGS warning(s))"
 else
   echo "Result: INVALID ($ERRORS error(s), $WARNINGS warning(s))"
+  exit 1
 fi
 VALIDATE_EOF
 chmod +x /tmp/validate_runbook.sh
 bash /tmp/validate_runbook.sh "THE_RUNBOOK_PATH"
 ```
 
-Replace `THE_RUNBOOK_PATH` with `./RUNBOOK.md`.
+Replace `THE_RUNBOOK_PATH` with `./RUNBOOK.md`. The script exits 1 when the result is INVALID, so a non-zero exit from the Bash tool is expected in that case; read the `Result:` line.
 
 **If there are errors**, tell the user what needs to be fixed and guide them through the fixes using Edit. Re-run validation after fixes.
 
