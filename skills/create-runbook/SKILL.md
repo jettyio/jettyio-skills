@@ -365,7 +365,7 @@ Update the rubric table via Edit.
 
 ### 4h: Code Checks & Checklist
 
-Code Checks are run by Jetty after the agent finishes (command checks) or by the agent (agent checks), exactly as written, and a failing one fails the run, so the runbook must not ship with a placeholder check. Show the user the `outputs-exist` check and the `{TODO: ...}` line under `## Code Checks`, then use AskUserQuestion:
+Code Checks are run by Jetty after the agent finishes (command checks, unless marked `executor=agent` on the fence) or by the agent (agent checks and the marked ones), exactly as written, and a failing one fails the run, so the runbook must not ship with a placeholder check. Show the user the `outputs-exist` check and the `{TODO: ...}` line under `## Code Checks`, then use AskUserQuestion:
 - Header: "Code Checks"
 - Question: "Which properties of `{primary_output}` can be verified? Each becomes a `### <id> — <name>` heading with one fenced block: a `bash` command that exits non-zero on failure (schema validation, row counts, a test suite), a `yaml` built-in (`use: file_exists | min_size | json_valid | regex_present | regex_absent | markdown_relative_links_resolve`), or an `agent` instruction for something only the agent can check (an MCP server, its live state). Scripts you already have can be cloned from a git repo via `code_checks.sources` in the frontmatter."
 - Options:
@@ -373,7 +373,7 @@ Code Checks are run by Jetty after the agent finishes (command checks) or by the
   - "Draft them" / "Propose 1-3 checks from the output format and I'll review"
   - "Only outputs-exist" / "Keep just the file-existence check for now"
 
-Via Edit: add each check after `outputs-exist` (id of letters, digits, `.`, `_`, `-`; a one-sentence name; one fenced block whose language is `bash`, `yaml` or `agent`), then delete the `{TODO: ...}` line. If the user chose "Only outputs-exist", delete the line anyway. Prefer a built-in or a `bash` fence: Jetty runs those itself, so the agent cannot skip or misreport them. A `bash` fence runs under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; the per-check timeout is `code_checks.timeout_sec` (default 120 s). If a check needs a script from a git repo, uncomment `code_checks.sources` in the frontmatter, fill in `name`/`url`/`ref`, declare its `secret` under `secrets:` too, and reference the clone as `{{checks_dir}}/<name>/...`; an agent check must not reference it (the clone happens after the agent exits unless `code_checks.executor: agent`).
+Via Edit: add each check after `outputs-exist` (id of letters, digits, `.`, `_`, `-`; a one-sentence name; one fenced block whose language is `bash`, `yaml` or `agent`), then delete the `{TODO: ...}` line. If the user chose "Only outputs-exist", delete the line anyway. Prefer a built-in or a `bash` fence: Jetty runs those itself, so the agent cannot skip or misreport them. A command that only the agent's live session can run (a request to a server a step started, which is gone by the time Jetty's checks run) is marked on its fence, ` ```bash executor=agent `, and the agent runs and reports it; who runs a check is declared per check, there is no runbook-wide executor setting. A `bash` fence runs under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; the per-check timeout is `code_checks.timeout_sec` (default 120 s). If a check needs a script from a git repo, uncomment `code_checks.sources` in the frontmatter, fill in `name`/`url`/`ref`, declare its `secret` under `secrets:` too, and reference the clone as `{{checks_dir}}/<name>/...`. Jetty's checks read a fresh clone made after the agent exits; a check the agent runs may reference it too, and then the sources are also cloned before the agent starts.
 
 Then review the `## Checklist` items with the user: 3-6 `- [ ]` conditions a reviewer confirms by inspection, each a short phrase (its slug becomes the report `id`), no `{...}` placeholders. A failed item fails the run, so keep only conditions the agent can actually verify from the outputs.
 
@@ -564,14 +564,23 @@ if [ "${CHECK_COUNT:-0}" -gt 0 ] && printf '%s\n' "$CHECK_HEADINGS" | grep -vqE 
   ERRORS=$((ERRORS+1))
 fi
 # Each heading is read from the FIRST fence after it. Usable kinds: bare/bash/sh/shell (command), yaml/check (built-in), agent.
-# None, or any other language, is reported by Jetty as error.
-UNFENCED=$(printf '%s\n' "$CC" | awk '
-  /^T ### / { if (id != "" && !ok) print id; id = $3; ok = 0; seen = 0; next }
-  /^O / { if (id != "" && !seen) { seen = 1; lang = substr($0, 3); sub(/^[`~]+/, "", lang); sub(/[[:space:]].*$/, "", lang)
-          if (lang == "" || lang ~ /^(bash|sh|shell|yaml|check|agent)$/) ok = 1 } }
-  END { if (id != "" && !ok) print id }')
+# None, or any other language, is reported by Jetty as error. An 'executor=' word after the language names who runs the
+# check: jetty (the default for a command) or agent; an agent fence is always the agent's, so executor=jetty on one is an error too.
+FENCE_PROBLEMS=$(printf '%s\n' "$CC" | awk '
+  /^T ### / { if (id != "" && !ok) print "nofence " id; id = $3; ok = 0; seen = 0; next }
+  /^O / { if (id != "" && !seen) { seen = 1; info = substr($0, 3); sub(/^[`~]+[[:space:]]*/, "", info); n = split(info, w, /[[:space:]]+/); lang = w[1]
+          if (lang == "" || lang ~ /^(bash|sh|shell|yaml|check|agent)$/) ok = 1
+          for (i = 2; i <= n; i++) if (w[i] ~ /^[Ee][Xx][Ee][Cc][Uu][Tt][Oo][Rr]=/) { who = tolower(substr(w[i], 10))
+            if (who != "jetty" && who != "agent") print "badexec " id " (" w[i] ")"; else if (who == "jetty" && lang == "agent") print "badexec " id " (an agent fence is always the agent'"'"'s)" } } }
+  END { if (id != "" && !ok) print "nofence " id }')
+UNFENCED=$(printf '%s\n' "$FENCE_PROBLEMS" | awk '/^nofence /{print $2}')
+BADEXEC=$(printf '%s\n' "$FENCE_PROBLEMS" | awk '/^badexec /{sub(/^badexec /, ""); print}')
 if [ -n "$UNFENCED" ]; then
   echo "ERROR: Code Check(s) without a usable fence (bash/sh, yaml or agent, starting at column 0) right after the heading: $(printf '%s' "$UNFENCED" | tr '\n' ' ')"
+  ERRORS=$((ERRORS+1))
+fi
+if [ -n "$BADEXEC" ]; then
+  echo "ERROR: Code Check(s) with a bad executor= on the fence (jetty or agent; never jetty on an agent fence): $(printf '%s' "$BADEXEC" | tr '\n' ' ')"
   ERRORS=$((ERRORS+1))
 fi
 if [ "${CHECK_COUNT:-0}" -lt 2 ]; then

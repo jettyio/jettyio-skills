@@ -455,7 +455,7 @@ The agent becomes the executor. Read the RUNBOOK.md and follow it step by step.
 4. Ask the user for any required parameter values that are missing (use AskUserQuestion)
 5. For each secret declared in frontmatter, check if the env var is set: `echo "${SECRET_NAME:+SET}"`. If missing, prompt the user.
 6. Create the results directory: `mkdir -p {{results_dir}}`
-7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Summary, Code Checks, Checklist, Write Validation Report. Locally there is no Jetty executor, so run every Code Check yourself (command checks included) and record each in the report
+7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Summary, Code Checks, Checklist, Write Validation Report. Locally there is no Jetty to run the command checks, so run every Code Check yourself, whatever its fence's `executor=` says, and record each in the report
 8. Every output file a step writes goes under `{{results_dir}}` (defaults to `./results` locally). `validation_report.json` is the last file written, after every other output exists, so it reflects the completed outputs
 
 ```bash

@@ -99,7 +99,6 @@ secrets:
   GITHUB_TOKEN:           # consumed by the source below: withheld from the agent
     env: GITHUB_TOKEN
 code_checks:              # optional — how the ## Code Checks run and what they need
-  executor: jetty         # jetty (default) runs command checks after the agent exits; agent hands them to the agent
   timeout_sec: 120        # per check, max 900
   sources:
     - name: checks
@@ -120,15 +119,16 @@ Optional. An ordered list of the runbook's headline deliverable(s), each given a
 
 ### `strict_evaluation`
 
-Optional, default `false`. A `## Code Checks` entry with an `agent` fence is the agent's to run and report. One the agent did not report is written into `validation_report.json` by Jetty as `skipped`; with `strict_evaluation: true` it is written as `error`, which fails the run. Command checks are unaffected: Jetty runs those itself.
+Optional, default `false`. A `## Code Checks` entry with an `agent` fence is the agent's to run and report. One the agent did not report is written into `validation_report.json` by Jetty as `skipped`; with `strict_evaluation: true` it is written as `error`, which fails the run. A command check Jetty runs is unaffected; one marked `executor=agent` on its fence is the agent's to report, like an agent check.
 
 ### `code_checks`
 
 Optional. How the `## Code Checks` run and what they need. Under v2 each `### <id> — <name>` heading is followed by one fenced block whose language is the check's kind: a `bash` fence (also `sh`, `shell` or no language) is a command run under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; a `yaml` (or `check`) fence is a built-in (`use:` one of `file_exists`, `min_size`, `json_valid`, `regex_present`, `regex_absent`, `markdown_relative_links_resolve`, paths relative to the results directory); an `agent` fence is an instruction only the agent can carry out. Exit 0 is `pass`; a timeout, a built-in with a bad spec, a command the shell cannot run or a heading with no usable fence is `error`; any other exit is `fail`. Every entry Jetty writes carries `details.runner: "jetty"`.
 
-- `executor` — `jetty` (default): Jetty runs the command checks in the run's sandbox after the agent process has exited, and its entries replace any the agent wrote for them. `agent`: the agent runs the command checks too and its entries stand. Malformed and unreported checks are recorded by Jetty either way.
+Who runs a check is declared on the check's own fence, not in this block: `executor=agent` after the language (` ```bash executor=agent `) hands that command check to the agent, for a command against state only the agent's live session has (a server a step started, which is gone by the time Jetty's checks run), and the agent's entry for it stands. A command check without the marker is Jetty's: Jetty runs it in the run's sandbox after the agent process has exited, and its entry replaces any the agent wrote. An `agent` fence is always the agent's; `executor=jetty` on one, or any other value, is an `error`. Malformed and unreported checks are recorded by Jetty whatever the executor. A runbook-wide `code_checks.executor` key is no longer read: a task whose saved defaults still carry it runs with a warning saying where the executor lives now, and a runbook that still declares it fails Jetty's frontmatter schema, which does not accept the key.
+
 - `timeout_sec` — per check, default 120, max 900.
-- `sources` — repositories cloned to `/app/checks/<name>` (`type: git`, `https://` `url`, optional `ref` as a branch, tag or commit SHA, optional `secret` naming an entry in `secrets:`). Each source is probed from the worker before the sandbox exists, so a bad URL, dead token or missing ref fails the run before anything is paid for. Under the `jetty` executor the clone happens after the agent exits, so the agent never sees the check code and an agent check must not reference `/app/checks`; under `executor: agent` it is cloned before the agent. A source's `secret` is consumed by Jetty and withheld from the agent's environment.
+- `sources` — repositories cloned to `/app/checks/<name>` (`type: git`, `https://` `url`, optional `ref` as a branch, tag or commit SHA, optional `secret` naming an entry in `secrets:`). Each source is probed from the worker before the sandbox exists, so a bad URL, dead token or missing ref fails the run before anything is paid for. Jetty's checks read a fresh clone made after the agent exits, so nothing the agent did under `/app/checks` reaches them; when a check the agent runs refers to `/app/checks`, the sources are cloned before the agent starts as well. A source's `secret` is consumed by Jetty and withheld from the agent's environment.
 - `mcp_servers` — merged into the run's MCP servers.
 - `references` — URLs the agent may read while checking; not provisioned.
 
