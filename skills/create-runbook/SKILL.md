@@ -450,12 +450,19 @@ if grep -qE "FINAL OUTPUT VERIFICATION|^## (Step [0-9]+: )?Final Checklist" "$FI
   ERRORS=$((ERRORS+1))
 fi
 
-# Check required sections. Headings may carry a "Step N:" prefix.
+# Check required sections. Headings may carry a "Step N:" prefix, except the two Jetty finds by their exact
+# heading text: '## Code Checks' (its checks are read from under it) and '## Checklist'. A prefix there hides the section.
 for section in "Objective" "REQUIRED OUTPUT FILES" "Code Checks" "Checklist" "Write Validation Report"; do
   if grep -qE "^## (Step [0-9]+: )?$section" "$FILE"; then
     echo "PASS: '$section' section found"
   else
     echo "ERROR: '$section' section missing"
+    ERRORS=$((ERRORS+1))
+  fi
+done
+for section in "Code Checks" "Checklist"; do
+  if grep -qE "^## Step [0-9]+: $section" "$FILE"; then
+    echo "ERROR: '## $section' must be the whole heading — Jetty looks it up by that exact text, so a 'Step N:' prefix hides it"
     ERRORS=$((ERRORS+1))
   fi
 done
@@ -615,10 +622,12 @@ VARS=$(grep -oE '\{\{[a-z_]+\}\}' "$FILE" | sort -u | tr -d '{}')
 if [ -n "$VARS" ]; then
   if grep -q "## Parameters" "$FILE"; then
     echo "PASS: Parameters section found"
-    # Each template variable needs a row in the Parameters table (checks_dir / assets_dir are run-time substitutions, not parameters)
+    # Each template variable needs a row in the Parameters table itself (checks_dir / assets_dir are run-time
+    # substitutions, not parameters); a row in some other table does not count
+    PARAM_ROWS=$(section_lines "Parameters" | grep '^T ' | cut -c3- | grep '^|')
     for var in $VARS; do
       case $var in checks_dir|assets_dir) continue;; esac
-      if ! grep -qE "^\|.*\{\{$var\}\}" "$FILE"; then
+      if ! printf '%s\n' "$PARAM_ROWS" | grep -qE "^\|.*\{\{$var\}\}"; then
         echo "WARN: Template variable {{$var}} has no row in the Parameters table"
         WARNINGS=$((WARNINGS+1))
       fi
