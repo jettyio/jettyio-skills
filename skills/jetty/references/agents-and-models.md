@@ -119,7 +119,7 @@ Optional. An ordered list of the runbook's headline deliverable(s), each given a
 
 ### `strict_evaluation`
 
-Optional, default `false`. A `## Code Checks` entry with an `agent` fence is the agent's to run and report. One the agent did not report is written into `validation_report.json` by Jetty as `skipped`; with `strict_evaluation: true` it is written as `error`, which fails the run. A command check Jetty runs is unaffected; one marked `executor=agent` on its fence is the agent's to report, like an agent check.
+Optional, default `false`. A `## Code Checks` entry with an `agent` fence is the agent's to run and report. One the agent did not report is added to `validation_report.json` by Jetty as `skipped`, as is an unreported Checklist item; with `strict_evaluation: true` a skipped entry counts as failed, and an unreadable or v1 report fails the run when checks are declared. A command check Jetty runs is unaffected; one marked `executor=agent` on its fence is the agent's to report, like an agent check.
 
 ### `code_checks`
 
