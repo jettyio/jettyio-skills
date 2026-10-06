@@ -201,7 +201,7 @@ Write `{{results_dir}}/summary.md` with the following structure:
 
 ---
 
-## Code Checks
+## Step 7: Code Checks
 
 One `### <id> — <name>` heading per check (id: letters, digits, `.`, `_`, `-`), followed by exactly one fenced block. The fence's language is the check's kind:
 
@@ -220,7 +220,7 @@ test -s {{results_dir}}/{primary_output} && test -s {{results_dir}}/summary.md
 
 ---
 
-## Checklist
+## Step 8: Checklist
 
 Observable conditions you confirm by inspection before writing the report. Placeholder text means `{...}` or `TODO` left in any output file. Record each item in the validation report as `kind: checklist`. The per-criterion floor of 3 is enforced by the `judge` entries; the first item below enforces the average. **A failed item fails the run's verdict.**
 
@@ -230,7 +230,7 @@ Observable conditions you confirm by inspection before writing the report. Place
 
 ---
 
-## Write Validation Report
+## Step 9: Write Validation Report
 
 Write `{{results_dir}}/validation_report.json` **last**. One entry in `checks` per step (`kind: step`), per Checklist item (`kind: checklist`), per agent check you ran (`kind: code_check`, `id` exactly as its heading) and per rubric criterion (`kind: judge`, `id` = the slugified criterion name, `score` 1-5, `max_score: 5`, `threshold: 3`). Write no entries for the command checks Jetty runs: Jetty appends those after you finish (each with `details.runner: "jetty"`), drops any `code_check` entry whose id it does not expect, and computes the verdict from the merged `checks`; the `verdict` you write is a hint. Report every check you ran, including the ones that still fail.
 

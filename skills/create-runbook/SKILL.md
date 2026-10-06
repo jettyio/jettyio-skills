@@ -324,7 +324,7 @@ Based on the task description, propose a sequence of processing steps. Show the 
   - "Change order" / "The steps need reordering"
   - "Remove a step" / "One of these isn't needed"
 
-Apply changes via Edit. For each confirmed step, write a skeleton with:
+Apply changes via Edit. Every `## Step N:` heading is numbered in order, the three closing sections (Code Checks, Checklist, Write Validation Report) included, so renumber every later heading when a step is added or removed. For each confirmed step, write a skeleton with:
 - Step name as header
 - 2-3 sentence description of what to do
 - Placeholder for API calls or code snippets: `{TODO: add API call examples and expected response format}`
@@ -365,7 +365,7 @@ Update the rubric table via Edit.
 
 ### 4h: Code Checks & Checklist
 
-Code Checks are run by Jetty after the agent finishes (command checks, unless marked `executor=agent` on the fence) or by the agent (agent checks and the marked ones), exactly as written, and a failing one fails the run, so the runbook must not ship with a placeholder check. Show the user the `outputs-exist` check and the `{TODO: ...}` line under `## Code Checks`, then use AskUserQuestion:
+Code Checks are run by Jetty after the agent finishes (command checks, unless marked `executor=agent` on the fence) or by the agent (agent checks and the marked ones), exactly as written, and a failing one fails the run, so the runbook must not ship with a placeholder check. Show the user the `outputs-exist` check and the `{TODO: ...}` line under `## Step 7: Code Checks`, then use AskUserQuestion:
 - Header: "Code Checks"
 - Question: "Which properties of `{primary_output}` can be verified? Each becomes a `### <id> — <name>` heading with one fenced block: a `bash` command that exits non-zero on failure (schema validation, row counts, a test suite), a `yaml` built-in (`use: file_exists | min_size | json_valid | regex_present | regex_absent | markdown_relative_links_resolve`), or an `agent` instruction for something only the agent can check (an MCP server, its live state). Scripts you already have can be cloned from a git repo via `code_checks.sources` in the frontmatter."
 - Options:
@@ -375,7 +375,7 @@ Code Checks are run by Jetty after the agent finishes (command checks, unless ma
 
 Via Edit: add each check after `outputs-exist` (id of letters, digits, `.`, `_`, `-`; a one-sentence name; one fenced block whose language is `bash`, `yaml` or `agent`), then delete the `{TODO: ...}` line. If the user chose "Only outputs-exist", delete the line anyway. Prefer a built-in or a `bash` fence: Jetty runs those itself, so the agent cannot skip or misreport them. A command that only the agent's live session can run (a request to a server a step started, which is gone by the time Jetty's checks run) is marked on its fence, ` ```bash executor=agent `, and the agent runs and reports it; who runs a check is declared per check, there is no runbook-wide executor setting. A `bash` fence runs under `bash -e -o pipefail` with `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` set and `{{results_dir}}` / `{{checks_dir}}` / `{{assets_dir}}` substituted; the per-check timeout is `code_checks.timeout_sec` (default 120 s). If a check needs a script from a git repo, uncomment `code_checks.sources` in the frontmatter, fill in `name`/`url`/`ref`, declare its `secret` under `secrets:` too, and reference the clone as `{{checks_dir}}/<name>/...`. Jetty's checks read a fresh clone made after the agent exits; a check the agent runs may reference it too, and then the sources are also cloned before the agent starts.
 
-Then review the `## Checklist` items with the user: 3-6 `- [ ]` conditions a reviewer confirms by inspection, each a short phrase (its slug becomes the report `id`), no `{...}` placeholders. A failed item fails the run, so keep only conditions the agent can actually verify from the outputs.
+Then review the `## Step 8: Checklist` items with the user: 3-6 `- [ ]` conditions a reviewer confirms by inspection, each a short phrase (its slug becomes the report `id`), no `{...}` placeholders. A failed item fails the run, so keep only conditions the agent can actually verify from the outputs.
 
 ### 4i: Common Fixes (optional)
 
@@ -450,19 +450,13 @@ if grep -qE "FINAL OUTPUT VERIFICATION|^## (Step [0-9]+: )?Final Checklist" "$FI
   ERRORS=$((ERRORS+1))
 fi
 
-# Check required sections. Headings may carry a "Step N:" prefix, except the two Jetty finds by their exact
-# heading text: '## Code Checks' (its checks are read from under it) and '## Checklist'. A prefix there hides the section.
+# Check required sections. Headings may carry a "Step N:" prefix (the templates number the closing sections as the
+# last steps; Jetty drops the prefix when it looks a section up).
 for section in "Objective" "REQUIRED OUTPUT FILES" "Code Checks" "Checklist" "Write Validation Report"; do
   if grep -qE "^## (Step [0-9]+: )?$section" "$FILE"; then
     echo "PASS: '$section' section found"
   else
     echo "ERROR: '$section' section missing"
-    ERRORS=$((ERRORS+1))
-  fi
-done
-for section in "Code Checks" "Checklist"; do
-  if grep -qE "^## Step [0-9]+: $section" "$FILE"; then
-    echo "ERROR: '## $section' must be the whole heading — Jetty looks it up by that exact text, so a 'Step N:' prefix hides it"
     ERRORS=$((ERRORS+1))
   fi
 done
@@ -683,9 +677,9 @@ Replace `THE_RUNBOOK_PATH` with `./RUNBOOK.md`. The script exits 1 when the resu
 
 The first error reads `v1 runbook — replace the Final Checklist / verification script ...` when the runbook was written from an earlier version of this skill: a "Write Validation Report" step whose JSON has `stages` and `overall_passed` but no `checks`, followed by a "Final Checklist" step with a `FINAL OUTPUT VERIFICATION` script. Such a runbook **still runs on Jetty unchanged**: its report is read as v1 and its own `overall_passed` is the verdict. Migrate it to get Jetty-run checks and a computed verdict. Tell the user that, then, if they want the migration, apply these Edits (read the matching template first):
 
-1. **Code Checks.** Replace the Final Checklist step with the template's `## Code Checks` section. The verification script's file loop becomes the `outputs-exist` check: its file list minus `validation_report.json`. Every other line in that script that tests output content (a `python` schema check, a row count, a link check) becomes its own `### <id> — <name>` heading with one `bash` fence. Delete the script.
-2. **Checklist.** Add the template's `## Checklist` section with the old checklist's `- [ ]` items, minus "exists" items (that is `outputs-exist` now) and the item about `stages` / `overall_passed`. Keep 3-6 items, no `{...}` placeholders. A rubric runbook gets `- [ ] Overall rubric average is at least 4.0`.
-3. **Write Validation Report.** Replace the old step's JSON and prose with the template's `## Write Validation Report` section, keeping the runbook's own `parameters` keys in the example. Drop the `Step N:` prefixes from these three headings.
+1. **Code Checks.** Replace the Final Checklist step with the template's `## Step 7: Code Checks` section. The verification script's file loop becomes the `outputs-exist` check: its file list minus `validation_report.json`. Every other line in that script that tests output content (a `python` schema check, a row count, a link check) becomes its own `### <id> — <name>` heading with one `bash` fence. Delete the script.
+2. **Checklist.** Add the template's `## Step 8: Checklist` section with the old checklist's `- [ ]` items, minus "exists" items (that is `outputs-exist` now) and the item about `stages` / `overall_passed`. Keep 3-6 items, no `{...}` placeholders. A rubric runbook gets `- [ ] Overall rubric average is at least 4.0`.
+3. **Write Validation Report.** Replace the old step's JSON and prose with the template's `## Step 9: Write Validation Report` section, keeping the runbook's own `parameters` keys in the example. The three headings continue the runbook's step numbering, so renumber them when it has more or fewer than six steps before them.
 4. **Frontmatter.** Add `strict_evaluation: false` after `evaluation:` and the commented `code_checks:` block from the template. The old `version` and `secrets` stay as they are.
 5. Re-run the validator, then walk sub-step 4h to add output-specific checks.
 
