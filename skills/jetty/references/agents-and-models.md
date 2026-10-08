@@ -109,7 +109,7 @@ code_checks:              # optional — how the ## Code Checks run and what the
 ---
 ```
 
-`agent`, `model`, `model_provider`, `snapshot`, `mcp_servers`, `code_checks` and `strict_evaluation` are **task defaults**: Jetty copies them into the task's `init_params` when the task is created, and a run may override any of them per top-level key. `secrets:` is a declaration the run must satisfy (names only, never values) and is never copied.
+`agent`, `model`, `model_provider`, `snapshot`, `mcp_servers`, `code_checks` and `strict_evaluation` are **task defaults**: they reach a run only through the task's `init_params`, and a run may override any of them per top-level key. Jetty copies them there when it builds a task from the runbook itself (authoring, onboarding), and the create-runbook skill's Step 5b does the same when it pre-registers the task. A task that the chat-completions endpoint auto-creates on a first `/jetty` remote run takes its agent, snapshot and any MCP servers from that request and nothing from the frontmatter: it has no `code_checks` or `strict_evaluation`, so its checks have no sources and strict evaluation is off. Pre-register the task (or re-run Step 5b after changing these keys) before running remotely. `secrets:` is a declaration the run must satisfy (names only, never values) and is never copied.
 
 These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`. If you omit `model_provider` entirely, Jetty falls back to agent-based inference (`claude-code` → `anthropic`), so set it explicitly.
 
