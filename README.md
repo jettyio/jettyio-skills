@@ -290,8 +290,11 @@ Every runbook follows a mandatory structure:
 6. **Steps** — sequential processing (API calls, transformations, etc.)
 7. **Evaluation** — status table (programmatic) or rubric scoring
 8. **Iteration** — up to 3 refinement rounds with common-fix guidance
-9. **Validation Report** — standardized `validation_report.json`
-10. **Final Checklist** — verification script and exit gate
+9. **Code Checks** — one `### <id> — <name>` heading plus one fenced block each: a `bash` command or `yaml` built-in that Jetty runs after the agent exits (the agent runs it instead when the fence says `executor=agent`), or an `agent` instruction the agent runs; a note Jetty appends at run time names which ids each side runs, and without that note the agent runs every check itself and records each in the report; a failure fails the run
+10. **Checklist** — `- [ ]` conditions confirmed by inspection; a failed item fails the run
+11. **Validation Report** — `validation_report.json` v2: one typed `checks[]` entry per step, checklist item, agent check and judge; Jetty appends its own command-check entries and computes the verdict
+
+Runbooks written before Code Checks existed (a validation report with `stages` and `overall_passed` but no `checks`, and a Final Checklist step) still run unchanged: Jetty reads their report as v1 and takes its own `overall_passed` as the verdict. Running `/create-runbook` on one offers a migration.
 
 ### Getting Started with Runbooks
 

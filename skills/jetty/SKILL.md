@@ -142,7 +142,7 @@ curl -s -X POST -H "Authorization: Bearer $TOK" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}"
 ```
 
-Requires the Clerk "Jetty CLI" OAuth app (provisioned) and mise accepting its
+Requires the Clerk "Jetty CLI" OAuth app (provisioned) and Jetty accepting its
 `azp`. Config is env-overridable (`JETTY_CLERK_CLIENT_ID`, `JETTY_CLERK_ISSUER`,
 `JETTY_API`). See the "CLI login via Clerk OAuth" design doc on the Subscription
 Credential Forwarding project for the full architecture.
@@ -489,8 +489,13 @@ The agent becomes the executor. Read the RUNBOOK.md and follow it step by step.
 4. Ask the user for any required parameter values that are missing (use AskUserQuestion)
 5. For each secret declared in frontmatter, check if the env var is set: `echo "${SECRET_NAME:+SET}"`. If missing, prompt the user.
 6. Create the results directory: `mkdir -p {{results_dir}}`
-7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Report, Final Checklist
-8. Write all output files to `{{results_dir}}` (defaults to `./results` locally)
+7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Summary, Code Checks, Checklist, Write Validation Report. Locally there is no Jetty to run the command checks, so run every Code Check yourself, whatever its fence's `executor=` says, and record each in the report. Set the checks up the way Jetty would:
+   - **Directories.** `{{results_dir}}` is `./results`, `{{checks_dir}}` is `./checks` and `{{assets_dir}}` is the directory holding the input files the user gave you (`./assets` if none). Substitute them, and the Parameters values, into each check, and export `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` with the same absolute paths.
+   - **Sources.** Before the first check, clone each `code_checks.sources` entry to `./checks/<name>`: `git clone <url> ./checks/<name> && git -C ./checks/<name> checkout <ref>`. A private repo needs its `secret` env var set (as an HTTPS token); if it is missing, ask the user. A check that needs a source you could not clone is recorded as `error`, not `fail`.
+   - **`bash` fences** (also `sh`, `shell`, no language): run each with `bash -e -o pipefail -c '<command>'` from the project directory, with a `code_checks.timeout_sec` limit (default 120 s). Exit 0 is `pass`, a timeout is `error`, any other exit is `fail`. Record `details.command`, `details.exit_code` and the last lines of output in `details.stdout_tail`.
+   - **`yaml` fences** (also `check`) name a built-in; paths and globs are relative to the results directory and `pattern` is a Python regex. `file_exists` (`path`): the file exists. `min_size` (`path`, `bytes`): it is at least that many bytes. `json_valid` (`path`): it parses as JSON. `regex_present` (`glob`, `pattern`): the pattern matches in at least one of the files. `regex_absent` (`glob`, `pattern`): it matches in none, and a glob that names no file fails. `markdown_relative_links_resolve` (`path`): every relative link in the markdown file points to an existing file. Evaluate each with a short `python3` snippet. An unknown `use:` or a missing key is `error`.
+   - **`agent` fences**: carry out the instruction as written.
+8. Every output file a step writes goes under `{{results_dir}}` (defaults to `./results` locally). `validation_report.json` is the last file written, after every other output exists, so it reflects the completed outputs
 
 ```bash
 # Example: user says "run the runbook with sample_size=5"
