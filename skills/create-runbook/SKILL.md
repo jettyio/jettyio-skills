@@ -747,7 +747,7 @@ Now upsert the Task row with `has_file_uploads=true`, `is_chat_flow=true` and a 
 
 ⚠️ **The pre-registered workflow must be a real runbook workflow** (`steps: ["run"]` with the `runbook` activity) — the shape Jetty builds when it creates a task from a runbook. Do NOT use a `completion`/`passthrough` stub: the engine executes the stored workflow on runbook runs, `passthrough` is not a runnable step, and the first run dies with `No step registered for 'completion'` before the sandbox boots.
 
-The run step reads `code_checks`, `strict_evaluation`, `mcp_servers` and `snapshot` from the task's `init_params` only, never from the runbook text. So the frontmatter's values become the task's `init_params` defaults here, each with its `*_path` entry, or a run has no check sources (every check that uses `{{checks_dir}}` errors) and `strict_evaluation` is silently off. A task that the chat-completions endpoint auto-creates on a first `/jetty` remote run carries none of them, which is one more reason to register it here.
+The run step reads `code_checks`, `strict_evaluation`, `mcp_servers` and `snapshot` from the task's `init_params` only, never from the runbook text. So the frontmatter's values become the task's `init_params` defaults here, each with its `*_path` entry, or a run has no check sources (every check that uses `{{checks_dir}}` errors) and `strict_evaluation` is silently off. The task also records `runbook_evals_version: 2`: Jetty runs the Code Checks and computes the verdict only on a run whose task carries it, and reads any other run as v1. A task that the chat-completions endpoint auto-creates on a first `/jetty` remote run carries none of them, which is one more reason to register it here.
 
 ```bash
 TASK_NAME="REPLACE_WITH_KEBAB_TASK_NAME"
@@ -796,7 +796,9 @@ if "code_checks" in fm:
     init["code_checks"] = {"sources": cc.get("sources") or [], "timeout_sec": cc.get("timeout_sec") or 120}
 if isinstance(fm.get("strict_evaluation"), bool):
     init["strict_evaluation"] = fm["strict_evaluation"]
-init.update({"vars": {}, "file_paths": []})
+# The runbook evals version this runbook was written for. Jetty runs the Code Checks, appends the note naming who runs
+# which check, and computes the verdict only on a run whose task carries it; without it the run is read as v1
+init.update({"runbook_evals_version": 2, "vars": {}, "file_paths": []})
 
 run = {
     "activity": "runbook",
