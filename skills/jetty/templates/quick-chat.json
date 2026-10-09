@@ -1,7 +1,7 @@
 {
   "init_params": {
     "prompt": "Hello!",
-    "model": "gpt-4o-mini"
+    "model": "gpt-5.6-terra"
   },
   "step_configs": {
     "chat": {
