@@ -15,6 +15,8 @@ Then run `/jetty-setup` to create an account, configure your API key, and run yo
 
 Jetty uses the [Model Context Protocol](https://modelcontextprotocol.io) (MCP) to connect to your agent. Pick your tool below.
 
+The same tools are available to in-browser agents through [WebMCP](https://webmachinelearning.github.io/webmcp/) — jetty.io registers them on `navigator.modelContext` for signed-in users, and any site can do the same with `jetty-mcp-server/webmcp` (see [mcp-server/README.md](mcp-server/README.md#webmcp-the-same-tools-in-the-browser)).
+
 ### Claude Code
 
 **Plugin (recommended)** — includes guided setup wizard, workflow skills, and MCP tools:

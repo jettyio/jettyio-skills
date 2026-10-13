@@ -1,12 +1,47 @@
 {
   "name": "jetty-mcp-server",
-  "version": "1.0.3",
-  "description": "MCP server for Jetty AI/ML workflow platform",
+  "version": "1.1.0",
+  "description": "MCP server for the Jetty agent workload platform, plus the same tools for WebMCP in the browser",
   "type": "module",
   "bin": {
     "jetty-mcp-server": "dist/index.js"
   },
-  "main": "dist/index.js",
+  "main": "dist/lib.js",
+  "types": "dist/lib.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/lib.d.ts",
+      "default": "./dist/lib.js"
+    },
+    "./client": {
+      "types": "./dist/client.d.ts",
+      "default": "./dist/client.js"
+    },
+    "./api-client": {
+      "types": "./dist/api-client.d.ts",
+      "default": "./dist/api-client.js"
+    },
+    "./tool-definitions": {
+      "types": "./dist/tool-definitions.d.ts",
+      "default": "./dist/tool-definitions.js"
+    },
+    "./tools": {
+      "types": "./dist/tools.d.ts",
+      "default": "./dist/tools.js"
+    },
+    "./webmcp": {
+      "types": "./dist/webmcp.d.ts",
+      "default": "./dist/webmcp.js"
+    },
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "sideEffects": [
+    "./dist/index.js"
+  ],
   "scripts": {
     "build": "tsc",
     "dev": "tsc --watch",
@@ -15,11 +50,19 @@
     "test": "node --test 'tests/**/*.test.mjs'",
     "prepublishOnly": "npm run build"
   },
-  "keywords": ["mcp", "jetty", "ai", "ml", "workflows"],
+  "keywords": [
+    "mcp",
+    "webmcp",
+    "jetty",
+    "ai",
+    "agents",
+    "runbooks"
+  ],
   "license": "MIT",
   "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.12.1",
-    "zod": "^3.24.4"
+    "@modelcontextprotocol/sdk": "^1.13.0",
+    "zod": "^3.24.4",
+    "zod-to-json-schema": "^3.24.1"
   },
   "devDependencies": {
     "@types/node": "^22.15.3",
