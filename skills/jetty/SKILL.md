@@ -14,7 +14,7 @@ metadata:
 Before any tool call, send this exact block as a plain chat message (the fenced block keeps Pelly's pixels aligned; don't restyle or trim it). Skip it if you've already shown the banner earlier in this conversation.
 
 ```text
-🪽 Jetty Skills v1.9.1
+🪽 Jetty Skills v1.10.0
 
 🟦🟦⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
 🟦⬜️⬜️⬜️⬜️🟦🟦🟦🟦🟦🟦⬜️⬜️🟦🟦
@@ -507,7 +507,7 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
 1. Read the runbook file with the Read tool
 2. Parse the YAML frontmatter for `agent`, `model`, `model_provider`, `snapshot`, and `secrets`:
    - `agent` → use as `jetty.agent` (default: `claude-code`)
-   - `model` → use as `model` in the request (default: `claude-sonnet-4-6`)
+   - `model` → use as `model` in the request (default: `claude-sonnet-5-5`)
    - `model_provider` → use as `jetty.model_provider` (default: `anthropic`)
    - `snapshot` → use as `jetty.snapshot` (default: `python312-uv`; use `prism-playwright` if the runbook needs a browser)
    - `secrets` → check that each required secret is configured as a collection env var:
@@ -549,7 +549,7 @@ cat <<PAYLOAD | curl -s -X POST \
   "https://flows-api.jetty.io/v1/chat/completions" \
   --data-binary @-
 {
-  "model": "claude-sonnet-4-6",
+  "model": "claude-sonnet-5-5",
   "messages": [
     {"role": "system", "content": $(jq -Rs '.' <<< "$RUNBOOK_CONTENT")},
     {"role": "user", "content": "Execute the runbook."}
@@ -651,7 +651,7 @@ with open("RUNBOOK.md") as f:
     runbook = f.read()
 
 response = client.chat.completions.create(
-    model="claude-sonnet-4-6",
+    model="claude-sonnet-5-5",
     messages=[
         {"role": "system", "content": runbook},
         {"role": "user", "content": "Execute the runbook."}

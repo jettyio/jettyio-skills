@@ -1,9 +1,9 @@
 {
   "init_params": {
     "prompt": "Explain quantum computing in simple terms",
-    "model_a": "gpt-5.6-sol",
+    "model_a": "gpt-6.1-sol",
     "model_b": "claude-sonnet-5-5",
-    "judge_model": "gpt-5.6-sol",
+    "judge_model": "gpt-6.1-sol",
     "temperature": 0.7
   },
   "step_configs": {

@@ -86,7 +86,7 @@ Ask your agent:
     },
     "judge_image": {
       "activity": "simple_judge",
-      "model": "gpt-5.6-sol",
+      "model": "gpt-6.1-sol",
       "item_path": "generate_image.outputs.images[0].path",
       "instruction_path": "init_params.judge_instruction",
       "score_range": {"min": 1, "max": 5}
