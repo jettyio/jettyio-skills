@@ -2,7 +2,7 @@
   "init_params": {
     "document_text": "Your document text here...",
     "summary_length": "concise",
-    "model": "gpt-5.6-terra"
+    "model": "gpt-6-luna"
   },
   "step_configs": {
     "summarize": {

@@ -6,41 +6,46 @@ Jetty runs agent code inside sandboxed environments. When running a runbook, you
 
 | Agent | Runtime ID | Default Model | API Key Env Var | Best For |
 |-------|-----------|--------------|-----------------|----------|
-| **Claude Code** ⭐ | `claude-code` | `claude-sonnet-4-6` | `ANTHROPIC_API_KEY` | **Recommended default** — strong reasoning, broad tool support, native MCP/tool-use ergonomics |
-| opencode | `opencode` | `anthropic/claude-sonnet-4.6` | `OPENROUTER_API_KEY` | Routes through OpenRouter for unified billing, provider failover, and one key for any catalog model |
-| Codex | `codex` | `gpt-5.5` | `OPENAI_API_KEY` | Code generation, OpenAI ecosystem |
-| Gemini CLI | `gemini-cli` | `gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | Google ecosystem, free tier available |
+| **Claude Code** ⭐ | `claude-code` | `claude-sonnet-5-5` (OpenRouter: `anthropic/claude-sonnet-5.5`) | `OPENROUTER_API_KEY` or `ANTHROPIC_API_KEY` | **Recommended default** — strong reasoning, broad tool support, native MCP/tool-use ergonomics |
+| opencode | `opencode` | `anthropic/claude-sonnet-5.5` | `OPENROUTER_API_KEY` | Routes through OpenRouter for unified billing, provider failover, and one key for any catalog model |
+| Codex | `codex` | `gpt-6.1-sol` | `OPENAI_API_KEY` | Code generation, OpenAI ecosystem |
+| Gemini CLI | `gemini-cli` | `gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | Google ecosystem |
+
+These defaults come from Jetty's model catalog (`GET /api/v1/models/catalog`), which lists every curated model with the id each provider expects.
 
 ### Model Options
 
-**Anthropic (claude-code)** — recommended:
-- `claude-sonnet-4-6` — Fast, cost-effective, default
-- `claude-opus-4-6` — Most capable, higher cost
+Model ids differ by provider route. **OpenRouter slugs use the vendor prefix and dot-versioning** (`anthropic/claude-sonnet-5.5`); Anthropic/Bedrock ids use dashes (`claude-sonnet-5-5`, `anthropic.claude-sonnet-5-5`).
 
-**OpenRouter (opencode)**:
-- `anthropic/claude-sonnet-4.6` — Default opencode model. Note the OpenRouter slug uses dot-versioning (`4.6`) and the `anthropic/` vendor prefix; the Anthropic-internal `claude-sonnet-4-6` spelling is *not* a valid OpenRouter model id.
-- Any other OpenRouter-catalog id (e.g. `anthropic/claude-opus-4.6`, `openai/gpt-5.5`, `google/gemini-2.5-pro`) — opencode passes the model id straight through to OpenRouter.
+**Anthropic (claude-code)** — recommended:
+- `claude-sonnet-5-5` — **default**; balanced speed, capability and cost (`anthropic/claude-sonnet-5.5` on OpenRouter)
+- `claude-haiku-5-5` — fastest and cheapest
+- `claude-opus-5-5` — most capable, higher cost (not available on trial keys)
+
+**OpenRouter (opencode, or claude-code with `model_provider: openrouter`)**:
+- `anthropic/claude-sonnet-5.5` — default. The Anthropic-internal `claude-sonnet-5-5` spelling is *not* an OpenRouter slug for opencode.
+- Any other OpenRouter-catalog id (e.g. `anthropic/claude-haiku-5.5`, `openai/gpt-6.1-sol`, `google/gemini-3.8-flash`, `mistralai/mistral-large-4-0`) — opencode passes the id straight through.
 
 **OpenAI (codex)**:
-- `gpt-5.5` — Latest, most capable
-- `gpt-5.4` — Stable, prior generation
-- `gpt-4.1` — Stable, lower cost
-- `o4-mini` — Fast reasoning
-- `o3` — Advanced reasoning
+- `gpt-6.1-sol` — **default**; balanced
+- `gpt-6-luna` — fast, low cost
+- `gpt-6-astra` — most capable, higher cost (not available on trial keys)
 
 **Google (gemini-cli)**:
-- `gemini-3.1-pro-preview` — Latest preview
-- `gemini-2.5-pro` — Stable
-- `gemini-2.5-flash` — Fast, lower cost
+- `gemini-3.1-pro-preview` — **default**; most capable Gemini
+- `gemini-3.8-flash` — fast, lower cost
+- `gemini-3.5-flash-lite` — fastest, lowest cost
+
+> **Retired — don't use:** `claude-3-*`, `claude-sonnet-4-20250514`, `gpt-4`, `gpt-4-turbo`, `gpt-3.5-turbo`, `o1`, `o3-mini`, `o4-mini`, `gpt-image-1`, `dall-e-3`, `gemini-pro`, `gemini-1.5-*`, `gemini-2.0-flash*`. Gemini 2.5 models are restricted to accounts that used them before.
 
 ### Agent Inference
 
 If you don't specify an agent in your runbook frontmatter, Jetty infers it from the model name:
 - `claude-*` or `anthropic/*` → `claude-code`
-- `gpt-*`, `o1-*`, `o3-*`, `o4-*` → `codex`
+- `gpt-*`, `o*` reasoning ids → `codex`
 - `gemini-*` or `gemini/*` → `gemini-cli`
 
-> **Heads up:** the inference above will route `anthropic/claude-sonnet-4.6` to `claude-code`, not `opencode`. If you want opencode + OpenRouter, set `agent: opencode` and `model_provider: openrouter` explicitly in frontmatter — don't rely on inference.
+> **Heads up:** the inference above will route `anthropic/claude-sonnet-5.5` to `claude-code`, not `opencode`. If you want opencode + OpenRouter, set `agent: opencode` and `model_provider: openrouter` explicitly in frontmatter — don't rely on inference.
 
 ### Routing Through a Provider (`model_provider`)
 
@@ -58,7 +63,7 @@ If `model_provider` is omitted, Jetty auto-defaults in this order: `openrouter` 
 
 > **Trial runs route through OpenRouter.** Jetty trial keys include `OPENROUTER_API_KEY`, so a trial run with no explicit `model_provider` auto-defaults to `openrouter` — progress shows `Running agent: claude-code via openrouter`. That's Jetty's trial routing (same model), not your provider choice being ignored. To pin a provider, set `model_provider` in the runbook frontmatter, or pass `jetty.model_provider` on the chat-completions request (honored by current mise; older deployments only read the frontmatter).
 
-**Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-4.6` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-4-6` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
+**Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-5.5` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-5-5` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
 
 ## Sandbox Snapshots
 
@@ -89,7 +94,7 @@ Declare your agent, model, and snapshot in the runbook's YAML frontmatter:
 version: "1.0.0"
 evaluation: programmatic
 agent: claude-code
-model: anthropic/claude-sonnet-4.6
+model: anthropic/claude-sonnet-5.5
 model_provider: openrouter
 snapshot: python312-uv
 primary_outputs:          # optional — headline deliverable(s), relative to results_dir
@@ -97,7 +102,7 @@ primary_outputs:          # optional — headline deliverable(s), relative to re
 ---
 ```
 
-These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-4.6` + `model_provider: openrouter`. If you omit `model_provider` entirely, Jetty falls back to agent-based inference (`claude-code` → `anthropic`), so set it explicitly.
+These fields are read by the `/jetty` skill when launching a runbook-mode run via the chat completions API. The create-runbook templates set the recommended config — `claude-code` + `anthropic/claude-sonnet-5.5` + `model_provider: openrouter`. If you omit `model_provider` entirely, Jetty falls back to agent-based inference (`claude-code` → `anthropic`), so set it explicitly.
 
 ### `primary_outputs`
 
@@ -121,7 +126,7 @@ When an agent runs inside a runbook sandbox, mise auto-forwards a curated set of
 |---|---|
 | `REPLICATE_API_TOKEN` | Image/video generation (Flux, Seedance, Sora), segmentation, embeddings |
 | `GEMINI_API_KEY` | Imagen image generation, Gemini vision inputs |
-| `OPENAI_API_KEY` | DALL·E, gpt-image-1, GPT-4 vision |
+| `OPENAI_API_KEY` | GPT Image (`gpt-image-2.5-flare`), GPT-6 vision and chat |
 
 No frontmatter declaration is required for these three keys — the auto-forward applies to every runbook run. Declare them in the runbook's `secrets:` block anyway if you want the verification block in Step 1 to flag missing setup early; explicit `secrets:` entries take precedence over auto-forward and double as documentation.
 

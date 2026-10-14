@@ -352,7 +352,7 @@ Ready-to-use templates are in [`skills/jetty/templates/`](skills/jetty/templates
 
 | Template | Description |
 |----------|-------------|
-| **cute-feline-detector-openai** | Prompt → DALL-E 3 image → GPT-4o cuteness judge |
+| **cute-feline-detector-openai** | Prompt → GPT Image 2.5 image → GPT-6.1 Sol cuteness judge |
 | **cute-feline-detector-gemini** | Prompt → Gemini image → Gemini Flash cuteness judge |
 | simple-chat | Basic LLM chat with system prompt |
 | model-comparison | Compare two LLM responses with an AI judge |
@@ -401,7 +401,7 @@ Results are stored as **trajectories** with full step-by-step outputs, downloada
 
 - Node.js 18+ (for the MCP server via `npx`)
 - A Jetty API token ([get one here](https://jetty.io/sign-up))
-- An AI provider API key for workflow steps (OpenAI for DALL-E/GPT, or Google Gemini)
+- An AI provider API key for workflow steps (OpenAI for GPT and GPT Image, or Google Gemini)
 - For runbooks: an agent runtime API key (Anthropic, OpenAI, or Google — see [agent reference](skills/jetty/references/agents-and-models.md))
 
 ## Agent Compatibility
