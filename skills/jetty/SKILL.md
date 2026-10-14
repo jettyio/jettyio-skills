@@ -453,9 +453,8 @@ When deploying a runbook as a Jetty task:
 2. Extract required env var names from `secrets.*.env`
 3. Check the target collection's configured environment variables
 4. If any required secrets are missing, prompt the user to set them before proceeding
-5. For a runbook with a `## Code Checks` section, register the task with `scripts/register_runbook_task.py` (see [Remote Mode](#remote-mode-chat-completions-api)), so it carries `runbook_evals_version: 2`
-6. Package only non-secret parameters as `init_params` in the run request
-7. Secrets are accessed by steps via collection environment variables at runtime
+5. Package only non-secret parameters as `init_params` in the run request
+6. Secrets are accessed by steps via collection environment variables at runtime
 
 The run request supports `secret_params` for ad-hoc secret passing:
 ```bash
@@ -525,13 +524,6 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
 3. Parse the Parameters section of the runbook. Identify all `{{template_variable}}` placeholders and their defaults. Ask the user for any required parameter values that are missing (use AskUserQuestion). These go in `jetty.template_variables`.
 4. **Check trial key eligibility** — use the same trial detection logic from [Trial Key Support](#trial-key-support) above. If the trial is active and no provider keys are configured, set `use_trial_keys: true` in the `jetty` block below.
 5. Ask the user for the collection and task name. Also ask for any file uploads.
-   **Register the task first if the runbook has a `## Code Checks` section** (an evals v2 runbook). Jetty runs the Code Checks, tells the agent which checks are its own, and computes the verdict only on a run whose task carries `runbook_evals_version: 2`. The run step also reads `code_checks`, `strict_evaluation` and `mcp_servers` from the task, not from the runbook. A task the endpoint auto-creates on a first run carries none of them, so its runs would be read as v1. The skill's `scripts/register_runbook_task.py` creates the task from the frontmatter (the same workflow create-runbook's Step 5b registers), replaces a chat-flow stub, or stamps an existing runbook task v2 and adds the evals settings it lacks, keeping the rest. It leaves a runbook with no Code Checks section alone:
-   ```bash
-   RT="$(dirname "$0")/scripts/register_runbook_task.py"   # or the skill's scripts/register_runbook_task.py
-   py() { if python3 -c 'import yaml' 2>/dev/null; then python3 "$@"; else uv run --quiet --no-project --with pyyaml python3 "$@"; fi; }
-   py "$RT" /path/to/RUNBOOK.md {COLLECTION} {TASK}
-   ```
-   If it fails, tell the user the run will be read as v1 (no Code Checks run by Jetty, no computed verdict) and ask whether to go ahead.
 6. Build and send the request — the runbook content goes in the `system` message, and template variables go in `jetty.template_variables` (**not** in the user message):
 
 ```bash
