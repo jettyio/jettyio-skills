@@ -820,8 +820,8 @@ if "model_provider" in init:
     run["model_provider_path"] = "init_params.model_provider"
 print(json.dumps({"init_params": init, "steps": ["run"], "step_configs": {"run": run}}))
 BUILD_EOF
-if python3 -c 'import yaml' 2>/dev/null; then PY=python3; else PY="uv run --quiet --no-project --with pyyaml python3"; fi
-WORKFLOW=$($PY /tmp/build_runbook_task.py "$RUNBOOK") || { echo "Could not read the frontmatter of $RUNBOOK"; exit 1; }
+py() { if python3 -c 'import yaml' 2>/dev/null; then python3 "$@"; else uv run --quiet --no-project --with pyyaml python3 "$@"; fi; }
+WORKFLOW=$(py /tmp/build_runbook_task.py "$RUNBOOK") || { echo "Could not read the frontmatter of $RUNBOOK"; exit 1; }
 
 # Try update first
 HTTP=$(curl -s -o /tmp/task_resp.json -w "%{http_code}" -X PUT \
