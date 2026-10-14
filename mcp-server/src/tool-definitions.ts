@@ -66,7 +66,7 @@ const task = () => z.string().describe("Task name");
 const routineName = () => z.string().describe("Routine name");
 
 const INIT_PARAMS_MERGE =
-  "Input parameters for the workflow, merged shallowly over the task's stored init_params (caller wins per top-level key). A nested object such as vars replaces the task's whole vars, so include every variable, not just the changed ones.";
+  "Input parameters for the workflow, merged over the task's stored init_params (caller wins per top-level key; any other nested object replaces the task's whole value). vars merge key by key, so send only the variables you change; the rest keep the task's values or the runbook's Parameters-table defaults.";
 const WEBHOOK_URL_DESC =
   "Optional URL POSTed the full trajectory JSON when each run completes or fails (best effort, up to 3 attempts).";
 const WEBHOOK_SECRET_DESC =
@@ -384,7 +384,7 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
         .record(z.unknown())
         .optional()
         .describe(
-          "Init param overrides. Keys must be a subset of task.workflow.init_params; unknown keys return 400. Merged shallowly per top-level key: overriding vars replaces the task's whole vars object, so include every variable."
+          "Init param overrides. Keys must be a subset of task.workflow.init_params; unknown keys return 400. Merged per top-level key, except vars, which merge key by key: an override of vars needs only the variables it changes."
         ),
       secret_params: z
         .record(z.unknown())
@@ -422,7 +422,7 @@ export const JETTY_TOOLS: readonly JettyToolDefinition[] = [
         .record(z.unknown())
         .optional()
         .describe(
-          "Replace init param overrides (the whole object; merged shallowly over the task's init_params at fire time)"
+          "Replace init param overrides (the whole object; merged over the task's init_params at fire time, per top-level key except vars, which merge key by key)"
         ),
       secret_params: z.record(z.unknown()).optional().describe("Replace secret params"),
       paused: z.boolean().optional().describe("Pause/resume the routine"),

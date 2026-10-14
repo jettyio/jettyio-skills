@@ -231,7 +231,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
 ```
 
-**How `init_params` merge:** the run's `init_params` are merged over the task's stored `workflow.init_params` **shallowly, per top-level key** — caller wins. A nested object is replaced whole, not merged. For runbook tasks this matters for `vars`: sending `{"vars": {"url": "..."}}` replaces the task's entire `vars` object, so any variable you leave out is gone (its `{{placeholder}}` stays unsubstituted). Read the task first (`GET /api/v1/tasks/{COLLECTION}/{TASK}` → `.workflow.init_params.vars`) and send the full object with your changes applied. Routine `init_params_overrides` merge the same way.
+**How `init_params` merge:** the run's `init_params` are merged over the task's stored `workflow.init_params` per top-level key — caller wins, and a nested object the run sends replaces the task's whole value (`"mcp_servers": {}` clears them). The exception is `vars`, which merge **key by key**: sending `{"vars": {"url": "..."}}` changes `url` and keeps every other variable the task stores, and a key the run sends wins even when its value is `""`. For a runbook task, a variable that neither the run nor the task sets takes its default from the runbook's Parameters table, and a parameter marked *(required)* that still has no value fails the run before the sandbox starts. Send only the variables you change. Routine `init_params_overrides` merge the same way.
 
 #### Completion webhooks
 
@@ -579,7 +579,7 @@ PAYLOAD
 
 **Important:** Template variables (`{{sample_size}}`, `{{results_dir}}`, etc.) must go in `jetty.template_variables`, NOT in the user message text. The backend substitutes `{{var}}` placeholders in the runbook instruction before the agent sees it. The user message is only used as a prompt/instruction to the agent (it's also exposed as `{{prompt}}`).
 
-**Send every variable.** In this mode the run's `vars` are built from `jetty.template_variables` plus `prompt` and `results_dir`, and they **replace** the task's stored `vars` wholesale — defaults saved on the task are not merged in. Include every parameter the runbook uses, with its default if the user didn't override it.
+**Send the variables you set.** In this mode the run's `vars` are built from `jetty.template_variables` plus `prompt` and `results_dir`, and they merge **key by key** over the task's stored `vars`: a variable you send wins, and one you leave out keeps the task's value, or else the default in the runbook's Parameters table. A parameter marked *(required)* that ends up with no value fails the run before the sandbox starts, so always send those.
 
 7. Extract the trajectory ID from the response
 8. Monitor the trajectory using the standard trajectory inspection commands:
@@ -688,7 +688,7 @@ response = client.chat.completions.create(
 
 ### Scheduling routines
 
-A **routine** is a saved schedule that fires an existing task on a recurring cadence. Routines build on the same `FlowWorkflow.run` pipeline as one-shot runs, with optional `init_params_overrides` merged on top of the task's defaults (shallow, per top-level key — an override of `vars` replaces the whole `vars` object, so include every variable). A routine can also carry `webhook_url` / `webhook_secret`, applied to every run it fires (see [Completion webhooks](#completion-webhooks)). Trajectories produced by a routine are tagged with `triggered_by_routine_id` for easy filtering.
+A **routine** is a saved schedule that fires an existing task on a recurring cadence. Routines build on the same `FlowWorkflow.run` pipeline as one-shot runs, with optional `init_params_overrides` merged on top of the task's defaults (per top-level key, except `vars`, which merge key by key — an override needs only the variables it changes). A routine can also carry `webhook_url` / `webhook_secret`, applied to every run it fires (see [Completion webhooks](#completion-webhooks)). Trajectories produced by a routine are tagged with `triggered_by_routine_id` for easy filtering.
 
 Use the MCP tools (preferred) or hit the REST API directly:
 
