@@ -142,7 +142,7 @@ curl -s -X POST -H "Authorization: Bearer $TOK" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}"
 ```
 
-Requires the Clerk "Jetty CLI" OAuth app (provisioned) and mise accepting its
+Requires the Clerk "Jetty CLI" OAuth app (provisioned) and Jetty accepting its
 `azp`. Config is env-overridable (`JETTY_CLERK_CLIENT_ID`, `JETTY_CLERK_ISSUER`,
 `JETTY_API`). See the "CLI login via Clerk OAuth" design doc on the Subscription
 Credential Forwarding project for the full architecture.
@@ -231,7 +231,7 @@ curl -s -X POST -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/run/{COLLECTION}/{TASK}" | jq
 ```
 
-**How `init_params` merge:** the run's `init_params` are merged over the task's stored `workflow.init_params` **shallowly, per top-level key** — caller wins. A nested object is replaced whole, not merged. For runbook tasks this matters for `vars`: sending `{"vars": {"url": "..."}}` replaces the task's entire `vars` object, so any variable you leave out is gone (its `{{placeholder}}` stays unsubstituted). Read the task first (`GET /api/v1/tasks/{COLLECTION}/{TASK}` → `.workflow.init_params.vars`) and send the full object with your changes applied. Routine `init_params_overrides` merge the same way.
+**How `init_params` merge:** the run's `init_params` are merged over the task's stored `workflow.init_params` per top-level key — caller wins, and a nested object the run sends replaces the task's whole value (`"mcp_servers": {}` clears them). The exception is `vars`, which merge **key by key**: sending `{"vars": {"url": "..."}}` changes `url` and keeps every other variable the task stores, and a key the run sends wins even when its value is `""`. For a runbook task, a variable that neither the run nor the task sets takes its default from the runbook's Parameters table, and a parameter marked *(required)* that still has no value fails the run before the sandbox starts. Send only the variables you change. Routine `init_params_overrides` merge the same way.
 
 #### Completion webhooks
 
@@ -489,8 +489,13 @@ The agent becomes the executor. Read the RUNBOOK.md and follow it step by step.
 4. Ask the user for any required parameter values that are missing (use AskUserQuestion)
 5. For each secret declared in frontmatter, check if the env var is set: `echo "${SECRET_NAME:+SET}"`. If missing, prompt the user.
 6. Create the results directory: `mkdir -p {{results_dir}}`
-7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Report, Final Checklist
-8. Write all output files to `{{results_dir}}` (defaults to `./results` locally)
+7. Follow each step in order — Environment Setup, Processing Steps, Evaluation, Iteration, Summary, Code Checks, Checklist, Write Validation Report. Locally there is no Jetty to run the command checks, so run every Code Check yourself, whatever its fence's `executor=` says, and record each in the report. Set the checks up the way Jetty would:
+   - **Directories.** `{{results_dir}}` is `./results`, `{{checks_dir}}` is `./checks` and `{{assets_dir}}` is the directory holding the input files the user gave you (`./assets` if none). Substitute them, and the Parameters values, into each check, and export `RESULTS_DIR`, `CHECKS_DIR` and `ASSETS_DIR` with the same absolute paths.
+   - **Sources.** Before the first check, clone each `code_checks.sources` entry to `./checks/<name>`: `git clone <url> ./checks/<name> && git -C ./checks/<name> checkout <ref>`. A private repo needs its `secret` env var set (as an HTTPS token); if it is missing, ask the user. A check that needs a source you could not clone is recorded as `error`, not `fail`.
+   - **`bash` fences** (also `sh`, `shell`, no language): run each with `bash -e -o pipefail -c '<command>'` from the project directory, with a `code_checks.timeout_sec` limit (default 120 s). Exit 0 is `pass`, a timeout is `error`, any other exit is `fail`. Record `details.command`, `details.exit_code` and the last lines of output in `details.stdout_tail`.
+   - **`yaml` fences** (also `check`) name a built-in; paths and globs are relative to the results directory and `pattern` is a Python regex. `file_exists` (`path`): the file exists. `min_size` (`path`, `bytes`): it is at least that many bytes. `json_valid` (`path`): it parses as JSON. `regex_present` (`glob`, `pattern`): the pattern matches in at least one of the files. `regex_absent` (`glob`, `pattern`): it matches in none, and a glob that names no file fails. `markdown_relative_links_resolve` (`path`): every relative link in the markdown file points to an existing file. Evaluate each with a short `python3` snippet. An unknown `use:` or a missing key is `error`.
+   - **`agent` fences**: carry out the instruction as written.
+8. Every output file a step writes goes under `{{results_dir}}` (defaults to `./results` locally). `validation_report.json` is the last file written, after every other output exists, so it reflects the completed outputs
 
 ```bash
 # Example: user says "run the runbook with sample_size=5"
@@ -574,7 +579,7 @@ PAYLOAD
 
 **Important:** Template variables (`{{sample_size}}`, `{{results_dir}}`, etc.) must go in `jetty.template_variables`, NOT in the user message text. The backend substitutes `{{var}}` placeholders in the runbook instruction before the agent sees it. The user message is only used as a prompt/instruction to the agent (it's also exposed as `{{prompt}}`).
 
-**Send every variable.** In this mode the run's `vars` are built from `jetty.template_variables` plus `prompt` and `results_dir`, and they **replace** the task's stored `vars` wholesale — defaults saved on the task are not merged in. Include every parameter the runbook uses, with its default if the user didn't override it.
+**Send the variables you set.** In this mode the run's `vars` are built from `jetty.template_variables` plus `prompt` and `results_dir`, and they merge **key by key** over the task's stored `vars`: a variable you send wins, and one you leave out keeps the task's value, or else the default in the runbook's Parameters table. A parameter marked *(required)* that ends up with no value fails the run before the sandbox starts, so always send those.
 
 7. Extract the trajectory ID from the response
 8. Monitor the trajectory using the standard trajectory inspection commands:
@@ -683,7 +688,7 @@ response = client.chat.completions.create(
 
 ### Scheduling routines
 
-A **routine** is a saved schedule that fires an existing task on a recurring cadence. Routines build on the same `FlowWorkflow.run` pipeline as one-shot runs, with optional `init_params_overrides` merged on top of the task's defaults (shallow, per top-level key — an override of `vars` replaces the whole `vars` object, so include every variable). A routine can also carry `webhook_url` / `webhook_secret`, applied to every run it fires (see [Completion webhooks](#completion-webhooks)). Trajectories produced by a routine are tagged with `triggered_by_routine_id` for easy filtering.
+A **routine** is a saved schedule that fires an existing task on a recurring cadence. Routines build on the same `FlowWorkflow.run` pipeline as one-shot runs, with optional `init_params_overrides` merged on top of the task's defaults (per top-level key, except `vars`, which merge key by key — an override needs only the variables it changes). A routine can also carry `webhook_url` / `webhook_secret`, applied to every run it fires (see [Completion webhooks](#completion-webhooks)). Trajectories produced by a routine are tagged with `triggered_by_routine_id` for easy filtering.
 
 Use the MCP tools (preferred) or hit the REST API directly:
 
