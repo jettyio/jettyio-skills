@@ -19,7 +19,7 @@ Ready-to-use JSON templates for common patterns. Copy and customize these.
 {
   "init_params": {
     "prompt": "Hello, how are you?",
-    "model": "gpt-4o-mini"
+    "model": "gpt-5.6-terra"
   },
   "step_configs": {
     "chat": {
@@ -65,13 +65,13 @@ Runs two models on the same prompt, then uses `simple_judge` to compare.
   "step_configs": {
     "model_a": {
       "activity": "litellm_chat",
-      "model": "gpt-4o",
+      "model": "gpt-5.6-sol",
       "prompt_path": "init_params.prompt",
       "temperature": 0.7
     },
     "model_b": {
       "activity": "litellm_chat",
-      "model": "claude-3-sonnet-20240229",
+      "model": "claude-sonnet-5-5",
       "prompt_path": "init_params.prompt",
       "temperature": 0.7
     },
@@ -79,7 +79,7 @@ Runs two models on the same prompt, then uses `simple_judge` to compare.
       "activity": "simple_judge",
       "items_path": ["model_a.outputs.text", "model_b.outputs.text"],
       "instruction": "Compare these responses for clarity and accuracy",
-      "model": "gpt-4o",
+      "model": "gpt-5.6-sol",
       "score_range": {"min": 1, "max": 5},
       "explanation_required": true
     }
@@ -159,7 +159,7 @@ Verified working pipeline: expands a prompt, generates an image, then evaluates 
   "step_configs": {
     "expand_prompt": {
       "activity": "litellm_chat",
-      "model": "gpt-4o-mini",
+      "model": "gpt-5.6-terra",
       "system_prompt": "You are a scene writer. Expand the prompt into a vivid visual description for image generation. Output ONLY the description, under 200 words.",
       "prompt_path": "init_params.prompt",
       "temperature": 0.9,
@@ -175,7 +175,7 @@ Verified working pipeline: expands a prompt, generates an image, then evaluates 
     },
     "judge_image": {
       "activity": "simple_judge",
-      "model": "gpt-4o",
+      "model": "gpt-5.6-sol",
       "item_path": "generate_image.outputs.images[0].path",
       "instruction": "Evaluate the quality of this generated image. Score 1-5.",
       "score_range": {"min": 1, "max": 5},

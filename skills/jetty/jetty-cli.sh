@@ -508,7 +508,7 @@ jetty_models() {
 jetty_chat() {
   local collection="$1"
   local prompt="$2"
-  local model="${3:-gpt-4o-mini}"
+  local model="${3:-gpt-5.6-terra}"
 
   if [ -z "$collection" ] || [ -z "$prompt" ]; then
     echo "Usage: jetty_chat <collection> <prompt> [model]" >&2

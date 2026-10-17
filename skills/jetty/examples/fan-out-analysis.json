@@ -31,7 +31,7 @@
       },
       "final_summary": {
         "activity": "litellm_chat",
-        "model": "gpt-4o",
+        "model": "gpt-5.6-sol",
         "system_prompt": "Synthesize the following analysis results into a coherent summary.",
         "prompt_path": "gather_results.outputs.extracted_data",
         "response_format": {
