@@ -117,13 +117,18 @@ PKCE, localhost loopback) and stores a refreshable user token at
 
 ```bash
 JA="$(dirname "$0")/scripts/jetty_auth.py"   # or the skill's scripts/jetty_auth.py
-python3 "$JA" login        # browser login as your Clerk user
-python3 "$JA" whoami       # show sub / email / azp
+python3 "$JA" login        # browser login as your Clerk user — pick your organization on the consent screen
+python3 "$JA" whoami       # show sub / email / org_id (org_id must be set, or the API returns 401)
 python3 "$JA" accounts     # list your linked subscriptions
 python3 "$JA" connect nous # paste a Portal refresh token (hermes setup --portal)
 python3 "$JA" token        # print a fresh access token (auto-refreshes)
 python3 "$JA" logout
 ```
+
+The user token resolves to your **organization** (`org_…`, the owner of your
+collections), with member (WRITE) access — never org admin, since Clerk OAuth
+access tokens carry no role. If `whoami` shows `"org_id": null`, log in again
+and select an organization.
 
 **Which token to use:**
 - **User-scoped ops** — Connected Accounts (`/connected-accounts/*`) and *running
