@@ -512,9 +512,9 @@ Launch the runbook on Jetty's sandboxed infrastructure via the OpenAI-compatible
 1. Read the runbook file with the Read tool
 2. Parse the YAML frontmatter for `agent`, `model`, `model_provider`, `snapshot`, and `secrets`:
    - `agent` → use as `jetty.agent` (default: `claude-code`)
-   - `model` → use as `model` in the request (default: `claude-sonnet-5`)
+   - `model` → use as `model` in the request (default: `claude-sonnet-4-6`)
    - `model_provider` → use as `jetty.model_provider` (default: `anthropic`)
-   - `snapshot` → use as `jetty.snapshot` (default: `python312-uv`, which includes Playwright + Chromium for browser tasks)
+   - `snapshot` → use as `jetty.snapshot` (default: `python312-uv`; use `prism-playwright` if the runbook needs a browser)
    - `secrets` → check that each required secret is configured as a collection env var:
    ```bash
    curl -s -H "Authorization: Bearer $TOKEN" \
@@ -554,7 +554,7 @@ cat <<PAYLOAD | curl -s -X POST \
   "https://flows-api.jetty.io/v1/chat/completions" \
   --data-binary @-
 {
-  "model": "claude-sonnet-5",
+  "model": "claude-sonnet-4-6",
   "messages": [
     {"role": "system", "content": $(jq -Rs '.' <<< "$RUNBOOK_CONTENT")},
     {"role": "user", "content": "Execute the runbook."}
@@ -606,7 +606,7 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.task` | string | Yes | Task identifier |
 | `jetty.agent` | string | Yes | `claude-code` (recommended default), `opencode`, `codex`, or `gemini-cli` |
 | `jetty.model_provider` | string | No | `anthropic`, `openrouter`, `openai`, `google`, `bedrock`. Set explicitly to pin routing — when omitted, runs auto-default to `openrouter` whenever an `OPENROUTER_API_KEY` is available (Jetty **trial keys include one**, so trial runs show `via openrouter`; see agents-and-models reference) |
-| `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default; includes Playwright + Chromium). Read from runbook frontmatter |
+| `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default) or `prism-playwright` (browser). Read from runbook frontmatter |
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
 | `jetty.file_paths` | string[] | No | **Storage paths** of input files to mount into the sandbox — e.g. the paths returned by `POST /api/v1/sandbox/upload`. These are raw storage keys, **not** OpenAI `file-…` ids (see warning below) |
 | `jetty.files` | string[] | No | OpenAI-style file ids (`file-…`) returned by `POST /api/v1/files`. Resolved server-side to their storage paths. Use this slot for `/api/v1/files` uploads — **not** `file_paths` |
@@ -656,7 +656,7 @@ with open("RUNBOOK.md") as f:
     runbook = f.read()
 
 response = client.chat.completions.create(
-    model="claude-sonnet-5",
+    model="claude-sonnet-4-6",
     messages=[
         {"role": "system", "content": runbook},
         {"role": "user", "content": "Execute the runbook."}
@@ -669,7 +669,7 @@ response = client.chat.completions.create(
             "task": "my-task",
             "agent": "claude-code",
             "model_provider": "anthropic",
-            "snapshot": "python312-uv",  # includes Playwright + Chromium
+            "snapshot": "python312-uv",  # or "prism-playwright" for browser
             "template_variables": {
                 "sample_size": "10",
             },
@@ -683,7 +683,7 @@ response = client.chat.completions.create(
 - `results_dir` defaults to `/app/results` on Jetty (vs `./results` locally) — it's auto-included as a template variable
 - Everything written to `/app/results/` is persisted to cloud storage — after the run, fetch artifacts with `GET /api/v1/file/{storage path}` using the `results_files`/`primary_files` paths from the `run` step output (see **Download Files** above)
 - Secrets resolve from collection environment variables
-- `snapshot` controls the sandbox image: `python312-uv` (default; includes Playwright + Chromium for browser tasks). Read this from the runbook's YAML frontmatter
+- `snapshot` controls the sandbox image: `python312-uv` (default) or `prism-playwright` (Playwright + Chromium for browser tasks). Read this from the runbook's YAML frontmatter
 - The sandbox is destroyed after execution — artifacts and logs survive
 
 ### Scheduling routines
