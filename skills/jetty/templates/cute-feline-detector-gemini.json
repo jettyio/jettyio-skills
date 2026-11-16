@@ -9,7 +9,7 @@
   "step_configs": {
     "expand_prompt": {
       "activity": "litellm_chat",
-      "model": "gemini/gemini-2.0-flash",
+      "model": "gemini/gemini-3.8-flash",
       "system_prompt": "You are a creative prompt engineer specializing in image generation. Take the user's simple prompt and expand it into a detailed, visually rich image generation prompt. Add specific details about lighting, composition, style, mood, and atmosphere. Keep it under 200 words and focus on visual elements that will translate well to an image.",
       "prompt_path": "init_params.prompt",
       "temperature": 0.8,
@@ -21,7 +21,7 @@
     },
     "judge_cuteness": {
       "activity": "simple_judge",
-      "model": "gemini/gemini-2.0-flash",
+      "model": "gemini/gemini-3.8-flash",
       "item_path": "generate_image.outputs.images[0].path",
       "instruction_path": "init_params.judge_instruction",
       "score_range": { "min": 1, "max": 5 },

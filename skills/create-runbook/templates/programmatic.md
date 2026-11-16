@@ -3,9 +3,9 @@ version: "1.0.0"
 evaluation: programmatic
 strict_evaluation: false              # true: a declared check the report leaves out (an agent check, a checklist item) is skipped and counts as failed, as does a missing report
 agent: claude-code                    # Agent runtime: claude-code | opencode | codex | gemini-cli
-model: anthropic/claude-sonnet-4.6   # Model for the agent (see agents-and-models reference)
+model: anthropic/claude-sonnet-5.5   # Model for the agent (see agents-and-models reference)
 model_provider: openrouter           # Routes the model through OpenRouter (requires OPENROUTER_API_KEY)
-snapshot: python312-uv                # Sandbox: python312-uv | prism-playwright | custom image
+snapshot: python312-uv                # Sandbox: python312-uv (includes Playwright + Chromium) | custom image
 # Headline deliverable(s), relative to results_dir, in priority order. spot
 # surfaces the first of these as the "Main output" when a run completes; if
 # omitted it falls back to the first file written.

@@ -13,7 +13,7 @@
       },
       "answer": {
         "activity": "litellm_chat",
-        "model": "gpt-4o",
+        "model": "gpt-5.6-sol",
         "system_prompt": "You are a document analysis assistant. Answer questions based on the provided document content.",
         "user_prompt": "Document content:\n\n{{ read_doc.outputs.content }}\n\nQuestion: {{ init_params.question }}",
         "temperature": 0.3

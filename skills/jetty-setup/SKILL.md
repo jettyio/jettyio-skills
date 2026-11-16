@@ -44,7 +44,7 @@ lines are skipped when Python is absent, so relay the raw JSON in that case.
 Before running any commands, greet the user with the Jetty banner — send this block first, exactly as written (the fenced block keeps Pelly's pixels aligned; don't restyle or trim it):
 
 ```text
-🪽 Jetty Skills v1.9.1
+🪽 Jetty Skills v1.10.0
 
 🟦🟦⬜️⬜️🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦🟦
 🟦⬜️⬜️⬜️⬜️🟦🟦🟦🟦🟦🟦⬜️⬜️🟦🟦
@@ -395,7 +395,7 @@ Tell the user:
 > 1. Open **https://jetty.io/settings** (I'll open it for you)
 > 2. Go to **Environment Variables**
 > 3. Add whichever keys your runbooks will need:
->    - `OPENAI_API_KEY` — for OpenAI models (GPT, DALL-E) — [get one](https://platform.openai.com/api-keys)
+>    - `OPENAI_API_KEY` — for OpenAI models (GPT, GPT Image) — [get one](https://platform.openai.com/api-keys)
 >    - `ANTHROPIC_API_KEY` — for Claude models, and for running Claude Code as the agent runtime — [get one](https://console.anthropic.com/settings/keys)
 >    - `GEMINI_API_KEY` / `GOOGLE_API_KEY` — for Gemini models, and for the Gemini CLI agent runtime — [get one](https://aistudio.google.com/apikey)
 >    - Plus any other service keys your runbooks need (Snowflake, Langfuse, etc.)
@@ -430,7 +430,7 @@ Tell the user:
 > 2. Pick the right evaluation pattern (rubric scoring or programmatic checks) and sandbox for you
 > 3. Scaffold a `RUNBOOK.md` with your task, parameters, evaluation criteria, and output manifest
 > 4. Pre-register the task on Jetty with file-upload support so you can drop in CSVs/PDFs/images at run time
-> 5. Hand you a single command to deploy it to Jetty (Claude Code on Sonnet 4.6 via OpenRouter) and run it for real
+> 5. Hand you a single command to deploy it to Jetty (Claude Code on Sonnet 5.5 via OpenRouter) and run it for real
 >
 > When you eventually trigger the runbook, you'll watch the trajectory appear live at **https://jetty.io** — every step, input, and output captured for replay and grading."
 

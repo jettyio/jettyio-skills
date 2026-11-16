@@ -2,11 +2,11 @@
   "init_params": {
     "items": ["item1", "item2", "item3"],
     "instruction": "Process this item and return the result",
-    "model": "gpt-4o-mini",
+    "model": "gpt-5.6-terra",
     "max_concurrency": 5,
     "child_init_params": {
       "instruction": "Process this item and return the result",
-      "model": "gpt-4o-mini"
+      "model": "gpt-5.6-terra"
     }
   },
   "step_configs": {
