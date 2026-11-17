@@ -358,8 +358,6 @@ Ready-to-use templates are in [`skills/jetty/templates/`](skills/jetty/templates
 | **cute-feline-detector-openai** | Prompt → GPT Image 2.5 image → GPT-5.6 Sol cuteness judge |
 | **cute-feline-detector-gemini** | Prompt → Gemini image → Gemini Flash cuteness judge |
 | simple-chat | Basic LLM chat with system prompt |
-| model-comparison | Compare two LLM responses with an AI judge |
-| image-generation | Text-to-image with Replicate/FLUX |
 | batch-processor | Fan-out parallel processing |
 | document-summarizer | Configurable document summarization |
 
