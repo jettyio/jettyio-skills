@@ -2,7 +2,7 @@
 version: "1.0.0"
 evaluation: rubric
 strict_evaluation: false              # true: a declared check the report leaves out (an agent check, a checklist item) is skipped and counts as failed, as does a missing report
-agent: claude-code                    # Agent runtime: claude-code | opencode | codex | gemini-cli
+agent: claude-code                    # Agent runtime: claude-code | codex | opencode | pi | antigravity
 model: anthropic/claude-sonnet-5.5   # Model for the agent (see agents-and-models reference)
 model_provider: openrouter           # Routes the model through OpenRouter (requires OPENROUTER_API_KEY)
 snapshot: python312-uv                # Sandbox: python312-uv (includes Playwright + Chromium) | custom image

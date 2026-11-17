@@ -4,12 +4,15 @@ Jetty runs agent code inside sandboxed environments. When running a runbook, you
 
 ## Supported Agent Runtimes
 
-| Agent | Runtime ID | Default Model | API Key Env Var | Best For |
+| Agent | Runtime ID | Default Model (via OpenRouter) | API Key Env Var | Best For |
 |-------|-----------|--------------|-----------------|----------|
-| **Claude Code** ⭐ | `claude-code` | `claude-sonnet-5-5` (OpenRouter: `anthropic/claude-sonnet-5.5`) | `OPENROUTER_API_KEY` or `ANTHROPIC_API_KEY` | **Recommended default** — strong reasoning, broad tool support, native MCP/tool-use ergonomics |
-| opencode | `opencode` | `anthropic/claude-sonnet-5.5` | `OPENROUTER_API_KEY` | Routes through OpenRouter for unified billing, provider failover, and one key for any catalog model |
-| Codex | `codex` | `gpt-6.1-sol` | `OPENAI_API_KEY` | Code generation, OpenAI ecosystem |
-| Gemini CLI | `gemini-cli` | `gemini-3.1-pro-preview` | `GOOGLE_API_KEY` | Google ecosystem |
+| **Claude Code** ⭐ | `claude-code` | `anthropic/claude-sonnet-5.5` | `OPENROUTER_API_KEY` | **Recommended default** — strong reasoning, broad tool support, native MCP/tool-use ergonomics |
+| Codex | `codex` | `openai/gpt-6.1-sol` | `OPENROUTER_API_KEY` | Code generation, OpenAI models |
+| opencode | `opencode` | `anthropic/claude-sonnet-5.5` | `OPENROUTER_API_KEY` | Passes any OpenRouter-catalog model id straight through |
+| Pi | `pi` | `anthropic/claude-sonnet-5.5` | `OPENROUTER_API_KEY` | Lightweight agent loop; any OpenRouter-catalog model |
+| Antigravity | `antigravity` | `gemini-3.7-flash` (Google only) | `GEMINI_API_KEY` | Gemini models. The one agent that cannot route through OpenRouter |
+
+**OpenRouter is the default provider** for every agent that supports it: one `OPENROUTER_API_KEY`, unified billing and provider failover. Other providers are supported but are not the default — set `model_provider` explicitly to use one (see [Routing Through a Provider](#routing-through-a-provider-model_provider)).
 
 These defaults come from Jetty's model catalog (`GET /api/v1/models/catalog`), which lists every curated model with the id each provider expects.
 
@@ -17,17 +20,17 @@ These defaults come from Jetty's model catalog (`GET /api/v1/models/catalog`), w
 
 Model ids differ by provider route. **OpenRouter slugs use the vendor prefix and dot-versioning** (`anthropic/claude-sonnet-5.5`); Anthropic/Bedrock ids use dashes (`claude-sonnet-5-5`, `anthropic.claude-sonnet-5-5`).
 
-**Anthropic (claude-code)** — recommended:
-- `claude-sonnet-5-5` — **default**; balanced speed, capability and cost (`anthropic/claude-sonnet-5.5` on OpenRouter)
+**Anthropic direct (claude-code with `model_provider: anthropic`)**:
+- `claude-sonnet-5-5` — balanced speed, capability and cost (`anthropic/claude-sonnet-5.5` on OpenRouter)
 - `claude-haiku-5-5` — fastest and cheapest
 - `claude-opus-5-5` — most capable, higher cost (not available on trial keys)
 
-**OpenRouter (opencode, or claude-code with `model_provider: openrouter`)**:
-- `anthropic/claude-sonnet-5.5` — default. The Anthropic-internal `claude-sonnet-5-5` spelling is *not* an OpenRouter slug for opencode.
+**OpenRouter (default for claude-code, codex, opencode, pi)**:
+- `anthropic/claude-sonnet-5.5` — **default**. The Anthropic-internal `claude-sonnet-5-5` spelling is *not* an OpenRouter slug for opencode.
 - Any other OpenRouter-catalog id (e.g. `anthropic/claude-haiku-5.5`, `openai/gpt-6.1-sol`, `google/gemini-3.8-flash`, `mistralai/mistral-large-4-0`) — opencode passes the id straight through.
 
-**OpenAI (codex)**:
-- `gpt-6.1-sol` — **default**; balanced
+**OpenAI direct (codex with `model_provider: openai`)**:
+- `gpt-6.1-sol` — balanced (`openai/gpt-6.1-sol` on OpenRouter, the codex default)
 - `gpt-6-luna` — fast, low cost
 - `gpt-6-astra` — most capable, higher cost (not available on trial keys)
 
@@ -53,17 +56,17 @@ If you don't specify an agent in your runbook frontmatter, Jetty infers it from 
 
 | Provider | Use With | Required Env Var |
 |----------|----------|------------------|
-| `openrouter` | Any agent that supports it (`opencode`, `claude-code`, `gemini-cli`) | `OPENROUTER_API_KEY` |
+| `openrouter` (default) | `claude-code`, `codex`, `opencode`, `pi` | `OPENROUTER_API_KEY` |
 | `anthropic` | `claude-code` | `ANTHROPIC_API_KEY` |
 | `openai` | `codex` | `OPENAI_API_KEY` |
-| `google` | `gemini-cli` | `GOOGLE_API_KEY` |
+| `google` | `antigravity`, `gemini-cli` | `GEMINI_API_KEY` / `GOOGLE_API_KEY` |
 | `bedrock` | `claude-code` (and others) | `AWS_BEARER_TOKEN_BEDROCK` |
 
 If `model_provider` is omitted, Jetty auto-defaults in this order: `openrouter` when `OPENROUTER_API_KEY` is available and the agent supports it → `bedrock` when `AWS_BEARER_TOKEN_BEDROCK` is set → legacy inference from `agent` (`claude-code` → `anthropic`, `opencode` → `openrouter`, `codex` → `openai`, `gemini-cli` → `google`). Always set it explicitly in frontmatter to avoid surprises.
 
 > **Trial runs route through OpenRouter.** Jetty trial keys include `OPENROUTER_API_KEY`, so a trial run with no explicit `model_provider` auto-defaults to `openrouter` — progress shows `Running agent: claude-code via openrouter`. That's Jetty's trial routing (same model), not your provider choice being ignored. To pin a provider, set `model_provider` in the runbook frontmatter, or pass `jetty.model_provider` on the chat-completions request (honored by current Jetty; older deployments only read the frontmatter).
 
-**Recommended:** route `claude-code` through `openrouter` (`model: anthropic/claude-sonnet-5.5` + `OPENROUTER_API_KEY`) — one key, unified billing, and provider failover. Anthropic-direct routing (`model: claude-sonnet-5-5` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`) is fully supported if you prefer it.
+**Default:** `model_provider: openrouter` with `OPENROUTER_API_KEY` — one key, unified billing, and provider failover. Write it explicitly for `codex`: Jetty's auto-default skips OpenRouter for codex when `model_provider` is omitted. Direct routing (e.g. `model: claude-sonnet-5-5` + `model_provider: anthropic` + `ANTHROPIC_API_KEY`, or `model: gpt-6.1-sol` + `model_provider: openai` + `OPENAI_API_KEY`) is fully supported when you want it.
 
 ## Sandbox Snapshots
 
