@@ -804,8 +804,7 @@ run = {
     "strict_evaluation_path": "init_params.strict_evaluation",
     "cpus": 4,
     "memory": "8G",
-    "timeout_sec": 1200,
-    "network_enabled": True,
+    "timeout_sec": 7200,
 }
 if "model_provider" in init:
     run["model_provider_path"] = "init_params.model_provider"
