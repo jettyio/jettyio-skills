@@ -587,7 +587,7 @@ The chat-completions endpoint supports two modes via a single URL:
 | `jetty.runbook` | boolean | Yes | Enable runbook/agent mode |
 | `jetty.collection` | string | Yes | Namespace for the task |
 | `jetty.task` | string | Yes | Task identifier |
-| `jetty.agent` | string | Yes | `claude-code` (recommended default), `opencode`, `codex`, or `gemini-cli` |
+| `jetty.agent` | string | Yes | `claude-code` (recommended default), `codex`, `opencode`, `pi`, or `antigravity` |
 | `jetty.model_provider` | string | No | `anthropic`, `openrouter`, `openai`, `google`, `bedrock`. Set explicitly to pin routing — when omitted, runs auto-default to `openrouter` whenever an `OPENROUTER_API_KEY` is available (Jetty **trial keys include one**, so trial runs show `via openrouter`; see agents-and-models reference) |
 | `jetty.snapshot` | string | No | Sandbox snapshot: `python312-uv` (default; includes Playwright + Chromium). Read from runbook frontmatter |
 | `jetty.template_variables` | object | No | Key-value pairs for `{{var}}` substitution in the runbook instruction. `results_dir` defaults to `/app/results` |
