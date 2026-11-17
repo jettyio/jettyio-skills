@@ -127,9 +127,6 @@ The `templates/` directory contains ready-to-use workflow JSON files:
 
 - `simple-chat.json` - Basic LLM chat workflow
 - `text-echo.json` - Simple echo for testing
-- `model-comparison.json` - Compare multiple LLMs
-- `fan-out-processing.json` - Parallel chunk processing
-- `image-generation.json` - Generate images with Replicate
 
 ### Using Templates
 

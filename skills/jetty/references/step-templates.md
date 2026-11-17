@@ -12,7 +12,6 @@ Complete catalog of available step templates (activities) for Jetty workflows.
 | `gemini_image_generator` | Gemini image generation | `model`, `prompt`/`prompt_path` |
 | `replicate_text2image` | Text-to-image via Replicate | `model`, `prompt`/`prompt_path`, `width`, `height` |
 | `replicate_text2video` | Text-to-video via Replicate | `model`, `prompt`/`prompt_path` |
-| `replicate_run` | Generic Replicate model run | `model`, `input` (model-specific) |
 
 ## Control Flow
 
@@ -33,7 +32,6 @@ Runtime note: some API schema responses and older examples still mention
 | `text_echo` | Pass through text | `text` or `text_path` |
 | `text_template` | Template text with variables | `template`, variable paths |
 | `text_concatenate` | Concatenate text | `texts_path` |
-| `text_split` | Split text into chunks | `text_path`, `chunk_size`, `overlap` |
 
 ## Evaluation
 

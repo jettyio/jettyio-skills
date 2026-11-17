@@ -4,7 +4,7 @@
     "evaluation_criteria": "Evaluate for clarity, accuracy, and professionalism.",
     "scale_min": 1,
     "scale_max": 10,
-    "model": "gpt-4o"
+    "model": "gpt-5.6-sol"
   },
   "step_configs": {
     "score": {
