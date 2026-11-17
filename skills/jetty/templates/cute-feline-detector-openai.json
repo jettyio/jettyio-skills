@@ -20,7 +20,7 @@
       "model": "gpt-image-2.5-flare",
       "prompt_path": "expand_prompt.outputs.text",
       "size": "1024x1024",
-      "quality": "standard"
+      "quality": "medium"
     },
     "judge_cuteness": {
       "activity": "simple_judge",

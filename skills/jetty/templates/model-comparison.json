@@ -3,21 +3,18 @@
     "prompt": "Explain quantum computing in simple terms",
     "model_a": "gpt-5.6-sol",
     "model_b": "claude-sonnet-5-5",
-    "judge_model": "gpt-5.6-sol",
-    "temperature": 0.7
+    "judge_model": "gpt-5.6-sol"
   },
   "step_configs": {
     "response_a": {
       "activity": "litellm_chat",
       "model_path": "init_params.model_a",
-      "prompt_path": "init_params.prompt",
-      "temperature_path": "init_params.temperature"
+      "prompt_path": "init_params.prompt"
     },
     "response_b": {
       "activity": "litellm_chat",
       "model_path": "init_params.model_b",
-      "prompt_path": "init_params.prompt",
-      "temperature_path": "init_params.temperature"
+      "prompt_path": "init_params.prompt"
     },
     "compare": {
       "activity": "simple_judge",

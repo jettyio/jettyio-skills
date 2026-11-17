@@ -66,14 +66,12 @@ Runs two models on the same prompt, then uses `simple_judge` to compare.
     "model_a": {
       "activity": "litellm_chat",
       "model": "gpt-5.6-sol",
-      "prompt_path": "init_params.prompt",
-      "temperature": 0.7
+      "prompt_path": "init_params.prompt"
     },
     "model_b": {
       "activity": "litellm_chat",
       "model": "claude-sonnet-5-5",
-      "prompt_path": "init_params.prompt",
-      "temperature": 0.7
+      "prompt_path": "init_params.prompt"
     },
     "compare": {
       "activity": "simple_judge",
