@@ -108,7 +108,7 @@ Save the chosen evaluation pattern: `programmatic` or `rubric`. When you skip th
 
 ### 2c: Agent Runtime & Snapshot
 
-**Default to `claude-code` + `anthropic/claude-sonnet-5.5` routed through OpenRouter (`model_provider: openrouter`) without asking.** This is the right choice for the vast majority of users — strong reasoning, broad tool support, and a single `OPENROUTER_API_KEY` gives unified billing and provider failover. Only fall back to AskUserQuestion when the user has explicitly asked for a different agent in their task description (e.g., "route Claude through Anthropic directly", "use Codex", "I only have a Gemini key").
+**Default to `claude-code` + `anthropic/claude-sonnet-5.5` routed through OpenRouter (`model_provider: openrouter`) without asking.** This is the right choice for the vast majority of users — strong reasoning, broad tool support, and a single `OPENROUTER_API_KEY` gives unified billing and provider failover. Only fall back to AskUserQuestion when the user has explicitly asked for a different agent in their task description (e.g., "use Codex", "I only have a Gemini key").
 
 Before defaulting silently, do a quick check to confirm the user's collection has a usable key for the encouraged config. Run:
 
@@ -119,11 +119,11 @@ COLLECTION="{collection from Step 2a or jetty whoami default}"
 # Org-level provider keys
 COLL=$(curl -s -H "Authorization: Bearer $TOKEN" \
   "https://flows-api.jetty.io/api/v1/collections/$COLLECTION/environment")
-read HAS_OPENROUTER HAS_ANTHROPIC <<< "$(echo "$COLL" | python3 -c "
+HAS_OPENROUTER=$(echo "$COLL" | python3 -c "
 import sys, json
 evars = json.load(sys.stdin).get('environment_variables', {})
-print('OPENROUTER_API_KEY' in evars, 'ANTHROPIC_API_KEY' in evars)
-")"
+print('OPENROUTER_API_KEY' in evars)
+")
 
 # Trial status
 TRIAL=$(curl -s -H "Authorization: Bearer $TOKEN" \
@@ -131,17 +131,16 @@ TRIAL=$(curl -s -H "Authorization: Bearer $TOKEN" \
 TRIAL_ACTIVE=$(echo "$TRIAL" | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('active', False))")
 ```
 
-Decision (every path keeps the `claude-code` agent):
-- `HAS_OPENROUTER == True` → **encouraged path**: `claude-code` + `anthropic/claude-sonnet-5.5` + `model_provider: openrouter`. One line: *"Using Claude Code on OpenRouter (anthropic/claude-sonnet-5.5) — your org has OPENROUTER_API_KEY set."*
-- No OpenRouter key, but `HAS_ANTHROPIC == True` **or** `TRIAL_ACTIVE == True` → fall back to `claude-code` + `claude-sonnet-5-5` + `model_provider: anthropic`. One line: *"Using Claude Code via Anthropic (claude-sonnet-5-5) — your trial covers it."* or *"…your org has ANTHROPIC_API_KEY set."*
-- Neither → still default to the encouraged OpenRouter path, but tell the user: *"Defaulting to Claude Code on OpenRouter (anthropic/claude-sonnet-5.5). Add an OPENROUTER_API_KEY in Jetty before running — or tell me to route Claude through Anthropic instead."*
+Every path uses the same config — `claude-code` + `anthropic/claude-sonnet-5.5` + `model_provider: openrouter`. Claude Code is always routed through OpenRouter; never write `model_provider: anthropic` or the dashed `claude-sonnet-5-5` id into a runbook. The check only decides what to tell the user:
+- `HAS_OPENROUTER == True` → one line: *"Using Claude Code on OpenRouter (anthropic/claude-sonnet-5.5) — your org has OPENROUTER_API_KEY set."*
+- No OpenRouter key, but `TRIAL_ACTIVE == True` → one line: *"Using Claude Code on OpenRouter (anthropic/claude-sonnet-5.5) — your trial covers it."*
+- Neither → *"Using Claude Code on OpenRouter (anthropic/claude-sonnet-5.5). Add an OPENROUTER_API_KEY in Jetty before running."*
 
 Only use AskUserQuestion when the user's task description explicitly names a different runtime, or they push back on the default. When you do ask:
 - Header: "Agent Runtime"
 - Question: "Which agent will run this runbook on Jetty?"
 - Options:
   - "Claude Code on OpenRouter (Recommended)" / "Runs the Claude Code agent on anthropic/claude-sonnet-5.5 routed through OpenRouter. One OPENROUTER_API_KEY — unified billing and provider failover."
-  - "Claude Code via Anthropic" / "Runs Claude Code on claude-sonnet-5-5 directly via Anthropic. Requires an ANTHROPIC_API_KEY."
   - "Codex (OpenAI)" / "Uses gpt-6.1-sol — strong at code generation. Requires an OPENAI_API_KEY."
   - "Gemini CLI (Google)" / "Uses gemini-3.1-pro-preview — free tier available. Requires a GOOGLE_API_KEY."
 
@@ -149,7 +148,6 @@ Only use AskUserQuestion when the user's task description explicitly names a dif
 
 Save the agent, model, and provider choice. The mapping is:
 - Claude Code on OpenRouter → agent: `claude-code`, model: `anthropic/claude-sonnet-5.5`, model_provider: `openrouter`
-- Claude Code via Anthropic → agent: `claude-code`, model: `claude-sonnet-5-5`, model_provider: `anthropic`
 - Codex → agent: `codex`, model: `gpt-6.1-sol`, model_provider: `openai`
 - Gemini CLI → agent: `gemini-cli`, model: `gemini-3.1-pro-preview`, model_provider: `google`
 
@@ -188,7 +186,7 @@ Now customize the template using the task description from Step 2a:
 2. **Objective**: Write a 2-5 sentence objective based on what the user described — input, processing, output
 3. **Output manifest**: Propose specific output files based on the task (replace `{primary_output}` with a real filename like `results.csv`, `output.json`, `report.html`, etc.). Replace it **everywhere it appears** (use replace_all): the REQUIRED OUTPUT FILES table, the `primary_outputs:` frontmatter list, the `outputs-exist` check, the Code Checks `{TODO:}` line and the report example. A `{primary_output}` left in a check is a validation error, because the check would look for a file literally named that. `primary_outputs` is what lets spot surface the right file as the "Main output" when a run completes; list only headline deliverables (never `summary.md` or `validation_report.json`), most important first.
 4. **Parameters**: Propose parameters based on inputs mentioned in the task description. Always keep `{{results_dir}}`.
-5. **Agent/model/model_provider/snapshot**: Write the choices from Step 2c into the frontmatter fields. Include `model_provider` so routing is explicit (claude-code → `openrouter` by default, or `anthropic` for direct routing; codex → `openai`; gemini-cli → `google`).
+5. **Agent/model/model_provider/snapshot**: Write the choices from Step 2c into the frontmatter fields. Include `model_provider` so routing is explicit (claude-code → `openrouter`; codex → `openai`; gemini-cli → `google`).
 6. **Steps 2-3**: Rename and briefly describe the processing steps based on the task
 7. **Code Checks and Checklist**: keep the `outputs-exist` check and make its file list match the REQUIRED OUTPUT FILES table (minus `validation_report.json`). Leave the `{TODO: ...}` line under Code Checks for Step 4h; it is prose before the first `###` heading, which Jetty's parser ignores, so it never runs.
 
@@ -920,8 +918,8 @@ Tell the user:
 > | Frontmatter field | `jetty` block field | Purpose |
 > |---|---|---|
 > | `agent` | `jetty.agent` | Which agent CLI runs the runbook (`claude-code`, `opencode`, `codex`, `gemini-cli`) |
-> | `model` | `model` (top-level) | Which LLM the agent uses (e.g. `anthropic/claude-sonnet-5.5` for claude-code on OpenRouter, or `claude-sonnet-5-5` for claude-code via Anthropic) |
-> | `model_provider` | `jetty.model_provider` | How the model id is routed: `anthropic`, `openrouter`, `openai`, `google`, `bedrock` |
+> | `model` | `model` (top-level) | Which LLM the agent uses (`anthropic/claude-sonnet-5.5` for claude-code on OpenRouter) |
+> | `model_provider` | `jetty.model_provider` | How the model id is routed: `openrouter` for claude-code (`openai` for codex, `google` for gemini-cli) |
 > | `snapshot` | `jetty.snapshot` | Sandbox environment: `python312-uv` (includes Playwright + Chromium) |
 > | parameters | `jetty.template_variables` | Key-value pairs for `{{var}}` substitution in the runbook |
 > | — | `jetty.collection` | Namespace that holds your env vars and secrets |
